@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 249, 250, 251;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+/* Zusätzliche globale Stile */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+  
+  h1 {
+    @apply text-2xl;
+  }
+  
+  h2 {
+    @apply text-xl;
+  }
+  
+  a {
+    @apply text-blue-600 hover:text-blue-800;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded font-medium transition-colors;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-100 p-6;
+  }
+} 
