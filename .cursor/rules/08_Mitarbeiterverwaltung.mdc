@@ -1,0 +1,69 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Mitarbeiterverwaltung (aktualisiert)
+
+## Tabellen: `public.staff`, `auth.users`, `public.staff_hours`
+
+### Mitarbeiter-Basisdaten
+- `id`: UUID (FK → auth.users.id)
+- `rolle`: Enum: admin, studioleiter, mitarbeiter
+- `created_at`, `updated_at`
+- (aus auth.users): `email`, optional `first_name`, `last_name`
+
+## Übersicht
+- Tabelle: Name, E-Mail, Rolle, Letzter Login
+- Filterbar nach Rolle
+- Suchfunktion nach Name/E-Mail
+- Aktionen: Bearbeiten, Deaktivieren
+
+## Mitarbeiter anlegen
+- Nur durch Admin oder Studioleiter
+- Modal mit Feldern:
+  - Vorname, Nachname
+  - E-Mail-Adresse
+  - Rolle (Dropdown)
+- Nach Speichern:
+  - Einladung via Supabase E-Mail-Auth
+  - Benutzer erscheint in Liste sobald bestätigt
+
+## Rollen & Berechtigungen
+| Rolle       | Beschreibung                                           |
+|-------------|--------------------------------------------------------|
+| Admin       | Vollzugriff auf alle Module + Systemeinstellungen      |
+| Studioleiter | Darf Mitarbeiter verwalten (außer Admins), Stunden pflegen |
+| Mitarbeiter | Nur Leads/Beratung bearbeiten, keine Adminfunktionen   |
+
+## Sichtbarkeit & Sicherheit
+- Login via Supabase Auth (E-Mail + Passwort)
+- 2FA optional aktivierbar
+- Nur sichtbare Passwörter durch Rollenzuordnung
+- Deaktivieren statt Löschen (Auditfähig)
+- Historie bleibt bestehen
+
+---
+
+## ⏱️ Stundenerfassung & Urlaub
+
+### Tabelle: `staff_hours`
+- `id`: uuid
+- `staff_id`: FK → staff
+- `date`: Arbeitsdatum
+- `hours`: gearbeitete Stunden (decimal)
+- `reason`: optionaler Freitext (z. B. „BGM-Einsatz“)
+- `created_at`: Timestamp
+
+### Funktionen:
+- Stunden können durch Mitarbeiter (eigene) oder Studioleiter/Admin (alle) erfasst werden
+- Anzeige als Wochen- und Monatsübersicht pro Mitarbeiter
+- Visualisierung:
+  - Balkenanzeige (z. B. 32/40 Std.)
+  - Ampelfarben bei Unter-/Übererfüllung
+- Urlaubstage und Krankheitstage können als reason erfasst oder in ein separates Feld ausgelagert werden
+
+### UI-Komponenten:
+- `StundenCard`: aktuelle Woche, Summe, Icon
+- `StundenModal`: Stunden erfassen (Datum, Zeit, Grund)
+- `StundenTabelle`: Monatsübersicht

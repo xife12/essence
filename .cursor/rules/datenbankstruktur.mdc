@@ -1,0 +1,511 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+| table_schema | table_name                 | column_name                 | data_type                   | is_nullable | column_default                                  |
+| ------------ | -------------------------- | --------------------------- | --------------------------- | ----------- | ----------------------------------------------- |
+| auth         | audit_log_entries          | instance_id                 | uuid                        | YES         | null                                            |
+| auth         | audit_log_entries          | id                          | uuid                        | NO          | null                                            |
+| auth         | audit_log_entries          | payload                     | json                        | YES         | null                                            |
+| auth         | audit_log_entries          | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | audit_log_entries          | ip_address                  | character varying           | NO          | ''::character varying                           |
+| auth         | flow_state                 | id                          | uuid                        | NO          | null                                            |
+| auth         | flow_state                 | user_id                     | uuid                        | YES         | null                                            |
+| auth         | flow_state                 | auth_code                   | text                        | NO          | null                                            |
+| auth         | flow_state                 | code_challenge_method       | USER-DEFINED                | NO          | null                                            |
+| auth         | flow_state                 | code_challenge              | text                        | NO          | null                                            |
+| auth         | flow_state                 | provider_type               | text                        | NO          | null                                            |
+| auth         | flow_state                 | provider_access_token       | text                        | YES         | null                                            |
+| auth         | flow_state                 | provider_refresh_token      | text                        | YES         | null                                            |
+| auth         | flow_state                 | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | flow_state                 | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | flow_state                 | authentication_method       | text                        | NO          | null                                            |
+| auth         | flow_state                 | auth_code_issued_at         | timestamp with time zone    | YES         | null                                            |
+| auth         | identities                 | provider_id                 | text                        | NO          | null                                            |
+| auth         | identities                 | user_id                     | uuid                        | NO          | null                                            |
+| auth         | identities                 | identity_data               | jsonb                       | NO          | null                                            |
+| auth         | identities                 | provider                    | text                        | NO          | null                                            |
+| auth         | identities                 | last_sign_in_at             | timestamp with time zone    | YES         | null                                            |
+| auth         | identities                 | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | identities                 | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | identities                 | email                       | text                        | YES         | null                                            |
+| auth         | identities                 | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| auth         | instances                  | id                          | uuid                        | NO          | null                                            |
+| auth         | instances                  | uuid                        | uuid                        | YES         | null                                            |
+| auth         | instances                  | raw_base_config             | text                        | YES         | null                                            |
+| auth         | instances                  | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | instances                  | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | mfa_amr_claims             | session_id                  | uuid                        | NO          | null                                            |
+| auth         | mfa_amr_claims             | created_at                  | timestamp with time zone    | NO          | null                                            |
+| auth         | mfa_amr_claims             | updated_at                  | timestamp with time zone    | NO          | null                                            |
+| auth         | mfa_amr_claims             | authentication_method       | text                        | NO          | null                                            |
+| auth         | mfa_amr_claims             | id                          | uuid                        | NO          | null                                            |
+| auth         | mfa_challenges             | id                          | uuid                        | NO          | null                                            |
+| auth         | mfa_challenges             | factor_id                   | uuid                        | NO          | null                                            |
+| auth         | mfa_challenges             | created_at                  | timestamp with time zone    | NO          | null                                            |
+| auth         | mfa_challenges             | verified_at                 | timestamp with time zone    | YES         | null                                            |
+| auth         | mfa_challenges             | ip_address                  | inet                        | NO          | null                                            |
+| auth         | mfa_challenges             | otp_code                    | text                        | YES         | null                                            |
+| auth         | mfa_challenges             | web_authn_session_data      | jsonb                       | YES         | null                                            |
+| auth         | mfa_factors                | id                          | uuid                        | NO          | null                                            |
+| auth         | mfa_factors                | user_id                     | uuid                        | NO          | null                                            |
+| auth         | mfa_factors                | friendly_name               | text                        | YES         | null                                            |
+| auth         | mfa_factors                | factor_type                 | USER-DEFINED                | NO          | null                                            |
+| auth         | mfa_factors                | status                      | USER-DEFINED                | NO          | null                                            |
+| auth         | mfa_factors                | created_at                  | timestamp with time zone    | NO          | null                                            |
+| auth         | mfa_factors                | updated_at                  | timestamp with time zone    | NO          | null                                            |
+| auth         | mfa_factors                | secret                      | text                        | YES         | null                                            |
+| auth         | mfa_factors                | phone                       | text                        | YES         | null                                            |
+| auth         | mfa_factors                | last_challenged_at          | timestamp with time zone    | YES         | null                                            |
+| auth         | mfa_factors                | web_authn_credential        | jsonb                       | YES         | null                                            |
+| auth         | mfa_factors                | web_authn_aaguid            | uuid                        | YES         | null                                            |
+| auth         | one_time_tokens            | id                          | uuid                        | NO          | null                                            |
+| auth         | one_time_tokens            | user_id                     | uuid                        | NO          | null                                            |
+| auth         | one_time_tokens            | token_type                  | USER-DEFINED                | NO          | null                                            |
+| auth         | one_time_tokens            | token_hash                  | text                        | NO          | null                                            |
+| auth         | one_time_tokens            | relates_to                  | text                        | NO          | null                                            |
+| auth         | one_time_tokens            | created_at                  | timestamp without time zone | NO          | now()                                           |
+| auth         | one_time_tokens            | updated_at                  | timestamp without time zone | NO          | now()                                           |
+| auth         | refresh_tokens             | instance_id                 | uuid                        | YES         | null                                            |
+| auth         | refresh_tokens             | id                          | bigint                      | NO          | nextval('auth.refresh_tokens_id_seq'::regclass) |
+| auth         | refresh_tokens             | token                       | character varying           | YES         | null                                            |
+| auth         | refresh_tokens             | user_id                     | character varying           | YES         | null                                            |
+| auth         | refresh_tokens             | revoked                     | boolean                     | YES         | null                                            |
+| auth         | refresh_tokens             | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | refresh_tokens             | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | refresh_tokens             | parent                      | character varying           | YES         | null                                            |
+| auth         | refresh_tokens             | session_id                  | uuid                        | YES         | null                                            |
+| auth         | saml_providers             | id                          | uuid                        | NO          | null                                            |
+| auth         | saml_providers             | sso_provider_id             | uuid                        | NO          | null                                            |
+| auth         | saml_providers             | entity_id                   | text                        | NO          | null                                            |
+| auth         | saml_providers             | metadata_xml                | text                        | NO          | null                                            |
+| auth         | saml_providers             | metadata_url                | text                        | YES         | null                                            |
+| auth         | saml_providers             | attribute_mapping           | jsonb                       | YES         | null                                            |
+| auth         | saml_providers             | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | saml_providers             | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | saml_providers             | name_id_format              | text                        | YES         | null                                            |
+| auth         | saml_relay_states          | id                          | uuid                        | NO          | null                                            |
+| auth         | saml_relay_states          | sso_provider_id             | uuid                        | NO          | null                                            |
+| auth         | saml_relay_states          | request_id                  | text                        | NO          | null                                            |
+| auth         | saml_relay_states          | for_email                   | text                        | YES         | null                                            |
+| auth         | saml_relay_states          | redirect_to                 | text                        | YES         | null                                            |
+| auth         | saml_relay_states          | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | saml_relay_states          | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | saml_relay_states          | flow_state_id               | uuid                        | YES         | null                                            |
+| auth         | schema_migrations          | version                     | character varying           | NO          | null                                            |
+| auth         | sessions                   | id                          | uuid                        | NO          | null                                            |
+| auth         | sessions                   | user_id                     | uuid                        | NO          | null                                            |
+| auth         | sessions                   | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | sessions                   | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | sessions                   | factor_id                   | uuid                        | YES         | null                                            |
+| auth         | sessions                   | aal                         | USER-DEFINED                | YES         | null                                            |
+| auth         | sessions                   | not_after                   | timestamp with time zone    | YES         | null                                            |
+| auth         | sessions                   | refreshed_at                | timestamp without time zone | YES         | null                                            |
+| auth         | sessions                   | user_agent                  | text                        | YES         | null                                            |
+| auth         | sessions                   | ip                          | inet                        | YES         | null                                            |
+| auth         | sessions                   | tag                         | text                        | YES         | null                                            |
+| auth         | sso_domains                | id                          | uuid                        | NO          | null                                            |
+| auth         | sso_domains                | sso_provider_id             | uuid                        | NO          | null                                            |
+| auth         | sso_domains                | domain                      | text                        | NO          | null                                            |
+| auth         | sso_domains                | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | sso_domains                | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | sso_providers              | id                          | uuid                        | NO          | null                                            |
+| auth         | sso_providers              | resource_id                 | text                        | YES         | null                                            |
+| auth         | sso_providers              | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | sso_providers              | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | instance_id                 | uuid                        | YES         | null                                            |
+| auth         | users                      | id                          | uuid                        | NO          | null                                            |
+| auth         | users                      | aud                         | character varying           | YES         | null                                            |
+| auth         | users                      | role                        | character varying           | YES         | null                                            |
+| auth         | users                      | email                       | character varying           | YES         | null                                            |
+| auth         | users                      | encrypted_password          | character varying           | YES         | null                                            |
+| auth         | users                      | email_confirmed_at          | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | invited_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | confirmation_token          | character varying           | YES         | null                                            |
+| auth         | users                      | confirmation_sent_at        | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | recovery_token              | character varying           | YES         | null                                            |
+| auth         | users                      | recovery_sent_at            | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | email_change_token_new      | character varying           | YES         | null                                            |
+| auth         | users                      | email_change                | character varying           | YES         | null                                            |
+| auth         | users                      | email_change_sent_at        | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | last_sign_in_at             | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | raw_app_meta_data           | jsonb                       | YES         | null                                            |
+| auth         | users                      | raw_user_meta_data          | jsonb                       | YES         | null                                            |
+| auth         | users                      | is_super_admin              | boolean                     | YES         | null                                            |
+| auth         | users                      | created_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | phone                       | text                        | YES         | NULL::character varying                         |
+| auth         | users                      | phone_confirmed_at          | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | phone_change                | text                        | YES         | ''::character varying                           |
+| auth         | users                      | phone_change_token          | character varying           | YES         | ''::character varying                           |
+| auth         | users                      | phone_change_sent_at        | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | confirmed_at                | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | email_change_token_current  | character varying           | YES         | ''::character varying                           |
+| auth         | users                      | email_change_confirm_status | smallint                    | YES         | 0                                               |
+| auth         | users                      | banned_until                | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | reauthentication_token      | character varying           | YES         | ''::character varying                           |
+| auth         | users                      | reauthentication_sent_at    | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | is_sso_user                 | boolean                     | NO          | false                                           |
+| auth         | users                      | deleted_at                  | timestamp with time zone    | YES         | null                                            |
+| auth         | users                      | is_anonymous                | boolean                     | NO          | false                                           |
+| extensions   | pg_stat_statements         | userid                      | oid                         | YES         | null                                            |
+| extensions   | pg_stat_statements         | dbid                        | oid                         | YES         | null                                            |
+| extensions   | pg_stat_statements         | toplevel                    | boolean                     | YES         | null                                            |
+| extensions   | pg_stat_statements         | queryid                     | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | query                       | text                        | YES         | null                                            |
+| extensions   | pg_stat_statements         | plans                       | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | total_plan_time             | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | min_plan_time               | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | max_plan_time               | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | mean_plan_time              | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | stddev_plan_time            | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | calls                       | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | total_exec_time             | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | min_exec_time               | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | max_exec_time               | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | mean_exec_time              | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | stddev_exec_time            | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | rows                        | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | shared_blks_hit             | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | shared_blks_read            | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | shared_blks_dirtied         | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | shared_blks_written         | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | local_blks_hit              | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | local_blks_read             | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | local_blks_dirtied          | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | local_blks_written          | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | temp_blks_read              | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | temp_blks_written           | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | blk_read_time               | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | blk_write_time              | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | temp_blk_read_time          | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | temp_blk_write_time         | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | wal_records                 | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | wal_fpi                     | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | wal_bytes                   | numeric                     | YES         | null                                            |
+| extensions   | pg_stat_statements         | jit_functions               | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | jit_generation_time         | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | jit_inlining_count          | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | jit_inlining_time           | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | jit_optimization_count      | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | jit_optimization_time       | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements         | jit_emission_count          | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements         | jit_emission_time           | double precision            | YES         | null                                            |
+| extensions   | pg_stat_statements_info    | dealloc                     | bigint                      | YES         | null                                            |
+| extensions   | pg_stat_statements_info    | stats_reset                 | timestamp with time zone    | YES         | null                                            |
+| public       | ads                        | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | ads                        | campaign_id                 | uuid                        | YES         | null                                            |
+| public       | ads                        | title                       | text                        | NO          | null                                            |
+| public       | ads                        | description                 | text                        | NO          | null                                            |
+| public       | ads                        | target_audience             | text                        | YES         | null                                            |
+| public       | ads                        | budget                      | numeric                     | YES         | null                                            |
+| public       | ads                        | duration                    | integer                     | YES         | null                                            |
+| public       | ads                        | image_url                   | text                        | YES         | null                                            |
+| public       | ads                        | status                      | text                        | NO          | 'draft'::text                                   |
+| public       | ads                        | reach                       | integer                     | YES         | 0                                               |
+| public       | ads                        | cpl                         | numeric                     | YES         | 0                                               |
+| public       | ads                        | clicks                      | integer                     | YES         | 0                                               |
+| public       | ads                        | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | ads                        | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | ads                        | facebook_ad_id              | text                        | YES         | null                                            |
+| public       | ads                        | meta_response               | jsonb                       | YES         | null                                            |
+| public       | api_credentials            | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | api_credentials            | provider                    | text                        | NO          | null                                            |
+| public       | api_credentials            | access_token                | text                        | NO          | null                                            |
+| public       | api_credentials            | refresh_token               | text                        | YES         | null                                            |
+| public       | api_credentials            | expires_at                  | timestamp with time zone    | YES         | null                                            |
+| public       | api_credentials            | metadata                    | jsonb                       | YES         | null                                            |
+| public       | api_credentials            | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | api_credentials            | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | campaign_pages             | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | campaign_pages             | campaign_id                 | uuid                        | YES         | null                                            |
+| public       | campaign_pages             | landingpage_id              | uuid                        | YES         | null                                            |
+| public       | campaign_pages             | form_id                     | uuid                        | YES         | null                                            |
+| public       | campaign_pages             | testimonial_ids             | ARRAY                       | YES         | null                                            |
+| public       | campaign_pages             | custom_sections             | jsonb                       | YES         | null                                            |
+| public       | campaign_pages             | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | campaign_pages             | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | campaigns                  | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | campaigns                  | name                        | text                        | NO          | null                                            |
+| public       | campaigns                  | description                 | text                        | YES         | null                                            |
+| public       | campaigns                  | start_date                  | date                        | NO          | null                                            |
+| public       | campaigns                  | end_date                    | date                        | NO          | null                                            |
+| public       | campaigns                  | status                      | text                        | NO          | 'aktiv'::text                                   |
+| public       | campaigns                  | campaign_type               | text                        | YES         | null                                            |
+| public       | campaigns                  | target_group                | text                        | YES         | null                                            |
+| public       | campaigns                  | bonus_period                | text                        | YES         | null                                            |
+| public       | campaigns                  | channels                    | ARRAY                       | YES         | null                                            |
+| public       | campaigns                  | contract_type_ids           | ARRAY                       | YES         | null                                            |
+| public       | campaigns                  | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | campaigns                  | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | canva_templates            | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | canva_templates            | name                        | text                        | NO          | null                                            |
+| public       | canva_templates            | description                 | text                        | YES         | null                                            |
+| public       | canva_templates            | canva_design_id             | text                        | NO          | null                                            |
+| public       | canva_templates            | preview_url                 | text                        | YES         | null                                            |
+| public       | canva_templates            | tags                        | ARRAY                       | YES         | null                                            |
+| public       | canva_templates            | created_by                  | uuid                        | YES         | null                                            |
+| public       | canva_templates            | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | consultations              | id                          | uuid                        | NO          | uuid_generate_v4()                              |
+| public       | consultations              | lead_id                     | uuid                        | NO          | null                                            |
+| public       | consultations              | consultant                  | text                        | NO          | null                                            |
+| public       | consultations              | date                        | timestamp with time zone    | NO          | null                                            |
+| public       | consultations              | result                      | text                        | NO          | null                                            |
+| public       | consultations              | planned_contract_type_id    | uuid                        | YES         | null                                            |
+| public       | consultations              | notes                       | text                        | YES         | null                                            |
+| public       | consultations              | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | consultations              | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | content_posts              | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | content_posts              | campaign_id                 | uuid                        | YES         | null                                            |
+| public       | content_posts              | title                       | text                        | NO          | null                                            |
+| public       | content_posts              | content                     | text                        | NO          | null                                            |
+| public       | content_posts              | media_url                   | text                        | YES         | null                                            |
+| public       | content_posts              | post_date                   | date                        | NO          | null                                            |
+| public       | content_posts              | channel                     | text                        | NO          | null                                            |
+| public       | content_posts              | status                      | text                        | NO          | 'geplant'::text                                 |
+| public       | content_posts              | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | content_posts              | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | contract_type_modules      | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | contract_type_modules      | contract_type_id            | uuid                        | NO          | null                                            |
+| public       | contract_type_modules      | name                        | text                        | NO          | null                                            |
+| public       | contract_type_modules      | is_paid                     | boolean                     | NO          | false                                           |
+| public       | contract_type_modules      | price                       | numeric                     | YES         | null                                            |
+| public       | contract_type_modules      | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | contract_types             | id                          | uuid                        | NO          | uuid_generate_v4()                              |
+| public       | contract_types             | name                        | text                        | NO          | null                                            |
+| public       | contract_types             | terms                       | ARRAY                       | NO          | null                                            |
+| public       | contract_types             | paid                        | boolean                     | NO          | false                                           |
+| public       | contract_types             | status                      | text                        | NO          | 'active'::text                                  |
+| public       | contract_types             | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | contract_types             | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | contract_types             | auto_renew                  | boolean                     | YES         | false                                           |
+| public       | contract_types             | auto_renew_period           | integer                     | YES         | null                                            |
+| public       | contract_types             | cancellation_period         | integer                     | YES         | 30                                              |
+| public       | contract_types             | bonus_period                | integer                     | YES         | null                                            |
+| public       | contract_types             | campaign_id                 | uuid                        | YES         | null                                            |
+| public       | form_templates             | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | form_templates             | name                        | text                        | NO          | null                                            |
+| public       | form_templates             | fields                      | jsonb                       | NO          | null                                            |
+| public       | form_templates             | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | form_templates             | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | landingpage_templates      | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | landingpage_templates      | name                        | text                        | NO          | null                                            |
+| public       | landingpage_templates      | description                 | text                        | YES         | null                                            |
+| public       | landingpage_templates      | sections                    | jsonb                       | NO          | null                                            |
+| public       | landingpage_templates      | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | landingpage_templates      | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | landingpages               | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | landingpages               | campaign_id                 | uuid                        | YES         | null                                            |
+| public       | landingpages               | url_slug                    | text                        | NO          | null                                            |
+| public       | landingpages               | template_type               | text                        | NO          | null                                            |
+| public       | landingpages               | headline                    | text                        | NO          | null                                            |
+| public       | landingpages               | content                     | jsonb                       | NO          | null                                            |
+| public       | landingpages               | is_published                | boolean                     | YES         | false                                           |
+| public       | landingpages               | visits                      | integer                     | YES         | 0                                               |
+| public       | landingpages               | conversions                 | integer                     | YES         | 0                                               |
+| public       | landingpages               | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | landingpages               | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | leads                      | id                          | uuid                        | NO          | uuid_generate_v4()                              |
+| public       | leads                      | name                        | text                        | NO          | null                                            |
+| public       | leads                      | contact                     | text                        | NO          | null                                            |
+| public       | leads                      | source                      | text                        | YES         | null                                            |
+| public       | leads                      | status                      | text                        | NO          | 'open'::text                                    |
+| public       | leads                      | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | leads                      | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | leads                      | campaign_id                 | uuid                        | YES         | null                                            |
+| public       | leads                      | first_name                  | text                        | YES         | null                                            |
+| public       | leads                      | last_name                   | text                        | YES         | null                                            |
+| public       | leads                      | phone                       | text                        | YES         | null                                            |
+| public       | leads                      | email                       | text                        | YES         | null                                            |
+| public       | leads                      | birthdate                   | date                        | YES         | null                                            |
+| public       | leads                      | member_number               | text                        | YES         | null                                            |
+| public       | media_assets               | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | media_assets               | name                        | text                        | NO          | null                                            |
+| public       | media_assets               | type                        | text                        | NO          | null                                            |
+| public       | media_assets               | category                    | text                        | YES         | null                                            |
+| public       | media_assets               | url                         | text                        | NO          | null                                            |
+| public       | media_assets               | tags                        | ARRAY                       | YES         | null                                            |
+| public       | media_assets               | created_by                  | uuid                        | YES         | null                                            |
+| public       | media_assets               | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | media_assets               | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | members                    | id                          | uuid                        | NO          | uuid_generate_v4()                              |
+| public       | members                    | name                        | text                        | NO          | null                                            |
+| public       | members                    | contact                     | text                        | NO          | null                                            |
+| public       | members                    | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | members                    | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | members                    | first_name                  | text                        | YES         | null                                            |
+| public       | members                    | last_name                   | text                        | YES         | null                                            |
+| public       | members                    | phone                       | text                        | YES         | null                                            |
+| public       | members                    | email                       | text                        | YES         | null                                            |
+| public       | members                    | birthdate                   | date                        | YES         | null                                            |
+| public       | members                    | member_number               | text                        | YES         | null                                            |
+| public       | memberships                | id                          | uuid                        | NO          | uuid_generate_v4()                              |
+| public       | memberships                | member_id                   | uuid                        | NO          | null                                            |
+| public       | memberships                | contract_type_id            | uuid                        | NO          | null                                            |
+| public       | memberships                | term                        | integer                     | NO          | null                                            |
+| public       | memberships                | start_date                  | date                        | NO          | null                                            |
+| public       | memberships                | end_date                    | date                        | NO          | null                                            |
+| public       | memberships                | status                      | text                        | NO          | 'active'::text                                  |
+| public       | memberships                | predecessor_id              | uuid                        | YES         | null                                            |
+| public       | memberships                | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | memberships                | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | memberships                | suspension_start_date       | date                        | YES         | null                                            |
+| public       | memberships                | suspension_end_date         | date                        | YES         | null                                            |
+| public       | memberships                | suspension_reason           | text                        | YES         | null                                            |
+| public       | modules                    | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | modules                    | name                        | text                        | NO          | null                                            |
+| public       | modules                    | description                 | text                        | YES         | null                                            |
+| public       | modules                    | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | secret_permissions         | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | secret_permissions         | secret_id                   | uuid                        | YES         | null                                            |
+| public       | secret_permissions         | user_id                     | uuid                        | YES         | null                                            |
+| public       | secret_permissions         | role                        | text                        | YES         | null                                            |
+| public       | secret_permissions         | can_view                    | boolean                     | YES         | false                                           |
+| public       | secret_permissions         | can_edit                    | boolean                     | YES         | false                                           |
+| public       | secret_permissions         | can_delete                  | boolean                     | YES         | false                                           |
+| public       | secret_permissions         | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | secrets                    | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | secrets                    | name                        | text                        | NO          | null                                            |
+| public       | secrets                    | description                 | text                        | YES         | null                                            |
+| public       | secrets                    | secret                      | text                        | NO          | null                                            |
+| public       | secrets                    | key_id                      | uuid                        | YES         | null                                            |
+| public       | secrets                    | nonce                       | bytea                       | YES         | null                                            |
+| public       | secrets                    | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | secrets                    | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | staff                      | id                          | uuid                        | NO          | null                                            |
+| public       | staff                      | rolle                       | text                        | NO          | null                                            |
+| public       | staff                      | created_at                  | timestamp with time zone    | NO          | now()                                           |
+| public       | staff                      | updated_at                  | timestamp with time zone    | NO          | now()                                           |
+| public       | staff                      | target_hours_per_month      | numeric                     | YES         | 160.0                                           |
+| public       | staff                      | vacation_days_per_year      | integer                     | YES         | 30                                              |
+| public       | staff                      | employment_percentage       | integer                     | YES         | 100                                             |
+| public       | staff                      | daily_work_hours            | numeric                     | YES         | 8.0                                             |
+| public       | staff                      | weekly_work_hours           | numeric                     | YES         | 40.0                                            |
+| public       | staff                      | include_in_total_statistics | boolean                     | YES         | true                                            |
+| public       | staff_activity_log         | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | staff_activity_log         | staff_id                    | uuid                        | NO          | null                                            |
+| public       | staff_activity_log         | action_type                 | text                        | NO          | null                                            |
+| public       | staff_activity_log         | entity_type                 | text                        | NO          | null                                            |
+| public       | staff_activity_log         | entity_id                   | uuid                        | YES         | null                                            |
+| public       | staff_activity_log         | details                     | text                        | YES         | null                                            |
+| public       | staff_activity_log         | timestamp                   | timestamp with time zone    | NO          | now()                                           |
+| public       | staff_hour_balance         | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | staff_hour_balance         | staff_id                    | uuid                        | YES         | null                                            |
+| public       | staff_hour_balance         | month                       | date                        | NO          | null                                            |
+| public       | staff_hour_balance         | balance_hours               | numeric                     | YES         | 0                                               |
+| public       | staff_hour_balance         | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | staff_hour_balance         | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | staff_hours                | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | staff_hours                | staff_id                    | uuid                        | NO          | null                                            |
+| public       | staff_hours                | date                        | date                        | NO          | null                                            |
+| public       | staff_hours                | hours                       | numeric                     | NO          | null                                            |
+| public       | staff_hours                | reason                      | text                        | YES         | null                                            |
+| public       | staff_hours                | created_at                  | timestamp with time zone    | NO          | now()                                           |
+| public       | staff_hours                | entry_type                  | character varying           | YES         | 'arbeitszeit'::character varying                |
+| public       | staff_hours                | is_half_day                 | boolean                     | YES         | false                                           |
+| public       | staff_hours                | type                        | character varying           | YES         | 'arbeitszeit'::character varying                |
+| public       | staff_hours                | stundenkonto                | numeric                     | YES         | null                                            |
+| public       | staff_hours                | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | staff_permissions          | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | staff_permissions          | staff_id                    | uuid                        | NO          | null                                            |
+| public       | staff_permissions          | module                      | text                        | NO          | null                                            |
+| public       | staff_permissions          | can_read                    | boolean                     | NO          | true                                            |
+| public       | staff_permissions          | can_write                   | boolean                     | NO          | false                                           |
+| public       | staff_permissions          | can_delete                  | boolean                     | NO          | false                                           |
+| public       | staff_permissions          | created_at                  | timestamp with time zone    | NO          | now()                                           |
+| public       | templates                  | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | templates                  | name                        | text                        | NO          | null                                            |
+| public       | templates                  | type                        | text                        | NO          | null                                            |
+| public       | templates                  | content                     | jsonb                       | NO          | null                                            |
+| public       | templates                  | description                 | text                        | YES         | null                                            |
+| public       | templates                  | is_global                   | boolean                     | YES         | false                                           |
+| public       | templates                  | created_by                  | uuid                        | YES         | null                                            |
+| public       | templates                  | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | templates                  | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | testimonials               | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| public       | testimonials               | name                        | text                        | NO          | null                                            |
+| public       | testimonials               | quote                       | text                        | NO          | null                                            |
+| public       | testimonials               | image_url                   | text                        | YES         | null                                            |
+| public       | testimonials               | role                        | text                        | YES         | null                                            |
+| public       | testimonials               | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| public       | testimonials               | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| realtime     | messages                   | topic                       | text                        | NO          | null                                            |
+| realtime     | messages                   | extension                   | text                        | NO          | null                                            |
+| realtime     | messages                   | payload                     | jsonb                       | YES         | null                                            |
+| realtime     | messages                   | event                       | text                        | YES         | null                                            |
+| realtime     | messages                   | private                     | boolean                     | YES         | false                                           |
+| realtime     | messages                   | updated_at                  | timestamp without time zone | NO          | now()                                           |
+| realtime     | messages                   | inserted_at                 | timestamp without time zone | NO          | now()                                           |
+| realtime     | messages                   | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| realtime     | schema_migrations          | version                     | bigint                      | NO          | null                                            |
+| realtime     | schema_migrations          | inserted_at                 | timestamp without time zone | YES         | null                                            |
+| realtime     | subscription               | id                          | bigint                      | NO          | null                                            |
+| realtime     | subscription               | subscription_id             | uuid                        | NO          | null                                            |
+| realtime     | subscription               | entity                      | regclass                    | NO          | null                                            |
+| realtime     | subscription               | filters                     | ARRAY                       | NO          | '{}'::realtime.user_defined_filter[]            |
+| realtime     | subscription               | claims                      | jsonb                       | NO          | null                                            |
+| realtime     | subscription               | claims_role                 | regrole                     | NO          | null                                            |
+| realtime     | subscription               | created_at                  | timestamp without time zone | NO          | timezone('utc'::text, now())                    |
+| storage      | buckets                    | id                          | text                        | NO          | null                                            |
+| storage      | buckets                    | name                        | text                        | NO          | null                                            |
+| storage      | buckets                    | owner                       | uuid                        | YES         | null                                            |
+| storage      | buckets                    | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| storage      | buckets                    | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| storage      | buckets                    | public                      | boolean                     | YES         | false                                           |
+| storage      | buckets                    | avif_autodetection          | boolean                     | YES         | false                                           |
+| storage      | buckets                    | file_size_limit             | bigint                      | YES         | null                                            |
+| storage      | buckets                    | allowed_mime_types          | ARRAY                       | YES         | null                                            |
+| storage      | buckets                    | owner_id                    | text                        | YES         | null                                            |
+| storage      | migrations                 | id                          | integer                     | NO          | null                                            |
+| storage      | migrations                 | name                        | character varying           | NO          | null                                            |
+| storage      | migrations                 | hash                        | character varying           | NO          | null                                            |
+| storage      | migrations                 | executed_at                 | timestamp without time zone | YES         | CURRENT_TIMESTAMP                               |
+| storage      | objects                    | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| storage      | objects                    | bucket_id                   | text                        | YES         | null                                            |
+| storage      | objects                    | name                        | text                        | YES         | null                                            |
+| storage      | objects                    | owner                       | uuid                        | YES         | null                                            |
+| storage      | objects                    | created_at                  | timestamp with time zone    | YES         | now()                                           |
+| storage      | objects                    | updated_at                  | timestamp with time zone    | YES         | now()                                           |
+| storage      | objects                    | last_accessed_at            | timestamp with time zone    | YES         | now()                                           |
+| storage      | objects                    | metadata                    | jsonb                       | YES         | null                                            |
+| storage      | objects                    | path_tokens                 | ARRAY                       | YES         | null                                            |
+| storage      | objects                    | version                     | text                        | YES         | null                                            |
+| storage      | objects                    | owner_id                    | text                        | YES         | null                                            |
+| storage      | objects                    | user_metadata               | jsonb                       | YES         | null                                            |
+| storage      | s3_multipart_uploads       | id                          | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads       | in_progress_size            | bigint                      | NO          | 0                                               |
+| storage      | s3_multipart_uploads       | upload_signature            | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads       | bucket_id                   | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads       | key                         | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads       | version                     | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads       | owner_id                    | text                        | YES         | null                                            |
+| storage      | s3_multipart_uploads       | created_at                  | timestamp with time zone    | NO          | now()                                           |
+| storage      | s3_multipart_uploads       | user_metadata               | jsonb                       | YES         | null                                            |
+| storage      | s3_multipart_uploads_parts | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| storage      | s3_multipart_uploads_parts | upload_id                   | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads_parts | size                        | bigint                      | NO          | 0                                               |
+| storage      | s3_multipart_uploads_parts | part_number                 | integer                     | NO          | null                                            |
+| storage      | s3_multipart_uploads_parts | bucket_id                   | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads_parts | key                         | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads_parts | etag                        | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads_parts | owner_id                    | text                        | YES         | null                                            |
+| storage      | s3_multipart_uploads_parts | version                     | text                        | NO          | null                                            |
+| storage      | s3_multipart_uploads_parts | created_at                  | timestamp with time zone    | NO          | now()                                           |
+| vault        | decrypted_secrets          | id                          | uuid                        | YES         | null                                            |
+| vault        | decrypted_secrets          | name                        | text                        | YES         | null                                            |
+| vault        | decrypted_secrets          | description                 | text                        | YES         | null                                            |
+| vault        | decrypted_secrets          | secret                      | text                        | YES         | null                                            |
+| vault        | decrypted_secrets          | decrypted_secret            | text                        | YES         | null                                            |
+| vault        | decrypted_secrets          | key_id                      | uuid                        | YES         | null                                            |
+| vault        | decrypted_secrets          | nonce                       | bytea                       | YES         | null                                            |
+| vault        | decrypted_secrets          | created_at                  | timestamp with time zone    | YES         | null                                            |
+| vault        | decrypted_secrets          | updated_at                  | timestamp with time zone    | YES         | null                                            |
+| vault        | secrets                    | id                          | uuid                        | NO          | gen_random_uuid()                               |
+| vault        | secrets                    | name                        | text                        | YES         | null                                            |
+| vault        | secrets                    | description                 | text                        | NO          | ''::text                                        |
+| vault        | secrets                    | secret                      | text                        | NO          | null                                            |
+| vault        | secrets                    | key_id                      | uuid                        | YES         | null                                            |
+| vault        | secrets                    | nonce                       | bytea                       | YES         | vault._crypto_aead_det_noncegen()               |
+| vault        | secrets                    | created_at                  | timestamp with time zone    | NO          | CURRENT_TIMESTAMP                               |
+| vault        | secrets                    | updated_at                  | timestamp with time zone    | NO          | CURRENT_TIMESTAMP                               |

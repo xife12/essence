@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Edit, Calendar } from 'lucide-react';
+import { Edit, Calendar, Trash2 } from 'lucide-react';
 import Table from '../ui/Table';
 import Button from '../ui/Button';
 import Link from 'next/link';
@@ -14,6 +14,9 @@ export type StundenEntry = {
   staff_name?: string;
   reason?: string;
   created_at: string;
+  updated_at?: string;
+  type?: 'arbeitszeit' | 'urlaub' | 'krankheit' | 'abwesenheit';
+  is_half_day?: boolean;
 };
 
 type StundenTableProps = {
@@ -21,6 +24,9 @@ type StundenTableProps = {
   isLoading?: boolean;
   totalHours?: number;
   showStaffColumn?: boolean;
+  onEdit?: (entry: StundenEntry) => void;
+  onDelete?: (entry: StundenEntry) => void;
+  disabledDates?: string[];
 };
 
 export default function StundenTable({
@@ -28,6 +34,9 @@ export default function StundenTable({
   isLoading = false,
   totalHours,
   showStaffColumn = true,
+  onEdit,
+  onDelete,
+  disabledDates = []
 }: StundenTableProps) {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -40,6 +49,11 @@ export default function StundenTable({
 
   const formatHours = (hours: number) => {
     return `${hours.toString().replace('.', ',')} h`;
+  };
+  
+  // Prüft, ob ein Datum gesperrt ist (nach dem 10. des Folgemonats)
+  const isDateDisabled = (dateStr: string) => {
+    return disabledDates.includes(dateStr);
   };
 
   const columns = [
@@ -66,19 +80,46 @@ export default function StundenTable({
     },
     {
       header: 'Aktionen',
-      accessor: (item: StundenEntry) => (
-        <div className="flex justify-end">
-          <Link href={`/stunden/${item.id}/edit`}>
+      accessor: (item: StundenEntry) => {
+        const isDisabled = isDateDisabled(item.date);
+        const disabledClass = isDisabled ? 'opacity-50 cursor-not-allowed' : '';
+        
+        return (
+          <div className="flex justify-end gap-2">
+            <Link href={isDisabled ? '#' : `/stunden/${item.id}/edit`} onClick={(e) => {
+              if (isDisabled) {
+                e.preventDefault();
+                return;
+              }
+              if (onEdit) {
+                e.preventDefault();
+                onEdit(item);
+              }
+            }}>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                icon={<Edit size={16} className={isDisabled ? "text-gray-400" : "text-blue-500"} />}
+                disabled={isDisabled}
+                className={isDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-50"}
+              >
+                Bearbeiten
+              </Button>
+            </Link>
+            
             <Button 
               variant="ghost" 
               size="sm"
-              icon={<Edit size={16} />}
+              icon={<Trash2 size={16} className={isDisabled ? "text-gray-400" : "text-red-500"} />}
+              onClick={() => onDelete && onDelete(item)}
+              disabled={isDisabled}
+              className={isDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-red-50"}
             >
-              Bearbeiten
+              Löschen
             </Button>
-          </Link>
-        </div>
-      ),
+          </div>
+        );
+      },
       className: 'text-right',
     },
   ];

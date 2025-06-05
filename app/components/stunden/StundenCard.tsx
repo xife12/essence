@@ -7,7 +7,7 @@ type StundenCardProps = {
   value: number | string;
   icon: ReactNode;
   description?: string;
-  color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
+  color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple' | 'orange';
   progress?: number;
 };
 
@@ -17,6 +17,7 @@ const colorStyles = {
   red: 'bg-red-50 text-red-500',
   yellow: 'bg-amber-50 text-amber-500',
   purple: 'bg-purple-50 text-purple-500',
+  orange: 'bg-orange-50 text-orange-500',
 };
 
 const progressColorStyles = {
@@ -25,6 +26,7 @@ const progressColorStyles = {
   red: 'bg-red-500',
   yellow: 'bg-amber-500',
   purple: 'bg-purple-500',
+  orange: 'bg-orange-500',
 };
 
 export default function StundenCard({

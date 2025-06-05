@@ -23,20 +23,22 @@ export default function FormField({
     <div className="mb-4">
       <label 
         htmlFor={htmlFor} 
-        className="block text-sm font-medium mb-1"
+        className="block text-sm font-medium text-gray-700 mb-1"
       >
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       
-      {children}
+      <div className="relative">
+        {children}
+      </div>
       
       {helpText && !error && (
-        <p className="mt-1 text-sm text-gray-500">{helpText}</p>
+        <p className="mt-1 text-xs text-gray-500">{helpText}</p>
       )}
       
       {error && (
-        <p className="mt-1 text-sm text-red-500">{error}</p>
+        <p className="mt-1 text-xs text-red-500">{error}</p>
       )}
     </div>
   );

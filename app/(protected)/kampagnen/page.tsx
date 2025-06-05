@@ -1,17 +1,159 @@
 'use client';
 
-import React from 'react';
-import { Activity, Plus, ChevronDown, ChevronUp, BarChart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus } from 'lucide-react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import CampaignTable from '@/app/components/kampagnen/CampaignTable';
+import CampaignModal from '@/app/components/kampagnen/CampaignModal';
+import CampaignDebug from '@/app/components/kampagnen/CampaignDebug';
+
+interface Campaign {
+  id?: string;
+  name: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  campaign_type: string;
+  target_group: string;
+  bonus_period?: string;
+  channels: string[];
+  contract_type_ids: string[];
+}
 
 export default function KampagnenPage() {
-  const [expandedCampaigns, setExpandedCampaigns] = React.useState<number[]>([0]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
-  const toggleExpand = (index: number) => {
-    setExpandedCampaigns(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index) 
-        : [...prev, index]
-    );
+  const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, []);
+
+  const fetchCampaigns = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCampaigns(data || []);
+    } catch (error) {
+      console.error('Fehler beim Laden der Kampagnen:', error);
+      alert('Fehler beim Laden der Kampagnen. Bitte versuchen Sie es später erneut.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateCampaign = () => {
+    setSelectedCampaign(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteCampaign = async (id: string) => {
+    if (!window.confirm('Sind Sie sicher, dass Sie diese Kampagne löschen möchten?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Kampagne aus der lokalen Liste entfernen
+      setCampaigns((prev) => prev.filter((campaign) => campaign.id !== id));
+    } catch (error) {
+      console.error('Fehler beim Löschen der Kampagne:', error);
+      alert('Fehler beim Löschen der Kampagne. Bitte versuchen Sie es später erneut.');
+    }
+  };
+
+  const handleSaveCampaign = async (campaign: Campaign) => {
+    try {
+      console.log("Speichere Kampagne:", campaign);
+      
+      // Bonus-Periode als Intervall formatieren, wenn vorhanden
+      let bonusPeriod = null;
+      if (campaign.bonus_period) {
+        bonusPeriod = `${campaign.bonus_period}`;
+        console.log("Formatierte Bonus-Periode:", bonusPeriod);
+      }
+
+      // Prüfen, ob channels ein Array ist
+      const channels = Array.isArray(campaign.channels) ? campaign.channels : [];
+      console.log("Kanäle:", channels);
+      
+      // Prüfen, ob contract_type_ids ein Array ist
+      const contractTypeIds = Array.isArray(campaign.contract_type_ids) ? campaign.contract_type_ids : [];
+      console.log("Vertragsarten-IDs:", contractTypeIds);
+
+      // Wenn es eine neue Kampagne ist (kein ID)
+      if (!campaign.id) {
+        console.log("Erstelle neue Kampagne...");
+        const { data, error } = await supabase
+          .from('campaigns')
+          .insert([
+            { 
+              ...campaign,
+              bonus_period: bonusPeriod,
+              channels: channels,
+              contract_type_ids: contractTypeIds
+            }
+          ])
+          .select();
+
+        if (error) {
+          console.error("Supabase Fehler:", error);
+          throw error;
+        }
+        
+        console.log("Neue Kampagne erstellt:", data);
+        // Kampagnenliste aktualisieren
+        setCampaigns((prev) => [data[0], ...prev]);
+      } 
+      // Bestehende Kampagne aktualisieren
+      else {
+        console.log("Aktualisiere bestehende Kampagne...");
+        const { data, error } = await supabase
+          .from('campaigns')
+          .update({ 
+            ...campaign,
+            bonus_period: bonusPeriod,
+            channels: channels,
+            contract_type_ids: contractTypeIds
+          })
+          .eq('id', campaign.id)
+          .select();
+
+        if (error) {
+          console.error("Supabase Fehler:", error);
+          throw error;
+        }
+        
+        console.log("Kampagne aktualisiert:", data);
+        // Kampagnenliste aktualisieren
+        setCampaigns((prev) => 
+          prev.map((c) => (c.id === campaign.id ? data[0] : c))
+        );
+      }
+    } catch (error) {
+      console.error('Fehler beim Speichern der Kampagne:', error);
+      throw error;
+    }
   };
 
   return (
@@ -21,83 +163,34 @@ export default function KampagnenPage() {
           <h1 className="text-2xl font-bold">Kampagnen</h1>
           <p className="text-gray-500 mt-1">Marketing und Werbemaßnahmen</p>
         </div>
-        <button className="btn btn-primary flex items-center gap-2">
+        <button 
+          className="btn flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+          onClick={handleCreateCampaign}
+        >
           <Plus size={18} />
           <span>Neue Kampagne</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="font-semibold">Aktive Kampagnen</h2>
+      <CampaignDebug />
+      
+      {isLoading ? (
+        <div className="text-center py-8">
+          <p>Kampagnen werden geladen...</p>
         </div>
-        
-        <div>
-          {['Sommer-Aktion 2023', 'Instagram-Kampagne', 'Freunde-werben-Freunde'].map((name, index) => (
-            <div key={index} className="border-b border-gray-100 last:border-b-0">
-              <div 
-                className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
-                onClick={() => toggleExpand(index)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-50 p-2 rounded-lg">
-                    <Activity size={20} className="text-blue-500" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">{name}</h3>
-                    <p className="text-sm text-gray-500">01.06.2023 - 30.06.2023</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                    Aktiv
-                  </span>
-                  {expandedCampaigns.includes(index) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </div>
-              </div>
-              
-              {expandedCampaigns.includes(index) && (
-                <div className="p-4 bg-gray-50 border-t border-gray-100">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                      <div className="flex items-center gap-2">
-                        <BarChart size={18} className="text-blue-500" />
-                        <h4 className="font-medium">Leads</h4>
-                      </div>
-                      <p className="text-2xl font-bold mt-2">27</p>
-                      <p className="text-sm text-gray-500">Generierte Interessenten</p>
-                    </div>
-                    
-                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                      <div className="flex items-center gap-2">
-                        <BarChart size={18} className="text-green-500" />
-                        <h4 className="font-medium">Konvertiert</h4>
-                      </div>
-                      <p className="text-2xl font-bold mt-2">8</p>
-                      <p className="text-sm text-gray-500">Abgeschlossene Verträge</p>
-                    </div>
-                    
-                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                      <div className="flex items-center gap-2">
-                        <BarChart size={18} className="text-purple-500" />
-                        <h4 className="font-medium">Conversion-Rate</h4>
-                      </div>
-                      <p className="text-2xl font-bold mt-2">29,6%</p>
-                      <p className="text-sm text-gray-500">Abschlussquote</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 flex justify-end">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm">
-                      Kampagne bearbeiten
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      ) : (
+        <CampaignTable 
+          onEdit={handleEditCampaign} 
+          onDelete={handleDeleteCampaign} 
+        />
+      )}
+
+      <CampaignModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        campaign={selectedCampaign}
+        onSave={handleSaveCampaign}
+      />
     </div>
   );
 } 

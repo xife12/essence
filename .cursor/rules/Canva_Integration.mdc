@@ -1,0 +1,71 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Canva-Integration
+
+## Zweck
+Die Canva-Integration ermöglicht es Nutzer:innen, Design-Vorlagen wie Social-Media-Grafiken, Flyer oder Präsentationen direkt im System zu erstellen, zu bearbeiten oder wiederzuverwenden.
+
+## Funktionen
+- Verbindung zu einem bestehenden Canva-Account (OAuth2)
+- Zugriff auf vordefinierte Vorlagen (Templates)
+- Editiermöglichkeit über eingebetteten Canva-Editor (iFrame/SDK)
+- Export als Bild/Video/PDF in MediaLibrary
+- Verknüpfung mit Content Planner möglich
+- Vorlagen können mit Tags und Beschreibung gespeichert werden
+
+## User Flow
+1. Nutzer wählt in der MediaLibrary "Mit Canva bearbeiten"
+2. Canva-Editor öffnet sich mit ausgewählter Vorlage
+3. Nach Bearbeitung kann Design gespeichert, exportiert und direkt in Posts verwendet werden
+
+## UI-Komponenten
+- `CanvaEditorEmbed`: iFrame-Einbettung des Editors
+- `CanvaTemplateList`: Galerie der verfügbaren Vorlagen
+- `CanvaTemplateModal`: Bearbeitungs- und Speichern-Modul
+- `CanvaExportDialog`: Ziel-Exportoption auswählen
+
+## Datenbankstruktur
+
+### Tabelle: `public.canva_templates`
+| Spalte         | Typ      | Beschreibung                          |
+|----------------|----------|---------------------------------------|
+| id             | UUID     | Primärschlüssel                        |
+| name           | TEXT     | Name der Vorlage                      |
+| description    | TEXT     | Beschreibung (optional)               |
+| canva_design_id| TEXT     | ID zur Verbindung mit Canva           |
+| preview_url    | TEXT     | Vorschaubild                          |
+| tags           | TEXT[]   | Stichworte zur Kategorisierung        |
+| created_by     | UUID     | FK → staff.id                         |
+| created_at     | TIMESTAMP| Erstellt am                           |
+
+## Rollenrechte
+- **Admin**: alle Rechte
+- **Studioleiter**: kann Vorlagen bearbeiten, neu anlegen
+- **Mitarbeiter**: nur Nutzung & Export
+
+## Verknüpfung
+- MediaLibrary: Exportierte Inhalte automatisch in Bucket speichern
+- Content Planner: Bild/Video kann direkt einem Beitrag zugeordnet werden
+- Kampagnen: Canva-Vorlagen können als Designbasis markiert werden
+
+## Hinweise für Cursor
+- OAuth2-Flow mit Canva implementieren
+- Canva JavaScript SDK oder Embed-Link zur Bearbeitung nutzen
+- Editor nur für authentifizierte Benutzer aktivieren
+
+## SQL (Tabelle `canva_templates`)
+```sql
+CREATE TABLE IF NOT EXISTS public.canva_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    canva_design_id TEXT NOT NULL,
+    preview_url TEXT,
+    tags TEXT[],
+    created_by UUID REFERENCES staff(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```

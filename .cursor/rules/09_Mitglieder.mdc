@@ -1,0 +1,74 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Mitglieder
+
+## Tabelle: `public.members`
+
+| Spalte        | Typ       | Beschreibung                                   |
+|---------------|-----------|------------------------------------------------|
+| id            | UUID      | Primärschlüssel                                |
+| name          | TEXT      | Pflichtfeld (kombiniert aus firstname + lastname) |
+| contact       | TEXT      | optional, z. B. E-Mail, Telefonnummer          |
+| firstname     | TEXT      | optional                                       |
+| lastname      | TEXT      | optional                                       |
+| phone         | TEXT      | optional                                       |
+| email         | TEXT      | optional                                       |
+| birthdate     | DATE      | optional                                       |
+| member_number | TEXT      | optional, z. B. aus Altbestand                 |
+| created_at    | TIMESTAMP | automatisch                                    |
+| updated_at    | TIMESTAMP | automatisch                                    |
+
+---
+
+## Übersicht
+
+- Tabellenansicht mit:
+  - Name
+  - Kontakt (E-Mail oder Telefon)
+  - Vertragsart + Restlaufzeit (farbiger Badge)
+  - Status (abgeleitet: aktiv / gekündigt)
+  - Aktion: „Details anzeigen“
+- Floating Action Button: „+ Mitglied“ → öffnet Modal zur Neuanlage
+
+---
+
+## Detailansicht (Registerkarten)
+
+- **Übersicht**:
+  - Persönliche Daten
+  - Aktueller Vertrag (inkl. Vertragsart, Laufzeit, Restlaufzeit)
+
+- **Verträge**:
+  - Tabelle aller Mitgliedschaften
+  - Buttons:
+    - „Vertrag verlängern“
+    - „Vertrag kündigen“
+
+- **Beratung** (optional):
+  - Verknüpfte Beratungsgespräche
+  - Zugriff auf Beratungsverlauf
+
+- **Aktivität** (optional):
+  - Chronologische Historie (Statuswechsel, Vertragsupdates, Kontaktänderungen)
+
+---
+
+## Regeln
+
+- Anlage auch mit rückwirkendem Datum möglich
+- Hinweis im Modal:
+  - „Mitgliedschaft muss separat hinterlegt werden“
+- Verlängerung oder Kündigung erfolgt über Tab „Verträge“
+
+---
+
+## Rollenrechte
+
+| Rolle         | Berechtigung                      |
+|---------------|-----------------------------------|
+| Mitarbeiter   | Mitglied einsehen & anlegen       |
+| Studioleiter  | Vollzugriff                       |
+| Admin         | Vollzugriff                       |

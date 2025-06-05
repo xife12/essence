@@ -1,0 +1,133 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Ziel
+
+Dieses Projekt bildet ein internes Verwaltungs- und Tracking-System für Fitnessstudios ab.  
+Es beinhaltet Module zur Verwaltung von:
+
+- Leads
+- Beratungsgesprächen
+- Mitgliedschaften
+- Kampagnen
+- Vertragsarten
+- Mitarbeitern
+- passwortgeschützten Logins
+
+---
+
+## Projektarchitektur
+
+- **Framework:** Next.js (App Router)
+- **Sprache:** TypeScript
+- **Styling:** Tailwind CSS
+- **UI-Komponenten:** Eigene, plus `lucide-react` Icons
+- **Datenbank:** Supabase (PostgreSQL) mit Auth- und Vault-Modulen
+- **Client-DB-Access:** `@supabase/supabase-js` (clientseitig via Context)
+- **Auth:** Supabase E-Mail + Passwort-Login mit optionaler 2FA
+
+---
+
+## Projektstruktur (empfohlen für Cursor)
+
+```
+
+app/
+├── dashboard/
+├── leads/
+├── beratung/
+├── mitglieder/
+├── kampagnen/
+├── passwoerter/
+├── mitarbeiter/
+├── vertragsarten/
+├── stunden/ # ⏱️ NEU: Stundenübersicht & Zeiterfassung
+├── stunden/[id]/edit/ # Bearbeitungsansicht einzelner Stundeneinträge
+├── layout.tsx # Sidebar, Topbar
+└── page.tsx # Start → Dashboard
+
+components/
+├── forms/
+├── tables/
+├── cards/
+├── modals/
+├── stunden/ # Komponenten: StundenCard, StundenModal, StundenTabelle
+
+lib/
+├── supabaseClient.ts
+├── auth.ts
+└── api.ts # zentraler API-Wrapper
+
+styles/
+└── globals.css
+
+middleware.ts # Auth-Redirects
+utils/
+````
+
+---
+
+## Routing
+
+- Jede Route ist geschützt durch Auth → Nutzung von Supabase Session in Middleware
+- Fehlerquelle vermeiden: Bei API-Fehlern (`404`, `401`) soll Cursor eine eigene Fehlerkomponente rendern
+- API-Aufrufe immer über Wrapper: `lib/api.ts`
+
+### Beispiel: `middleware.ts`
+```ts
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+
+export async function middleware(req) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) return NextResponse.redirect('/login')
+  return res
+}
+````
+
+---
+
+## Verhalten von Cursor AI
+
+* Fehlerbehandlung:
+
+  * Inline bei Validierungsfehlern
+  * Toast (oben rechts) bei API-/Logikfehlern
+* Navigation/UX:
+
+  * Immer mit PageTitle, optionalem Breadcrumb und Aktions-Button
+  * Keine versteckten Routen – alles ist sichtbar oder gesperrt
+* Validierungslogik:
+
+  * Clientseitig UND Supabase-seitig (Trigger, Policies)
+* Routing:
+
+  * Auf Datei-Layout basieren
+  * Keine Client-only Navigation verwenden
+
+---
+
+## Datenbeziehungen (Auszug)
+
+* `leads.campaign_id → campaigns.id`
+* `consultations.lead_id → leads.id`
+* `memberships.member_id → members.id`
+* `memberships.contract_type_id → contract_types.id`
+* `consultations.planned_contract_type_id → contract_types.id`
+
+---
+
+## ToDo durch Cursor beim Projektstart
+
+* Projektstruktur wie oben erzeugen
+* Alle Layouts mit Sidebar + Topbar gemäß `frontend.mdc` erstellen
+* Alle Routen per App Router anlegen
+* Supabase-Client zentral konfigurieren
+* Auth-Middleware einbinden
+* API-Wrapper mit Fehlerbehandlung implementieren
+
+```

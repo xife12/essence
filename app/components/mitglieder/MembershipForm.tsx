@@ -12,7 +12,7 @@ export type MembershipData = {
   term: number;
   start_date: string;
   end_date: string;
-  status: 'active' | 'cancelled';
+  status: 'active' | 'cancelled' | 'completed' | 'suspended' | 'planned';
   predecessor_id?: string;
 };
 
@@ -20,6 +20,14 @@ type ContractType = {
   id: string;
   name: string;
   terms: number[];
+  has_group_discount?: boolean;
+  group_discount_rate?: number;
+  extras?: Array<{
+    id: string;
+    name: string;
+    price?: number;
+  }>;
+  campaigns?: string[];
 };
 
 type MembershipFormProps = {
@@ -55,6 +63,9 @@ export default function MembershipForm({
       : contractTypes[0] || null
   );
   const [endDate, setEndDate] = useState<string>('');
+  const [hasGroupDiscount, setHasGroupDiscount] = useState<boolean>(false);
+  const [selectedExtras, setSelectedExtras] = useState<Array<{id: string, name: string, price?: number, included: boolean}>>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('');
 
   // Funktion zum Formatieren von Datumsangaben für Eingabefelder
   function formatDateForInput(date: Date): string {
@@ -68,11 +79,28 @@ export default function MembershipForm({
   function calculateEndDate(startDate: string, termMonths: number): string {
     if (!startDate || !termMonths) return '';
     
+    // Stelle sicher, dass termMonths als Zahl behandelt wird
+    const months = typeof termMonths === 'string' ? parseInt(termMonths, 10) : termMonths;
+    
+    // Parse das Startdatum
     const start = new Date(startDate);
-    const end = new Date(start);
-    end.setMonth(end.getMonth() + termMonths);
+    
+    // Berechne das Enddatum manuell, um Probleme mit der JavaScript-Datumsberechnung zu vermeiden
+    let year = start.getFullYear();
+    let month = start.getMonth(); // 0-11
+    let day = start.getDate();
+    
+    // Füge Monate hinzu und korrigiere das Jahr, wenn nötig
+    month += months;
+    year += Math.floor(month / 12);
+    month = month % 12;
+    
+    // Erstelle das neue Datum
+    const end = new Date(year, month, day);
     
     // Korrektur für den letzten Tag des Monats
+    // Wenn der letzte Tag des aktuellen Monats kleiner ist als der Tag des Startdatums,
+    // setze den Tag auf den letzten Tag des Monats
     end.setDate(end.getDate() - 1);
     
     return formatDateForInput(end);
@@ -110,12 +138,33 @@ export default function MembershipForm({
   // Effekt zum Berechnen des Enddatums
   useEffect(() => {
     if (formData.start_date && formData.term) {
-      const calculatedEndDate = calculateEndDate(formData.start_date, formData.term);
+      const termValue = typeof formData.term === 'string' ? parseInt(formData.term, 10) : formData.term;
+      const calculatedEndDate = calculateEndDate(formData.start_date, termValue);
       setEndDate(calculatedEndDate);
+      
+      // Aktualisiere auch das formData.end_date
+      setFormData(prev => ({
+        ...prev,
+        end_date: calculatedEndDate
+      }));
     } else {
       setEndDate('');
     }
   }, [formData.start_date, formData.term]);
+  
+  // Effekt zum Aktualisieren der ausgewählten Extras, wenn der Vertragstyp sich ändert
+  useEffect(() => {
+    if (selectedContractType && selectedContractType.extras) {
+      // Initialisiere die Extras mit "nicht ausgewählt"
+      const initialExtras = selectedContractType.extras.map(extra => ({
+        ...extra,
+        included: false
+      }));
+      setSelectedExtras(initialExtras);
+    } else {
+      setSelectedExtras([]);
+    }
+  }, [selectedContractType]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -125,21 +174,50 @@ export default function MembershipForm({
       setSelectedContractType(contractType);
       
       // If contract type changes, update the term to first available term
+      const newTerm = contractType?.terms[0] || 12;
       setFormData(prev => ({
         ...prev,
         [name]: value,
-        term: contractType?.terms[0] || 12,
+        term: newTerm,
       }));
-    } else if (name === 'term' || name === 'start_date') {
+      
+      // Da wir term geändert haben, berechnen wir auch das neue Enddatum
+      if (formData.start_date && newTerm) {
+        const newEndDate = calculateEndDate(formData.start_date, newTerm);
+        setEndDate(newEndDate);
+        // Aktualisiere formData.end_date direkt
+        setFormData(prev => ({
+          ...prev,
+          [name]: value,
+          term: newTerm,
+          end_date: newEndDate
+        }));
+      }
+    } else if (name === 'term') {
+      // Stelle sicher, dass term als Zahl behandelt wird
+      const termValue = parseInt(value, 10);
+      setFormData(prev => {
+        const newData = { ...prev, [name]: termValue };
+        
+        // Auto-calculate end_date when term changes
+        if (newData.start_date && termValue) {
+          const newEndDate = calculateEndDate(newData.start_date, termValue);
+          setEndDate(newEndDate);
+          newData.end_date = newEndDate;
+        }
+        
+        return newData;
+      });
+    } else if (name === 'start_date') {
       setFormData(prev => {
         const newData = { ...prev, [name]: value };
         
-        // Auto-calculate end_date when term or start_date changes
-        if (newData.start_date && newData.term) {
-          const startDate = new Date(newData.start_date);
-          const endDate = new Date(startDate);
-          endDate.setMonth(endDate.getMonth() + parseInt(newData.term as unknown as string));
-          newData.end_date = endDate.toISOString().split('T')[0];
+        // Auto-calculate end_date when start_date changes
+        if (value && prev.term) {
+          const termValue = typeof prev.term === 'string' ? parseInt(prev.term, 10) : prev.term;
+          const newEndDate = calculateEndDate(value, termValue);
+          setEndDate(newEndDate);
+          newData.end_date = newEndDate;
         }
         
         return newData;
@@ -149,12 +227,23 @@ export default function MembershipForm({
     }
   };
 
+  const handleExtrasChange = (extraId: string, checked: boolean) => {
+    setSelectedExtras(prev => 
+      prev.map(extra => 
+        extra.id === extraId ? { ...extra, included: checked } : extra
+      )
+    );
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.contract_type_id || !formData.term || !formData.start_date) {
       return; // Einfache Validierung
     }
+    
+    // Filtere nur die ausgewählten Extras
+    const includedExtras = selectedExtras.filter(extra => extra.included);
     
     // Bereite die Daten für den API-Aufruf vor
     const submissionData = {
@@ -163,7 +252,10 @@ export default function MembershipForm({
       term: formData.term,
       start_date: formData.start_date,
       end_date: endDate,
-      status: 'active' as 'active' | 'cancelled',
+      status: 'active' as 'active' | 'cancelled' | 'completed' | 'suspended' | 'planned',
+      has_group_discount: hasGroupDiscount,
+      extras: includedExtras.length > 0 ? includedExtras : undefined,
+      campaign_name: selectedCampaign || undefined,
       ...(formData.id && { id: formData.id }),
       ...(formData.predecessor_id && { predecessor_id: formData.predecessor_id }),
     };
@@ -286,7 +378,90 @@ export default function MembershipForm({
         </FormField>
       )}
       
-      <div className="flex justify-end space-x-2 pt-4">
+      {/* Gruppenrabatt, wenn verfügbar */}
+      {selectedContractType?.has_group_discount && (
+        <div className="mt-4">
+          <div className="flex items-center">
+            <input
+              id="group_discount"
+              name="group_discount"
+              type="checkbox"
+              checked={hasGroupDiscount}
+              onChange={(e) => setHasGroupDiscount(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              disabled={isLoading}
+            />
+            <label htmlFor="group_discount" className="ml-2 block text-sm text-gray-900">
+              Gruppenrabatt aktivieren
+              {selectedContractType.group_discount_rate && (
+                <span className="text-green-600 ml-1">
+                  ({selectedContractType.group_discount_rate}% Rabatt)
+                </span>
+              )}
+            </label>
+          </div>
+        </div>
+      )}
+      
+      {/* Zusatzleistungen, wenn verfügbar */}
+      {selectedContractType?.extras && selectedContractType.extras.length > 0 && (
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Zusatzleistungen
+          </label>
+          <div className="space-y-2 border p-3 rounded-md bg-gray-50">
+            {selectedExtras.map(extra => (
+              <div key={extra.id} className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id={`extra-${extra.id}`}
+                    name={`extra-${extra.id}`}
+                    type="checkbox"
+                    checked={extra.included}
+                    onChange={(e) => handleExtrasChange(extra.id, e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={isLoading}
+                  />
+                  <label htmlFor={`extra-${extra.id}`} className="ml-2 block text-sm text-gray-900">
+                    {extra.name}
+                  </label>
+                </div>
+                {extra.price && (
+                  <span className="text-sm text-gray-500">
+                    +{extra.price.toFixed(2)} €/Monat
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Aktionsauswahl, wenn verfügbar */}
+      {selectedContractType?.campaigns && selectedContractType.campaigns.length > 0 && (
+        <FormField
+          label="Abgeschlossen im Rahmen der Aktion"
+          htmlFor="campaign"
+        >
+          <select
+            id="campaign"
+            name="campaign"
+            value={selectedCampaign}
+            onChange={(e) => setSelectedCampaign(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading}
+          >
+            <option value="">Keine Aktion ausgewählt</option>
+            {selectedContractType.campaigns.map(campaign => (
+              <option key={campaign} value={campaign}>
+                {campaign}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      )}
+      
+      <div className="flex justify-end space-x-2 pt-4 border-t">
         <Button
           type="button"
           variant="outline"
@@ -299,6 +474,7 @@ export default function MembershipForm({
         <Button
           type="submit"
           variant="primary"
+          disabled={isLoading}
           isLoading={isLoading}
           icon={<Save size={18} />}
         >

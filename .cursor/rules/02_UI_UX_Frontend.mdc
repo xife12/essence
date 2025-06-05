@@ -1,0 +1,159 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# UI/UX- und Frontend-Regeln (essence-intern)
+
+## Layout-Grundregeln
+
+- 12-Spalten-Layout mit:
+  - Horizontaler Gutter: 24px
+  - Vertikaler Abstand: 16px
+- Breakpoints: mobile-first (`sm`, `md`, `lg`, `xl`)
+
+```tsx
+// Beispiel: Layout-Grid
+<div className="grid grid-cols-12 gap-x-6 gap-y-4">
+  <div className="col-span-12 md:col-span-6">Inhalt</div>
+  <div className="col-span-12 md:col-span-6">Inhalt</div>
+</div>
+````
+
+---
+
+## Farben (Tailwind Tokens)
+
+* Primary: `#3B82F6` → `bg-blue-500`
+* Hover: `#2563EB`
+* Active: `#60A5FA`
+* Text Primary: `#111827`
+* Text Secondary: `#6B7280`
+* Hintergrund: `#F9FAFB`, Cards: `#FFFFFF`
+
+---
+
+## Typografie
+
+* Font: `Inter`, fallback: `sans-serif`
+* Größen:
+
+  * H1: 28px / 36px
+  * H2: 24px / 32px
+  * Body: 16px / 24px
+  * Small: 14px / 20px
+
+---
+
+## Navigation
+
+* Sidebar:
+
+  * Fixiert links, 240px breit
+  * Collapsible (64px)
+  * Aktives Item: Hintergrund: `#E0F2FE`, Icon/Text: `#3B82F6`
+* Gruppierung:
+
+  * **Operativ:** Dashboard, Leads, Beratung, Mitglieder, Verträge
+  * **Marketing:** Kampagnen
+  * **Verwaltung:** Passwortmanager, Mitarbeiter, Einstellungen
+* Topbar:
+
+  * Höhe: 64px
+  * Links: Hamburger-Menü, Suchfeld
+  * Rechts: Notification-Bell, Avatar (Dropdown mit Profil / Logout)
+
+---
+
+## UI-Komponenten
+
+### Buttons
+
+```tsx
+<button className="h-10 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 cursor-not-allowed">
+  Speichern
+</button>
+```
+
+* Größe: 40px Höhe
+* Varianten:
+
+  * Primary: Blau
+  * Secondary: Transparent mit Border
+  * Disabled: `opacity-50`, `cursor-not-allowed`
+
+---
+
+### Inputs
+
+```tsx
+<label className="text-sm font-medium">Name</label>
+<input className="w-full border px-3 py-2 rounded mt-1 text-sm focus:ring-2 focus:ring-blue-500" />
+```
+
+* Border: 1px `#D1D5DB`
+* Focus-Ring: `2px` `#3B82F6` + Box-Shadow
+
+---
+
+### Tabellen
+
+* Header: `bg-gray-100`, `font-semibold`
+* Zellen: Padding 12px 16px, `border-b`
+* Hover: `bg-gray-50`, `cursor-pointer`
+* Optional: Inline-Sortierung
+
+---
+
+### Modals
+
+* Max-Width: 480px
+* Zentriert, dunkler Overlay
+* Header: Titel + Close-Icon
+* Footer: Buttons rechtsbündig
+
+---
+
+### Badges
+
+```tsx
+<span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+  Aktiv
+</span>
+```
+
+* Statusfarben:
+
+  * Grün: Aktiv
+  * Gelb: Warnung
+  * Rot: Fehler
+  * Grau: Neutral
+
+---
+
+## Feedback & Interaktion
+
+* Toaster (oben rechts, auto-hide: 3s) für Erfolg/Fehler
+* Skeletons bei Ladezuständen
+* Hover-Zustände bei interaktiven Komponenten
+* Active-State: `transform: scale(0.98)` kurzzeitig
+
+---
+
+## Mobile-Verhalten
+
+* Sidebar wird zu Offcanvas-Menü
+* Hamburger oben links
+* Fokus-Indikator & ARIA-Labels für alle interaktiven Elemente
+
+---
+
+## Wiederverwendbare Komponenten
+
+* `PageHeader.tsx`: Titel, Breadcrumb, Aktions-Button
+* `Modal.tsx`: generisches Modal mit `children` und Footer
+* `FormField.tsx`: Label + Validierung + Input-Feld
+* `Badge.tsx`: Statusanzeige (z. B. Aktiv/Gekündigt)
+
+```
+

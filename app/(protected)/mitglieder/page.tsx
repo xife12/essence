@@ -9,6 +9,7 @@ import MemberForm, { MemberData } from '../../components/mitglieder/MemberForm';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import FormField from '../../components/ui/FormField';
+import Badge from '../../components/ui/Badge';
 
 // Dummy-Vertragsarten für Filter
 const CONTRACT_TYPES = [
@@ -128,7 +129,7 @@ const DUMMY_MEMBERS: Member[] = [
 type FilterOptions = {
   searchQuery: string;
   contractTypeId: string;
-  status: '' | 'active' | 'cancelled' | 'no-contract';
+  status: '' | 'active' | 'cancelled' | 'no-contract' | 'planned';
 };
 
 export default function MitgliederPage() {
@@ -148,6 +149,74 @@ export default function MitgliederPage() {
     contractTypeId: '',
     status: '',
   });
+  
+  // Beim ersten Laden alle Mitglieder aus localStorage abrufen, falls vorhanden
+  useEffect(() => {
+    // Funktion zum Laden der Mitgliedsdaten aus localStorage
+    const loadMembersFromLocalStorage = () => {
+      const updatedMembers = [...DUMMY_MEMBERS];
+      let hasUpdates = false;
+
+      // Durchsuche localStorage nach gespeicherten Mitgliedern
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('member_')) {
+          try {
+            const storedMemberData = localStorage.getItem(key);
+            if (storedMemberData) {
+              const storedMember = JSON.parse(storedMemberData);
+              
+              // Finde den Index des Mitglieds in unserem Array
+              const memberIndex = updatedMembers.findIndex(m => m.id === storedMember.id);
+              
+              // Wenn das Mitglied existiert, aktualisiere es
+              if (memberIndex !== -1) {
+                // Suche zuerst nach aktivem Vertrag, dann nach geplantem Vertrag
+                const activeMembership = storedMember.memberships?.find(
+                  m => m.status === 'active'
+                );
+                
+                const plannedMembership = !activeMembership && storedMember.memberships?.find(
+                  m => m.status === 'planned'
+                );
+                
+                updatedMembers[memberIndex] = {
+                  ...storedMember,
+                  membership: activeMembership ? {
+                    id: activeMembership.id,
+                    contract_type: activeMembership.contract_type,
+                    start_date: activeMembership.start_date,
+                    end_date: activeMembership.end_date,
+                    status: activeMembership.status
+                  } : plannedMembership ? {
+                    id: plannedMembership.id,
+                    contract_type: plannedMembership.contract_type,
+                    start_date: plannedMembership.start_date,
+                    end_date: plannedMembership.end_date,
+                    status: plannedMembership.status
+                  } : undefined
+                };
+                
+                hasUpdates = true;
+              }
+            }
+          } catch (error) {
+            console.error('Fehler beim Laden von Mitglied aus localStorage:', error);
+          }
+        }
+      }
+
+      // Wenn Änderungen gefunden wurden, aktualisiere den State
+      if (hasUpdates) {
+        console.log('Mitgliedsdaten aus localStorage geladen', updatedMembers);
+        setMembers(updatedMembers);
+        setFilteredMembers(updatedMembers);
+      }
+    };
+
+    // Lade die Daten
+    loadMembersFromLocalStorage();
+  }, []);
   
   // Pagination-Logik
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
@@ -318,6 +387,7 @@ export default function MitgliederPage() {
                 <option value="active">Aktiv</option>
                 <option value="cancelled">Gekündigt</option>
                 <option value="no-contract">Kein Vertrag</option>
+                <option value="planned">Geplant</option>
               </select>
             </div>
           </div>
@@ -342,6 +412,7 @@ export default function MitgliederPage() {
         data={paginatedMembers}
         isLoading={isLoading}
         onEditMemberNumber={openEditMemberNumberModal}
+        showStatusBadges={true}
       />
       
       {/* Pagination */}

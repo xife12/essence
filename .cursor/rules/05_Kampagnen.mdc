@@ -1,0 +1,81 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Modul: Kampagnenmanagement (inkl. Ads, Landingpages, Content)
+
+---
+
+## Zweck
+
+Das Kampagnenmodul dient der zentralen Planung, Durchführung und Analyse von Marketingkampagnen. Es ist direkt verbunden mit Leads, Mitgliedschaften, Landingpages, Contentplaner, KPI-Dashboard und Meta-Werbeanzeigen.
+
+---
+
+## Nutzerfluss (erweitert)
+
+### Schritt 1: Kampagnenübersicht
+
+Pfad: `/kampagnen`
+- Tabellenübersicht aller Kampagnen mit Name, Zeitraum, Status
+- Klick auf Zeile öffnet `CampaignDetailPanel`
+
+---
+
+### Schritt 2: Kampagne erstellen
+
+- Button „+ Kampagne erstellen“
+- Öffnet `CampaignModal` (Modal mit max. 600px Breite)
+- Felder: Name, Zeitraum, Kanäle, Vertragsarten, Zielgruppe, Bonuszeitraum
+- Nur für Studioleiter und Admins
+
+---
+
+### Schritt 3: Kampagnendetail (Tabs innerhalb der Kampagne)
+
+Das `CampaignDetailPanel` zeigt Tabs für die drei verknüpften Hauptmodule:
+
+#### Tab 1: Werbeanzeigen (Meta Ads Manager)
+- Übersicht der Anzeigen zur Kampagne:
+  - Titel, Status, Reichweite, CPL, Klicks
+- Button: „+ Neue Anzeige erstellen“
+  - KI-Textvorschläge (Ollama)
+  - Eingabe von Zielgruppe, Budget, Laufzeit
+  - Upload von Bild oder Canva-Link
+  - Übergabe an Meta Ads API
+  - Rückimport von performance-Daten per Cron
+
+#### Tab 2: Landingpage siehe [landingpages.mdc](mdc:.cursor/rules/landingpages.mdc)
+- System generiert automatisch eine Landingpage-URL
+- Auswahl: Template (angebot / emotion / testimonial / vergleich)
+- Editierbare Felder: Headline, CTA, Bilder, Testimonials
+- Leads über Formular werden mit `campaign_id` gespeichert
+
+#### Tab 3: Contentplanung
+- Geplante Posts zur Kampagne mit Plattform, Zeitpunkt, Bild, Text
+- „+ Beitrag erstellen“ öffnet Editor mit:
+  - Plattformauswahl
+  - Canva-Integration
+  - KI-Vorschläge für Text
+- Optional: Kalenderansicht für Drag & Drop
+
+---
+
+## Erweiterung & Logik
+
+- Nur `status = active` Kampagnen erscheinen in Leads, KPIs und Content
+- Meta Ads Anzeigen erfordern Zugriffstoken je Nutzer
+- Landingpages verwenden CI-Template + kampagnenbezogenen Content
+- Content Posts sind unabhängig, aber optional an `campaign_id` gebunden
+
+---
+
+## Integration
+
+- `leads.campaign_id` → `campaigns.id`
+- `landingpage_content.campaign_id` → `campaigns.id`
+- `content_posts.campaign_id` → `campaigns.id`
+- `ads.campaign_id` → `campaigns.id`
+

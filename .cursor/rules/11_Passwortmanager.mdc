@@ -1,0 +1,99 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Passwortmanager
+
+## Tabelle: `vault.secrets`
+
+| Spalte       | Typ       | Beschreibung                                  |
+|--------------|-----------|-----------------------------------------------|
+| id           | UUID      | Primärschlüssel                               |
+| name         | TEXT      | Titel des Passwort-Eintrags                   |
+| description  | TEXT      | Beschreibung / Hinweistext                    |
+| secret       | TEXT      | verschlüsselte Zugangsdaten                   |
+| key_id       | UUID      | Verschlüsselungsreferenz                      |
+| nonce        | BYTEA     | kryptografisch zufälliger Wert                |
+| created_at   | TIMESTAMP | automatisch                                   |
+| updated_at   | TIMESTAMP | automatisch                                   |
+
+---
+
+## Felder im Formular
+
+- Name (Pflicht)
+- Zugangsdaten:
+  - Benutzername
+  - Passwort (verschlüsselt gespeichert)
+- Link / URL (optional)
+- Kategorie (Dropdown: z. B. CRM, Social, HR)
+- Beschreibung
+- 2FA-Information (Text)
+- Verantwortliche Person / Rolle
+- Ablaufdatum (mit Erinnerungslogik)
+- Sichtbarkeitsmatrix: Wer darf sehen, bearbeiten, löschen?
+
+---
+
+## Berechtigungen (Matrix)
+
+Pro Passwort definierbar:
+
+| Aktion       | Konfigurierbar pro Rolle / Nutzer     |
+|--------------|----------------------------------------|
+| **sehen**    | Nur für autorisierte Rollen sichtbar   |
+| **bearbeiten** | Nur durch explizite Freigabe         |
+| **löschen**  | Nur durch Admins oder Berechtigte      |
+
+- Einträge ohne Freigabe sind **nicht sichtbar**
+- Rollen wie Studioleiter/Admin dürfen Matrix verändern
+- Mitarbeiter nur, wenn sichtbar & freigegeben
+
+---
+
+## Übersicht
+
+- Tabelle sortierbar nach Kategorie
+- Suche & Filter: nach Name, Kategorie, Verantwortlichem
+- Edit-Button öffnet Modal mit:
+  - Passwortdetails
+  - Sichtbarkeitsmatrix
+
+---
+
+## Sicherheit
+
+- Alle Passwörter sind verschlüsselt gespeichert
+- Keine Anzeige von Klartext ohne explizite Rechte
+- Nur Admins dürfen Sichtbarkeitsmatrix ändern
+- Optional: automatische Erinnerungsfunktion bei Ablaufdatum
+
+---
+
+## Hinweis: Datenbankerweiterung
+
+Für feingranulare Berechtigungen und Logs sind folgende Erweiterungen notwendig:
+
+### Tabelle: `vault.secret_permissions`
+
+| Spalte      | Typ    | Beschreibung                         |
+|-------------|--------|--------------------------------------|
+| id          | UUID   | Primärschlüssel                      |
+| secret_id   | UUID   | FK → `vault.secrets.id`              |
+| user_id     | UUID   | FK → `auth.users.id` (optional)      |
+| role        | TEXT   | Alternativ zu `user_id`              |
+| can_view    | BOOL   | Darf Eintrag sehen                   |
+| can_edit    | BOOL   | Darf bearbeiten                      |
+| can_delete  | BOOL   | Darf löschen                         |
+
+> Diese Tabelle ermöglicht matrixbasierte Rechtevergabe pro Passwort.
+
+---
+
+## Wer darf Passwörter anlegen?
+
+- Nur durch **global freigeschaltete Rollen** (Systemeinstellung):
+  - Standard: Studioleiter & Admin
+  - Konfigurierbar in den Systemeinstellungen (`settings.password_roles`)
+

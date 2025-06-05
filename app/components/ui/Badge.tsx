@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 
-type BadgeVariant = 'green' | 'blue' | 'red' | 'yellow' | 'purple' | 'gray';
+type BadgeVariant = 'green' | 'blue' | 'red' | 'yellow' | 'purple' | 'gray' | 'gold';
 
 type BadgeProps = {
   children: ReactNode;
@@ -17,6 +17,7 @@ const variantStyles: Record<BadgeVariant, string> = {
   yellow: 'bg-amber-100 text-amber-800',
   purple: 'bg-purple-100 text-purple-800',
   gray: 'bg-gray-100 text-gray-800',
+  gold: 'bg-amber-200 text-amber-900',
 };
 
 export default function Badge({ 
