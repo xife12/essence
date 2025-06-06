@@ -2,48 +2,48 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import supabase, { auth } from '../lib/supabaseClient';
-import DebugComponent from './debug';
+import supabase from '../lib/supabaseClient';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@membercore.de');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [debug, setDebug] = useState<any>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams?.get('redirectedFrom') || '/dashboard';
+
+  // Auto-Login für Development
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push(redirectTo);
+      }
+    };
+    checkExistingSession();
+  }, [router, redirectTo]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setDebug(null);
 
     try {
       console.log('Anmeldung versuchen mit:', email);
       
-      const { data, error } = await auth.signIn(email, password);
-      
-      setDebug({ loginAttempt: { data, error: error?.message } });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
       
       if (error) {
         throw error;
       }
 
       if (data?.session) {
-        console.log('Login erfolgreich, Session erhalten:', data.session);
-        
-        // Setze explizit Cookie mit der Session
-        document.cookie = `supabase-auth-token=${JSON.stringify(data.session)}; path=/; max-age=604800`;
-        
-        // Warte kurz, damit Cookies gesetzt werden können
-        setTimeout(() => {
-          // Direkt zum Dashboard navigieren
-          console.log('Weiterleitung zu:', redirectTo);
-          window.location.href = redirectTo; // Verwende window.location für vollständigen Seitenneuladen
-        }, 1000);
+        console.log('Login erfolgreich, Session erhalten');
+        router.push(redirectTo);
       } else {
         throw new Error('Keine Session nach Login erhalten');
       }
@@ -55,18 +55,18 @@ export default function LoginPage() {
     }
   };
 
+  const handleQuickLogin = async () => {
+    setEmail('admin@membercore.de');
+    setPassword('admin123');
+    // Trigger login automatically
+    setTimeout(() => {
+      document.getElementById('login-form')?.dispatchEvent(new Event('submit', { bubbles: true }));
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-md w-full space-y-8">
-        <DebugComponent />
-        
-        {debug && (
-          <div className="bg-yellow-50 p-4 rounded-md mb-4 text-sm">
-            <h3 className="font-semibold">Login-Debug:</h3>
-            <pre className="overflow-auto">{JSON.stringify(debug, null, 2)}</pre>
-          </div>
-        )}
-        
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
             MemberCore Login
@@ -76,9 +76,11 @@ export default function LoginPage() {
           </p>
         </div>
         
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+        <form id="login-form" className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div>
-            <label htmlFor="email-address">E-Mail-Adresse</label>
+            <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1">
+              E-Mail-Adresse
+            </label>
             <input
               id="email-address"
               name="email"
@@ -86,12 +88,14 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="E-Mail-Adresse"
             />
           </div>
           <div>
-            <label htmlFor="password">Passwort</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Passwort
+            </label>
             <input
               id="password"
               name="password"
@@ -99,13 +103,13 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Passwort"
             />
           </div>
 
           {error && (
-            <div className="text-sm text-center text-red-600">
+            <div className="text-sm text-center text-red-600 bg-red-50 p-3 rounded-lg">
               {error}
             </div>
           )}
@@ -114,12 +118,25 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2 px-4 border border-transparent rounded text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              className="w-full py-2 px-4 border border-transparent rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {isLoading ? 'Wird angemeldet...' : 'Anmelden'}
             </button>
           </div>
         </form>
+
+        {/* Development Helper */}
+        <div className="text-center">
+          <button
+            onClick={handleQuickLogin}
+            className="text-sm text-blue-600 hover:text-blue-800 underline"
+          >
+            🚀 Quick-Login (Development)
+          </button>
+          <p className="text-xs text-gray-500 mt-2">
+            Test-Account: admin@membercore.de / admin123
+          </p>
+        </div>
       </div>
     </div>
   );

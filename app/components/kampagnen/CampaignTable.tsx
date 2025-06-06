@@ -1,34 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Activity, ChevronDown, ChevronUp, BarChart, Calendar, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Activity, ChevronDown, ChevronUp, Eye, Edit, Trash2, BarChart } from 'lucide-react';
 import CampaignTag from './CampaignTag';
 import CampaignStatsCard from './CampaignStatsCard';
 import CampaignDetailPanel from './CampaignDetailPanel';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-
-interface Campaign {
-  id: string;
-  name: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-  campaign_type?: string;
-  target_group?: string;
-  channels?: string[];
-}
-
-interface CampaignStats {
-  leads: number;
-  conversions: number;
-  conversionRate: number;
-}
-
-interface CampaignTableProps {
-  onEdit: (campaign: Campaign) => void;
-  onDelete: (id: string) => void;
-}
+import { Campaign, CampaignStats, CampaignTableProps } from '@/app/lib/types/campaign';
 
 export default function CampaignTable({ onEdit, onDelete }: CampaignTableProps) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);

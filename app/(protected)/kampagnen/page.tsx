@@ -6,20 +6,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import CampaignTable from '@/app/components/kampagnen/CampaignTable';
 import CampaignModal from '@/app/components/kampagnen/CampaignModal';
 import CampaignDebug from '@/app/components/kampagnen/CampaignDebug';
-
-interface Campaign {
-  id?: string;
-  name: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-  campaign_type: string;
-  target_group: string;
-  bonus_period?: string;
-  channels: string[];
-  contract_type_ids: string[];
-}
+import { Campaign } from '@/app/lib/types/campaign';
 
 export default function KampagnenPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);

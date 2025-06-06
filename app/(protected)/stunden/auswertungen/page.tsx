@@ -8,7 +8,16 @@ import Button from '../../../components/ui/Button';
 import Dropdown from '../../../components/ui/Dropdown';
 import Table from '../../../components/ui/Table';
 import StundenCard from '../../../components/stunden/StundenCard';
-import { PDFExportLink } from '../../../components/stunden/PDFExport';
+import dynamic from 'next/dynamic';
+
+// Dynamic import für PDF-Komponente um SSR-Probleme zu vermeiden
+const PDFExportLink = dynamic(
+  () => import('../../../components/stunden/PDFExport').then(mod => ({ default: mod.PDFExportLink })),
+  { 
+    ssr: false,
+    loading: () => <div className="animate-pulse">PDF wird geladen...</div>
+  }
+);
 
 // Dummy-Daten für die Mitarbeiterübersicht
 const MITARBEITER_DATEN = [

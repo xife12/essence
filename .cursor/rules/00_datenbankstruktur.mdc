@@ -1,0 +1,31 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+| table_schema | table_name             | column_name          | data_type                | is_nullable | column_default                             |
+| ------------ | ---------------------- | -------------------- | ------------------------ | ----------- | ------------------------------------------ |
+| public       | file_asset             | id                   | uuid                     | NO          | gen_random_uuid()                          |
+| public       | file_asset             | filename             | text                     | NO          | null                                       |
+| public       | file_asset             | file_url             | text                     | NO          | null                                       |
+| public       | file_asset             | category             | USER-DEFINED             | NO          | null                                       |
+| public       | file_asset             | type                 | text                     | YES         | null                                       |
+| public       | file_asset             | work_area            | USER-DEFINED             | YES         | null                                       |
+| public       | file_asset             | campaign_id          | uuid                     | YES         | null                                       |
+| public       | file_asset             | module_reference     | USER-DEFINED             | YES         | 'system'::module_reference_type            |
+| public       | file_asset             | is_print_ready       | boolean                  | YES         | false                                      |
+| public       | file_asset             | tags                 | ARRAY                    | YES         | null                                       |
+| public       | file_asset             | description          | text                     | YES         | null                                       |
+| public       | file_asset             | created_by           | uuid                     | YES         | null                                       |
+| public       | file_asset             | created_at           | timestamp with time zone | YES         | now()                                      |
+| public       | file_asset             | updated_at           | timestamp with time zone | YES         | now()                                      |
+| public       | file_asset             | visibility           | USER-DEFINED             | YES         | 'staff_only'::file_visibility              |
+| public       | file_asset             | is_hidden_from_staff | boolean                  | YES         | false                                      |
+| public       | file_asset             | allowed_roles        | ARRAY                    | YES         | ARRAY['admin'::text, 'studioleiter'::text] |
+| public       | file_asset             | current_version_id   | uuid                     | YES         | null                                       |
+| public       | staff_file_permissions | id                   | uuid                     | NO          | gen_random_uuid()                          |
+| public       | staff_file_permissions | staff_id             | uuid                     | YES         | null                                       |
+| public       | staff_file_permissions | upload_permission    | USER-DEFINED             | YES         | 'none'::upload_permission                  |
+| public       | staff_file_permissions | can_see_admin_files  | boolean                  | YES         | false                                      |
+| public       | staff_file_permissions | created_at           | timestamp with time zone | YES         | now()                                      |
+| public       | staff_file_permissions | updated_at           | timestamp with time zone | YES         | now()                                      |

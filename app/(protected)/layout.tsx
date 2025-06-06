@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Users, UserPlus, CalendarClock, Activity, 
-  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut
+  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe
 } from 'lucide-react';
 import supabase from '../lib/supabaseClient';
 
@@ -18,12 +18,18 @@ export default function ProtectedLayout({
   const pathname = usePathname();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/login';
+    // Nur in Production ausloggen
+    if (process.env.NODE_ENV === 'production') {
+      await supabase.auth.signOut();
+      window.location.href = '/login';
+    } else {
+      // In Development direkt zur Login-Seite
+      window.location.href = '/login';
+    }
   };
 
   const NavItem = ({ href, icon: Icon, label }: { href: string, icon: any, label: string }) => {
-    const isActive = pathname === href;
+    const isActive = pathname === href || pathname.startsWith(href + '/');
     return (
       <Link href={href} className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}>
         <Icon size={20} className={isActive ? 'text-blue-600' : 'text-gray-600'} />
@@ -66,12 +72,14 @@ export default function ProtectedLayout({
               <p className={`text-xs uppercase text-gray-500 mb-2 ${!sidebarOpen && 'sr-only'}`}>Marketing</p>
               <nav className="flex flex-col gap-1">
                 <NavItem href="/kampagnen" icon={Activity} label="Kampagnen" />
+                <NavItem href="/landingpages" icon={Globe} label="Landingpages" />
               </nav>
             </div>
 
             <div>
               <p className={`text-xs uppercase text-gray-500 mb-2 ${!sidebarOpen && 'sr-only'}`}>Verwaltung</p>
               <nav className="flex flex-col gap-1">
+                <NavItem href="/dateimanager" icon={FolderOpen} label="Dateimanager" />
                 <NavItem href="/passwoerter" icon={KeyRound} label="Passwörter" />
                 <NavItem href="/mitarbeiter" icon={UserCog} label="Mitarbeiter" />
                 <NavItem href="/vertragsarten" icon={File} label="Vertragsarten" />
@@ -81,6 +89,13 @@ export default function ProtectedLayout({
 
           {/* Footer */}
           <div className="border-t border-gray-200 p-4">
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mb-4 text-center">
+                <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full inline-block">
+                  🚀 Development Mode
+                </div>
+              </div>
+            )}
             <button 
               onClick={handleSignOut}
               className="flex items-center gap-3 w-full px-3 py-2 text-red-600 rounded-md hover:bg-red-50 transition-colors"

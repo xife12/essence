@@ -1,0 +1,89 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Modul: Landingpages
+
+### Zweck
+Dieses Modul verwaltet alle Landingpages, die für Kampagnenaktionen erstellt werden. Jede Landingpage kann mit einem visuellen Builder aufgebaut werden, unterstützt Tracking, Formularerfassung und Integration in das Kampagnenmodul.
+
+---
+
+### Entität: landingpage
+
+| Feld              | Typ       | Beschreibung |
+|-------------------|-----------|--------------|
+| id                | UUID      | Primärschlüssel |
+| title             | TEXT      | Interner Name |
+| slug              | TEXT      | URL-Pfad (z. B. "rueckenfit") |
+| headline          | TEXT      | Hauptüberschrift |
+| subheadline       | TEXT      | Unterzeile |
+| description       | TEXT      | SEO-Beschreibung |
+| design_template   | TEXT      | Bezeichnung des Template-Typs |
+| is_active         | BOOLEAN   | Veröffentlicht? |
+| tracking_pixel_id | TEXT      | z. B. Meta Pixel oder GTM-ID |
+| campaign_id       | UUID      | Verknüpfung zu campaign.id |
+| form_enabled      | BOOLEAN   | Lead-Formular aktiv? |
+| form_target_table | TEXT      | Ziel-Datenbanktabelle (z. B. "leads") |
+| redirect_url      | TEXT      | Ziel-URL nach erfolgreichem Submit |
+| created_at        | TIMESTAMP | Erstellt am |
+| updated_at        | TIMESTAMP | Geändert am |
+
+---
+
+### Entität: landingpage_block
+
+| Feld             | Typ     | Beschreibung |
+|------------------|---------|--------------|
+| id               | UUID    | Block-ID |
+| landingpage_id   | UUID    | Referenz auf landingpage.id |
+| block_type       | ENUM    | 'text', 'image', 'form', 'button', 'testimonial', 'video', 'headline', 'spacer' |
+| position         | INTEGER | Position innerhalb der Seite |
+| content_json     | JSONB   | Inhalt (z. B. Text, Bild-URL, Einstellungen) |
+| file_asset_id    | UUID    | (optional) Bild/Grafik über Dateimanager |
+
+---
+
+### UI/UX Flow (Landingpage-Builder)
+1. **Landingpage erstellen:** Button „+ Neue Landingpage“ → Eingabe von Name, Slug, Tracking etc.
+2. **Modulansicht:** Drag & Drop Oberfläche für Blöcke
+3. **Block hinzufügen:** Auswahl: Textblock, Hero-Banner, CTA, Formular, Testimonial etc.
+4. **Block konfigurieren:** Inhalte anpassen, Farben auswählen, Bilder aus Dateimanager einfügen
+5. **Formular aktivieren:** Felder definieren (Name, E-Mail, Telefon etc.) → Zieltabelle: "leads"
+6. **Tracking aktivieren:** Meta-ID, GTM-ID optional pro Seite
+7. **Veröffentlichung:** is_active = true → Landingpage ist live unter `https://domain/slug`
+
+---
+
+### Validierungslogik
+- slug muss eindeutig sein
+- form_target_table darf nur gesetzt werden, wenn form_enabled = true
+- Jeder Block muss position >= 0 haben
+
+---
+
+### Verknüpfungen
+- campaign → Jede Landingpage gehört einer Kampagne
+- campaign_action → Verknüpfung über `landingpage_id`
+- file_asset → Einbindung von Bildern, Icons, Logos
+- leads → Formularfelder speichern Daten in der Zieltabelle
+
+---
+
+### ENUMs
+- block_type: 'text', 'image', 'form', 'button', 'testimonial', 'video', 'headline', 'spacer'
+
+---
+
+### Hinweis für Cursor
+Die Seite wird aus mehreren landingpage_block-Einträgen zusammengesetzt. Die Positionierung, Art und Datei-IDs müssen serverseitig validiert werden. Bei form_enabled muss automatisch ein POST-Ziel für Supabase/Edge Functions generiert werden.
+
+---
+
+### Verknüpfte Module
+- `Kampagnen.mdc`: Zuweisung von Landingpages zu Aktionen
+- `Dateimanager.mdc`: Bilder, Icons über file_asset auswählbar
+- `Leads`: Zieltabelle bei Formularen (form_target_table)
+- `Canva.mdc`: Canva-Vorlage kann als Datei eingebunden werden (optional über file_asset)
+- `Dashboard_KPI`: Auswertung von Conversions über Formular-Tracking
