@@ -3,3 +3,497 @@ description:
 globs:
 alwaysApply: false
 ---
+## Modul: Landingpages
+
+### Zweck
+Dieses Modul verwaltet alle Landingpages, die für Kampagnenaktionen erstellt werden. Jede Landingpage kann mit einem visuellen Builder aufgebaut werden, unterstützt Tracking, Formularerfassung und Integration in das Kampagnenmodul.
+
+---
+
+## 🏗️ **Modulstruktur (Hierarchische Navigation)**
+
+```
+📄 Landingpages/
+├── 📋 Übersicht (Alle Landingpages)
+├── 🏗️ Builder ([id]/builder - Page Builder)
+├── 💬 Testimonials (Testimonial-Verwaltung)
+├── 📝 Formulare (Formular-Templates)
+├── 🎨 Vorlagen (Page-Templates)
+├── 🎭 CI-Design (Brand Guidelines)
+└── ⚙️ Einstellungen (Rechtliches & Tracking)
+```
+
+---
+
+## 📊 **Datenbank-Entitäten**
+
+### **1. landingpage (Haupttabelle)**
+
+| Feld              | Typ       | Beschreibung |
+|----|-----|-----|
+| id                | UUID      | Primärschlüssel |
+| title             | TEXT      | Interner Name |
+| slug              | TEXT      | URL-Pfad (z. B. "rueckenfit") |
+| headline          | TEXT      | Hauptüberschrift |
+| subheadline       | TEXT      | Unterzeile |
+| description       | TEXT      | SEO-Beschreibung |
+| design_template   | TEXT      | Template-Name (fitness-modern, corporate-clean, wellness-warm) |
+| typography_set    | TEXT      | Typography Set (compact, airy) |
+| container_width   | TEXT      | Standard, Full Width, Limited |
+| background_config | JSONB     | Background-Einstellungen für Full Width |
+| is_active         | BOOLEAN   | Veröffentlicht? |
+| tracking_pixel_id | TEXT      | z. B. Meta Pixel oder GTM-ID |
+| campaign_id       | UUID      | Verknüpfung zu campaign.id |
+| form_enabled      | BOOLEAN   | Lead-Formular aktiv? |
+| form_target_table | TEXT      | Ziel-Datenbanktabelle (z. B. "leads") |
+| redirect_url      | TEXT      | Ziel-URL nach erfolgreichem Submit |
+| created_at        | TIMESTAMP | Erstellt am |
+| updated_at        | TIMESTAMP | Geändert am |
+
+---
+
+### **2. landingpage_block (Seitenblöcke)**
+
+| Feld             | Typ     | Beschreibung |
+|---|---|-----|
+| id               | UUID    | Block-ID |
+| landingpage_id   | UUID    | Referenz auf landingpage.id |
+| block_type       | ENUM    | Siehe Block-Typen unten |
+| position         | INTEGER | Position innerhalb der Seite |
+| content_json     | JSONB   | Block-spezifische Inhalte und Einstellungen |
+| file_asset_id    | UUID    | (optional) Bild/Grafik über Dateimanager |
+| carousel_config  | JSONB   | (optional) Carousel-Einstellungen |
+| popup_config     | JSONB   | (optional) Popup-Formular Konfiguration |
+| created_at       | TIMESTAMP | Erstellt am |
+
+---
+
+### **3. testimonials (Testimonial-Verwaltung)**
+
+| Feld              | Typ       | Beschreibung |
+|----|-----|-----|
+| id                | UUID      | Primärschlüssel |
+| name              | TEXT      | Legacy-Feld (für Migration) |
+| firstname         | TEXT      | Vorname des Kunden |
+| lastname          | TEXT      | Nachname des Kunden |
+| gender            | ENUM      | 'Männlich', 'Weiblich', 'Divers' |
+| age               | INTEGER   | Alter des Kunden |
+| location          | TEXT      | Wohnort |
+| rating            | INTEGER   | Bewertung 1-5 Sterne |
+| text_content      | TEXT      | Testimonial-Text (Pflichtfeld) |
+| file_asset_id     | UUID      | Verknüpfung zu file_asset (Portrait) |
+| tags              | TEXT[]    | Freie Tags (z.B. "erfolgreich", "motivation") |
+| training_goals    | TEXT[]    | Trainingsziele (z.B. "Abnehmen", "Muskelaufbau") |
+| member_since      | DATE      | Mitglied seit (optional) |
+| is_active         | BOOLEAN   | Testimonial aktiv/inaktiv |
+| created_at        | TIMESTAMP | Erstellt am |
+| updated_at        | TIMESTAMP | Aktualisiert am |
+
+### Bild-Versionierung System
+
+**Integration mit file_asset:**
+- **Kategorie**: `image`
+- **Typ**: `portrait`
+- **Arbeitsbereich**: `Verwaltung`
+- **Modulreferenz**: `landingpage`
+- **Tags**: `['testimonials', 'portrait', 'mitglieder']`
+- **Ordnerstruktur**: `Landingpages > Bild > Portrait > Testimonials`
+
+**Versionierungs-Features:**
+- Automatische Versionierung bei Bild-Updates
+- Neue Versionen werden automatisch als aktuelle Version gesetzt
+- Detaillierte Beschreibungen basierend auf Testimonial-Daten
+- Kaskadierende Löschung (Testimonial löschen → verknüpftes Bild löschen)
+
+**Beschreibungs-Template:**
+```
+Testimonial-Portrait: [Vorname Nachname] | ([Alter] Jahre, [Geschlecht], [Ort]) | [X]/5 Sterne | Mitglied seit [Monat Jahr] | Ziele: [Ziel1, Ziel2, Ziel3...] | Tags: [Tag1, Tag2, Tag3...] | Upload: [Methode] am [Datum]
+```
+
+### UI/UX Features (Vollständig implementiert)
+
+**Übersichtsseite:**
+- **Statistik-Cards**: Gesamt, Aktive, Durchschnittsbewertung
+- **Erweiterte Filter**:
+  - Textsuche (Name, Ort, Tags, Trainingsziele)
+  - Geschlechter-Filter
+  - Rating-Filter (1+ bis 5 Sterne)
+  - Tag-Filter
+- **Grid-Layout**: Responsive Darstellung mit Avatar, Details, Status
+- **Sortierung**: Erstellungsdatum absteigend
+
+**Erstellungs-/Bearbeitungsformular:**
+- **Persönliche Daten**: Vor-/Nachname, Geschlecht, Alter, Ort
+- **Bewertungssystem**: Interaktive 5-Sterne-Bewertung
+- **Testimonial-Text**: Mehrzeiliges Textfeld (Pflicht)
+- **Bild-Upload**: Drag&Drop oder Dateiauswahl (max 5MB)
+- **Tags-System**: Dynamisches Hinzufügen/Entfernen von Tags
+- **Trainingsziele**: Separate Ziel-Tags mit anderer Farbe
+- **Mitgliedschaft**: "Mitglied seit" Datumsfeld
+- **Status-Toggle**: Aktiv/Inaktiv
+
+**Validierungen:**
+- Vorname ist Pflichtfeld
+- Rating zwischen 1-5
+- Bildformate: alle gängigen Formate
+- Dateigröße: max 5MB
+
+### Debug- und Test-Tools
+
+**Implementierte Debug-Funktionen:**
+- **🐛 Debug-Button**: Analysiert Testimonials-Struktur und file_asset Verbindungen
+- **🔄 Test Versionierung-Button**: Prüft Versionierungs-Infrastruktur
+- **Konsolen-Logs**: Detaillierte Ausgaben für Upload- und Versionierungs-Prozesse
+
+**Status-Checks:**
+- Prüfung der `file_versions` Tabelle
+- Validierung der `get_next_version_number` Funktion
+- API-Funktions-Import-Tests
+
+### Datenbank-Setup Abhängigkeiten
+
+**Erforderliche SQL-Skripte:**
+1. `testimonials_fix_final.sql` - Erweiterte Testimonials-Struktur
+2. `file_versions_setup_clean.sql` - Versionierungs-System
+3. `supabase_update_testimonials.sql` - Vollständige Integration
+
+**Neue Datenbank-Objekte:**
+- `gender_type` ENUM
+- Erweiterte `testimonials` Spalten
+- `file_versions` Tabelle mit RLS-Policies
+- `get_next_version_number()` PostgreSQL-Funktion
+
+### API-Integration
+
+**File-Asset API-Funktionen:**
+- `uploadNewVersion()` - Erstellt neue Bild-Versionen
+- `setCurrentVersion()` - Aktiviert neue Version automatisch
+- `getFileVersions()` - Lädt alle Versionen
+- `deleteFileVersion()` - Löscht Versionen (nicht aktuelle)
+
+**Upload-Workflow:**
+1. **Neues Testimonial**: Erstellt neues `file_asset`
+2. **Bearbeitung mit neuem Bild**: Versionierung aktiviert
+3. **Automatische Aktivierung**: Neue Version wird sofort aktiv
+4. **UI-Update**: Testimonials werden neu geladen
+
+### Performance-Optimierungen
+
+**Datenbank-Indizes:**
+```sql
+CREATE INDEX IF NOT EXISTS idx_testimonials_file_asset_id ON public.testimonials(file_asset_id);
+CREATE INDEX IF NOT EXISTS idx_testimonials_firstname ON public.testimonials(firstname);
+CREATE INDEX IF NOT EXISTS idx_testimonials_lastname ON public.testimonials(lastname);
+CREATE INDEX IF NOT EXISTS idx_testimonials_training_goals ON public.testimonials USING GIN(training_goals);
+```
+
+**Optimierte Abfragen:**
+- JOIN mit `file_asset` für Bild-Laden
+- Array-basierte Tag- und Ziel-Suche
+- Effiziente Filter-Kombinationen
+
+---
+
+### **4. form_templates (Formular-Builder)**
+
+| Feld               | Typ       | Beschreibung |
+|---|-----|-----|
+| id                 | UUID      | Primärschlüssel |
+| name               | TEXT      | Template-Name |
+| description        | TEXT      | Beschreibung des Formulars |
+| fields_config      | JSONB     | Feld-Konfiguration (Name, Typ, Validierung) |
+| target_table       | TEXT      | Ziel-Datenbanktabelle (z. B. "leads") |
+| redirect_url       | TEXT      | Ziel-URL nach erfolgreichem Submit |
+| success_message    | TEXT      | Erfolgsnachricht |
+| requires_consent   | BOOLEAN   | DSGVO-Consent erforderlich |
+| is_active          | BOOLEAN   | Aktiv/Inaktiv |
+| created_at         | TIMESTAMP | Erstellt am |
+| updated_at         | TIMESTAMP | Geändert am |
+
+---
+
+### **5. page_templates (Landingpage-Vorlagen)**
+
+| Feld             | Typ       | Beschreibung |
+|---|-----|-----|
+| id               | UUID      | Primärschlüssel |
+| name             | TEXT      | Template-Name |
+| description      | TEXT      | Beschreibung der Vorlage |
+| category         | TEXT      | Kategorie (z. B. "Fitness", "Wellness") |
+| tags             | TEXT[]    | Tags für Kategorisierung |
+| campaign_type    | TEXT      | Kampagnen-Typ (optional) |
+| blocks_config    | JSONB     | Vordefinierte Block-Struktur |
+| preview_image_id | UUID      | (optional) FK → file_asset.id |
+| is_system        | BOOLEAN   | System-Template oder User-erstellt |
+| usage_count      | INTEGER   | Wie oft verwendet |
+| created_by       | UUID      | (optional) Ersteller |
+| created_at       | TIMESTAMP | Erstellt am |
+| updated_at       | TIMESTAMP | Geändert am |
+
+---
+
+### **6. ci_templates (CI-Design-Vorlagen)**
+
+| Feld               | Typ       | Beschreibung |
+|---|-----|-----|
+| id                 | UUID      | Primärschlüssel |
+| name               | TEXT      | CI-Template-Name |
+| description        | TEXT      | Beschreibung |
+| primary_color      | TEXT      | Hauptfarbe (Hex) |
+| secondary_color    | TEXT      | Sekundärfarbe (Hex) |
+| accent_color       | TEXT      | Akzentfarbe (Hex) |
+| background_color   | TEXT      | Hintergrundfarbe (Hex) |
+| text_color         | TEXT      | Textfarbe (Hex) |
+| font_family        | TEXT      | Haupt-Schriftart |
+| font_headline      | TEXT      | Überschriften-Schrift |
+| font_sizes         | JSONB     | Font-Größen-Hierarchie |
+| button_style       | JSONB     | Button-Styling (Radius, Padding, etc.) |
+| logo_primary_id    | UUID      | (optional) FK → file_asset.id |
+| logo_secondary_id  | UUID      | (optional) FK → file_asset.id |
+| is_default         | BOOLEAN   | Standard-CI |
+| created_at         | TIMESTAMP | Erstellt am |
+| updated_at         | TIMESTAMP | Geändert am |
+
+---
+
+### **7. landing_settings (Rechtliches & Tracking)**
+
+| Feld                    | Typ       | Beschreibung |
+|---|-----|-----|
+| id                      | UUID      | Primärschlüssel |
+| setting_key             | TEXT      | UNIQUE - Einstellungsschlüssel |
+| setting_value           | TEXT      | Einstellungswert |
+| setting_type            | ENUM      | 'legal', 'tracking', 'cookie', 'general' |
+| description             | TEXT      | Beschreibung der Einstellung |
+| is_active               | BOOLEAN   | Aktiv/Inaktiv |
+| updated_at              | TIMESTAMP | Letzte Änderung |
+
+**Vordefinierte Settings:**
+- `impressum_text` (legal)
+- `privacy_policy_text` (legal)
+- `cookie_banner_text` (cookie)
+- `meta_pixel_id` (tracking)
+- `gtm_id` (tracking)
+- `google_analytics_id` (tracking)
+- `cancel_membership_url` (legal)
+
+---
+
+## 🧩 **Block-Typen Erweitert**
+
+### ENUMs für block_type:
+```typescript
+'text'        // Rich Text Editor
+'image'       // Bilder aus Dateimanager
+'form'        // Formulare aus Templates
+'button'      // CTAs mit Links
+'testimonial' // Testimonials aus Verwaltung
+'video'       // Eingebettete Videos
+'headline'    // Überschriften
+'spacer'      // Abstände
+'hero'        // Hero-Section mit Bild + Text
+'gallery'     // Bildergalerie
+'pricing'     // Preistabellen
+'contact'     // Kontakt-Informationen
+'faq'         // FAQ-Abschnitt
+'services'    // Dienstleistungen
+'timer'       // Timer/Countdown
+'schedule'    // Kursplan
+```
+
+---
+
+## 📁 **Dateistruktur**
+
+```
+app/(protected)/landingpages/
+├── page.tsx                     # Übersichtsseite aller Landingpages
+├── create/page.tsx              # Neue Landingpage erstellen
+├── [id]/
+│   ├── page.tsx                # Landingpage-Details bearbeiten
+│   ├── builder/page.tsx        # Page Builder Interface
+│   └── preview/page.tsx        # Live-Vorschau
+├── testimonials/
+│   ├── page.tsx                # Testimonial-Übersicht
+│   ├── create/page.tsx         # Neues Testimonial
+│   └── [id]/edit/page.tsx      # Testimonial bearbeiten
+├── forms/
+│   ├── page.tsx                # Formular-Templates Übersicht
+│   ├── create/page.tsx         # Neues Formular-Template
+│   └── [id]/edit/page.tsx      # Template bearbeiten
+├── templates/
+│   ├── page.tsx                # Page-Templates Übersicht
+│   ├── create/page.tsx         # Neues Template
+│   └── [id]/edit/page.tsx      # Template bearbeiten
+├── branding/
+│   ├── page.tsx                # CI-Templates Übersicht
+│   ├── create/page.tsx         # Neues CI-Template
+│   └── [id]/edit/page.tsx      # CI bearbeiten
+├── settings/
+│   └── page.tsx                # Rechtliches & Tracking
+└── components/
+    ├── LandingpageList.tsx     # Hauptübersicht
+    ├── LandingpageForm.tsx     # Basis-Formular
+    ├── PageBuilder/
+    │   ├── Builder.tsx         # Drag & Drop Builder
+    │   ├── BlockLibrary.tsx    # Block-Auswahl
+    │   ├── BlockEditor.tsx     # Block-Konfiguration
+    │   └── blocks/             # Block-Komponenten
+    │       ├── TextBlock.tsx
+    │       ├── ImageBlock.tsx
+    │       ├── FormBlock.tsx
+    │       ├── TestimonialBlock.tsx
+    │       └── ...
+    ├── Testimonials/
+    │   ├── TestimonialList.tsx
+    │   ├── TestimonialForm.tsx
+    │   └── TestimonialCard.tsx
+    ├── Forms/
+    │   ├── FormTemplateList.tsx
+    │   ├── FormBuilder.tsx
+    │   └── FieldConfig.tsx
+    ├── Templates/
+    │   ├── TemplateLibrary.tsx
+    │   ├── TemplateCard.tsx
+    │   └── TemplatePreview.tsx
+    ├── Branding/
+    │   ├── CITemplateList.tsx
+    │   ├── CIEditor.tsx
+    │   ├── ColorPicker.tsx
+    │   └── FontSelector.tsx
+    ├── Settings/
+    │   ├── LegalSettings.tsx
+    │   ├── TrackingSettings.tsx
+    │   └── CookieSettings.tsx
+    └── Preview/
+        └── LandingpagePreview.tsx
+```
+
+---
+
+## 🎯 **UI/UX Flows**
+
+### **1. Testimonial-Verwaltung**
+1. **Übersicht**: Liste aller Testimonials mit Filter (Kampagne, Rating, Tags)
+2. **Erstellen**: Upload Bild, Name, Alter, Standort, Rating, Text eingeben
+3. **Kategorisierung**: Tags vergeben, Kampagne zuordnen
+4. **Verwendung**: Im Page Builder auswählbar über Dropdown
+
+### **2. Formular-Builder**
+1. **Template erstellen**: Name, Beschreibung
+2. **Felder definieren**: Drag & Drop Feld-Editor
+3. **Validierung**: Pflichtfelder, Datentypen, Regex-Pattern
+4. **Ziel konfigurieren**: Tabelle, Redirect-URL, Erfolgsnachricht
+5. **DSGVO**: Consent-Checkbox, Datenschutz-Link
+
+### **3. Page-Templates**
+1. **Bibliothek**: System-Templates + User-Templates
+2. **Kategorien**: Fitness, Wellness, Angebote, etc.
+3. **Tags**: Flexible Verschlagwortung
+4. **Vorschau**: Live-Preview vor Verwendung
+5. **Klonen**: Template als Basis für neue Landingpage
+
+### **4. CI-Design-Vorlagen**
+1. **Farb-Editor**: Primary, Secondary, Accent, Background, Text
+2. **Schrift-Auswahl**: Haupt-Font, Überschriften-Font, Größen-Hierarchie
+3. **Button-Styling**: Border-Radius, Padding, Hover-Effekte
+4. **Logo-Verwaltung**: Primary + Secondary Logo aus Dateimanager
+5. **Live-Vorschau**: Komponenten-Beispiele mit gewähltem CI
+
+### **5. Rechtliches & Tracking**
+1. **Legal Texte**: Impressum, Datenschutz, AGB editierbar
+2. **Cookie-Banner**: Text, Design, Kategorien konfigurieren
+3. **Tracking-Codes**: Meta Pixel, GTM, Google Analytics zentral verwalten
+4. **Links**: "Jetzt kündigen" URL, Support-Kontakt
+
+---
+
+## 🔗 **Verknüpfungen zwischen Modulen**
+
+### **Mit Kampagnen-Modul:**
+- Landingpages werden Kampagnen zugeordnet
+- Testimonials können kampagnenspezifisch sein
+- Templates können nach Kampagnen-Typ gefiltert werden
+
+### **Mit Dateimanager:**
+- Bilder für Testimonials
+- Hero-Bilder, Icons, Logos für Landingpages
+- CI-Logos und Assets
+- Template-Vorschaubilder
+
+### **Mit Leads-Modul:**
+- Formulare speichern direkt in leads-Tabelle
+- Kampagnen-Attribution für Lead-Tracking
+- Conversion-Tracking
+
+---
+
+## ⚡ **Erweiterte Features**
+
+### **DSGVO-Compliance:**
+- Cookie-Banner mit Kategorien
+- Opt-in/Opt-out Tracking
+- Datenschutz-Links in Formularen
+- IP-Anonymisierung
+
+### **SEO-Optimierung:**
+- Meta-Tags pro Landingpage
+- Open Graph Integration
+- JSON-LD Schema Markup
+- Performance-Optimierung
+
+### **Analytics Integration:**
+- Conversion-Tracking
+- Heatmap-Integration
+- A/B-Testing Framework
+- Form-Analytics
+
+---
+
+## 🛡️ **Validierungslogik**
+
+### **Landingpage:**
+- slug muss eindeutig sein
+- Mindestens ein Block erforderlich
+- CI-Template muss existieren
+
+### **Testimonials:**
+- Rating zwischen 1-5
+- Text darf nicht leer sein
+- Bild optional aber empfohlen
+
+### **Formulare:**
+- Mindestens ein Feld erforderlich
+- Ziel-Tabelle muss existieren
+- Pflichtfeld-Validierung
+
+### **CI-Templates:**
+- Farben müssen gültige Hex-Werte sein
+- Font-Familie muss verfügbar sein
+- Mindestens Primary Color erforderlich
+
+---
+
+## 📊 **Performance & Skalierung**
+
+### **Caching-Strategie:**
+- Template-Bibliothek statisch gecacht
+- CI-Vorlagen im localStorage
+- Landingpage-Blöcke lazy geladen
+
+### **Optimierungen:**
+- Bild-Komprimierung automatisch
+- CSS-Minification für CI-Styles
+- JSON-Kompression für Block-Configs
+
+---
+
+## 🔮 **Zukünftige Erweiterungen**
+
+### **Geplante Features:**
+- **Multi-Language Support**: Mehrsprachige Landingpages
+- **A/B Testing**: Split-Tests für Conversion-Optimierung
+- **Animation Builder**: CSS-Animationen für Blöcke
+- **Mobile-First Templates**: Responsive Design Templates
+- **API Integration**: Externe Service-Anbindungen
+- **White-Label**: Komplett anpassbares Branding

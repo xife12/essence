@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Users, UserPlus, CalendarClock, Activity, 
-  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe
+  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe, Palette, Settings, FileText
 } from 'lucide-react';
 import supabase from '../lib/supabaseClient';
 
@@ -28,8 +28,12 @@ export default function ProtectedLayout({
     }
   };
 
-  const NavItem = ({ href, icon: Icon, label }: { href: string, icon: any, label: string }) => {
-    const isActive = pathname === href || pathname.startsWith(href + '/');
+  const NavItem = ({ href, icon: Icon, label }: { 
+    href: string, 
+    icon: any, 
+    label: string
+  }) => {
+    const isActive = pathname === href;
     return (
       <Link href={href} className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}>
         <Icon size={20} className={isActive ? 'text-blue-600' : 'text-gray-600'} />
@@ -73,6 +77,8 @@ export default function ProtectedLayout({
               <nav className="flex flex-col gap-1">
                 <NavItem href="/kampagnen" icon={Activity} label="Kampagnen" />
                 <NavItem href="/landingpages" icon={Globe} label="Landingpages" />
+                <NavItem href="/formulare" icon={FileText} label="Formulare" />
+                <NavItem href="/ci-styling" icon={Palette} label="CI-Styling" />
               </nav>
             </div>
 

@@ -3,3 +3,374 @@ description:
 globs:
 alwaysApply: false
 ---
+## Modul: Dateimanager (file_asset) - Erweitert mit Versionsverwaltung
+
+### Zweck
+Zentrale Dateiablage und Medienverwaltung mit strukturierter Zuordnung nach Kategorien, Kampagnen, Arbeitsbereichen und Dateitypen. Erweitert um vollständige Versionsverwaltung mit Änderungsprotokoll und modulbasierte virtuelle Ordnerstruktur. Dient als Quelle für alle Uploads in Kampagnen, Maßnahmen, Landingpages und Mitarbeiterprozesse.
+
+---
+
+### Entität: file_asset (Haupttabelle)
+
+| Feld                 | Typ       | Beschreibung |
+|---|-----|-----|
+| id                   | UUID      | Primärschlüssel |
+| filename             | TEXT      | Ursprünglicher Dateiname |
+| file_url             | TEXT      | Speicherpfad (z. B. Supabase Storage) |
+| category             | ENUM      | 'image', 'graphic', 'document', 'print', 'template', 'web', 'video' |
+| type                 | TEXT      | Unterkategorie wie 'flyer', 'logo', 'testimonial', 'hero-banner' |
+| work_area            | ENUM      | 'Trainer', 'Rezeption', 'Service', 'Verwaltung', 'Studioleitung' |
+| campaign_id          | UUID      | (optional) Verknüpfung zu campaign.id |
+| module_reference     | ENUM      | 'system', 'campaign', 'landingpage', 'task', 'contentplaner' |
+| is_print_ready       | BOOLEAN   | true = finale Druckdatei |
+| tags                 | TEXT[]    | Freie Schlagworte |
+| description          | TEXT      | Beschreibung oder Einsatzzweck |
+| created_by           | UUID      | Uploader (Mitarbeiter) |
+| created_at           | TIMESTAMP | Upload-Datum |
+| updated_at           | TIMESTAMP | Letzte Änderung |
+| visibility           | ENUM      | 'public', 'staff_only', 'admin_only' |
+| is_hidden_from_staff | BOOLEAN   | Staff-Sichtbarkeit |
+| allowed_roles        | TEXT[]    | Berechtigte Rollen |
+| current_version_id   | UUID      | FK → file_versions.id (aktuelle Version) |
+
+---
+
+### Entität: file_versions (Versionsverwaltung)
+
+| Feld               | Typ       | Beschreibung |
+|---|-----|-----|
+| id                 | UUID      | Primärschlüssel |
+| file_asset_id      | UUID      | FK → file_asset.id |
+| version_number     | INTEGER   | Versionsnummer (automatisch) |
+| file_url           | TEXT      | Speicherpfad dieser Version |
+| filename           | TEXT      | Dateiname dieser Version |
+| file_size          | BIGINT    | Dateigröße in Bytes |
+| version_description| TEXT      | Beschreibung der Änderungen |
+| changelog          | TEXT      | Detailliertes Änderungsprotokoll |
+| uploaded_by        | UUID      | FK → staff.id |
+| created_at         | TIMESTAMP | Upload-Zeitpunkt |
+
+---
+
+### Entität: staff_file_permissions (Berechtigungsmatrix)
+
+| Feld               | Typ       | Beschreibung |
+|---|-----|-----|
+| id                 | UUID      | Primärschlüssel |
+| staff_id           | UUID      | FK → staff.id |
+| upload_permission  | ENUM      | 'none', 'basic', 'advanced', 'admin' |
+| can_see_admin_files| BOOLEAN   | Admin-Dateien sichtbar |
+| created_at         | TIMESTAMP | Erstellung |
+| updated_at         | TIMESTAMP | Änderung |
+
+---
+
+### Virtuelle Ordnerstruktur (modulbasiert)
+
+Das System generiert automatisch eine intelligente Ordnerstruktur basierend auf `module_reference`:
+
+#### Ordner-Hierarchie:
+```
+📁 Dateimanager
+├── 🔧 System
+│   ├── 📄 Dokumente
+│   ├── 🖼️ Bilder
+│   └── 🖨️ Druck
+├── 📢 Kampagnen
+│   ├── [Kampagnenname]
+│   │   ├── 📄 Dokumente
+│   │   ├── 🖼️ Bilder
+│   │   └── 🖨️ Druck
+│   └── Allgemein
+├── 🌐 Landingpages
+│   ├── 🖼️ Bilder
+│   ├── 📺 Videos
+│   └── 📄 Dokumente
+├── ✅ Aufgaben
+│   ├── 📋 Checklisten
+│   ├── 📄 Briefings
+│   └── 🖼️ Grafiken
+└── 📅 Contentplaner
+    ├── 📱 Social Media
+    ├── 📧 E-Mail
+    └── 📄 Blog
+```
+
+#### Pfad-Generierung (getVirtualPath):
+1. **Hauptordner**: Bestimmt durch `module_reference`
+2. **Unterordner**: Spezifische Kampagne (bei campaign) oder "Allgemein"
+3. **Kategorie**: Basierend auf `category`
+4. **Arbeitsbereich**: Nur bei System-Dateien relevant
+
+---
+
+### Versionsverwaltung - Features
+
+#### Automatische Versionierung:
+- Jede neue Datei startet mit Version 1
+- Upload neuer Versionen erhöht automatisch die Versionsnummer
+- `current_version_id` zeigt immer auf die neueste Version
+
+#### Version-Management UI:
+- 📋 **Version-Badge**: Zeigt aktuelle Versionsnummer (z.B. "📋 v3")
+- **Versionshistorie**: Vollständige Liste aller Versionen mit Changelog
+- **Version-Kommentare**: Beschreibung der Änderungen bei Upload
+- **Download-Historie**: Alle Versionen bleiben downloadbar
+
+#### Funktionen:
+```typescript
+// Neue Version hochladen
+uploadNewVersion(fileId, file, versionDescription, changelog)
+
+// Versionen abrufen
+getFileVersions(fileId)
+
+// Aktuelle Versionsnummer ermitteln
+getCurrentVersionNumber(fileId)
+```
+
+---
+
+### UI/UX Flows (Erweitert)
+
+#### 1. Upload-Prozess:
+1. **Upload starten**: "➕ Neue Datei" Button
+2. **Datei-Upload**: Drag & Drop oder Dateiauswahl + Live-Vorschau
+3. **Kategorisierung**:
+   - Kategorie auswählen (Dropdown mit Icons)
+   - Dynamische Unterfelder je nach Kategorie
+4. **Modulzuordnung**:
+   - 🔧 System, 📢 Kampagne, 🌐 Landingpage, ✅ Aufgabe, 📅 Contentplaner
+   - Bei Kampagne: Spezifische Kampagne auswählbar
+5. **Metadaten**:
+   - Arbeitsbereich (Multi-Select)
+   - Tags (mit Enter-Taste und ➕/➖ Buttons)
+   - Beschreibung
+   - Sichtbarkeit und Berechtigungen
+6. **Speichern**: Automatische Ordner-Zuordnung
+
+#### 2. Version-Upload:
+1. **Version hinzufügen**: Button in Datei-Detailansicht
+2. **Neue Datei hochladen**: Ersetzt aktuelle Version
+3. **Änderungskommentar**: Pflichtfeld für Versionsbeschreibung
+4. **Changelog**: Detaillierte Änderungsliste (optional)
+5. **Automatische Versionierung**: System erhöht Versionsnummer
+
+#### 3. Ordner-Navigation:
+1. **Breadcrumb-Navigation**: 🏠 Dateimanager > Ordner > Unterordner
+2. **Ordner-Icons**: Visuelle Unterscheidung der Module
+3. **Datei-Zähler**: Anzahl Dateien pro Ordner (inkl. Unterordner)
+4. **Zurück-Navigation**: Ein-Klick zurück zum Überordner
+
+#### 4. Erweiterte Suche:
+- **Globale Suche**: Durchsucht alle Dateien modulübergreifend
+- **Filter-Panel**: Nach Kategorie, Modul, Arbeitsbereich, Druckstatus
+- **Tag-Suche**: Schnellfilter nach Tags
+- **Kampagnen-Filter**: Dateien einer spezifischen Kampagne
+
+---
+
+### Status-Badge-System
+
+#### Badge-Typen mit Styling:
+```typescript
+StatusBadge Types:
+- 📋 **Version**: "v2" (cyan)
+- 🌐 **Sichtbarkeit**: "Öffentlich", "Team", "Admin" (grün/blau/rot)
+- 📍 **Arbeitsbereich**: "Trainer", "Rezeption" etc. (lila)
+- 🖨️ **Druckstatus**: "Druckfertig", "Entwurf" (grün/orange)
+- 🎯 **Kampagne**: Kampagnenname (indigo)
+```
+
+#### Badge-Verhalten:
+- Grid-Ansicht: Kompakte Darstellung, max. 3 Badges sichtbar
+- Listen-Ansicht: Vollständige Badge-Anzeige
+- Tooltip: Zusätzliche Informationen bei Hover
+
+---
+
+### Datenbank-Logik & Constraints
+
+#### RLS (Row Level Security):
+```sql
+-- Sichtbarkeit basierend auf Rolle und visibility
+CREATE POLICY file_asset_visibility ON file_asset FOR SELECT
+USING (
+  visibility = 'public' OR
+  (visibility = 'staff_only' AND auth.role() IN ('staff', 'admin')) OR
+  (visibility = 'admin_only' AND auth.role() = 'admin')
+);
+```
+
+#### Automatische Trigger:
+```sql
+-- Version-Update Trigger
+CREATE OR REPLACE FUNCTION update_current_version()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE file_asset 
+  SET current_version_id = NEW.id
+  WHERE id = NEW.file_asset_id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+#### Enum-Validierung:
+- Leere Strings werden zu NULL konvertiert (Frontend-Verarbeitung)
+- Alle ENUMs haben Default-Werte
+- Validierung verhindert ungültige Enum-Werte
+
+---
+
+### API-Funktionen (Erweitert)
+
+#### Basis-Operationen:
+```typescript
+// Dateien abrufen (mit Filtern)
+getFileAssets(filters: FileFilterOptions): Promise<FileAsset[]>
+
+// Datei hochladen
+uploadFileAsset(file: File, metadata: FileMetadata): Promise<FileAsset>
+
+// Datei bearbeiten
+updateFileAsset(id: string, updates: Partial<FileAsset>): Promise<FileAsset>
+
+// Datei löschen (inklusive aller Versionen)
+deleteFileAsset(id: string): Promise<void>
+```
+
+#### Versions-Operationen:
+```typescript
+// Neue Version hochladen
+uploadNewVersion(
+  fileId: string, 
+  file: File, 
+  versionDescription: string,
+  changelog?: string
+): Promise<FileVersion>
+
+// Versionen abrufen
+getFileVersions(fileId: string): Promise<FileVersion[]>
+
+// Version löschen
+deleteFileVersion(versionId: string): Promise<void>
+```
+
+#### Kampagnen-Integration:
+```typescript
+// Kampagnen für Dropdown
+getCampaigns(): Promise<Campaign[]>
+
+// Dateien einer Kampagne
+getFilesByCampaign(campaignId: string): Promise<FileAsset[]>
+```
+
+---
+
+### Berechtigungsmatrix
+
+| Rolle        | Upload | Bearbeiten | Löschen | Admin-Dateien | Versionierung |
+|---|-----|---|---|---|-----|
+| **Admin**    | ✅ Alle | ✅ Alle     | ✅ Alle  | ✅ Ja          | ✅ Vollzugriff |
+| **Studioleiter** | ✅ Eigene | ✅ Eigene | ✅ Eigene | 🔶 Teilweise | ✅ Eigene |
+| **Mitarbeiter** | ✅ Basic | ✅ Eigene | ❌ Nein | ❌ Nein | ✅ Eigene |
+
+#### Upload-Berechtigungen:
+- **Basic**: System, eigene Dateien
+- **Advanced**: + Kampagnen, Aufgaben
+- **Admin**: Alle Module, alle Berechtigungen
+
+---
+
+### Performance-Optimierungen
+
+#### Caching:
+- **Version-Cache**: Map<fileId, versionNumber> für schnelle Anzeige
+- **Kampagnen-Cache**: Statische Liste für Dropdown
+- **Ordnerstruktur-Cache**: Einmalige Berechnung bei Laden
+
+#### Lazy Loading:
+- Versionsnummern werden asynchron nachgeladen
+- Große Dateien mit Progressbar
+- Infinite Scrolling bei vielen Dateien
+
+#### Indizierung:
+```sql
+-- Performance-Indices
+CREATE INDEX idx_file_asset_module_ref ON file_asset(module_reference);
+CREATE INDEX idx_file_asset_campaign ON file_asset(campaign_id);
+CREATE INDEX idx_file_asset_category ON file_asset(category);
+CREATE INDEX idx_file_versions_asset ON file_versions(file_asset_id);
+```
+
+---
+
+### Integration mit anderen Modulen
+
+#### Kampagnen-Modul:
+- Direkte Datei-Zuordnung über `campaign_id`
+- Kampagnen-spezifische Ordnerstruktur
+- Asset-Auswahl in Kampagnen-Aktionen
+
+#### Landingpages-Modul:
+- Hero-Bilder, Icons, Videos einbindbar
+- Responsive Bild-Optimierung
+- SEO-optimierte Alt-Tags
+
+#### Aufgaben-Modul:
+- PDF-Checklisten als Anhänge
+- Grafische Briefings
+- Arbeitsanweisungen mit Bildern
+
+#### Contentplaner-Modul:
+- Social Media Assets
+- E-Mail-Attachments
+- Blog-Bilder und Videos
+
+---
+
+### Monitoring & Analytics
+
+#### System-Metriken:
+- Storage-Verbrauch pro Modul
+- Upload-Häufigkeit pro Nutzer
+- Versions-Statistiken
+- Download-Tracking
+
+#### Berichte:
+- Monatlicher Storage-Report
+- Datei-Aktivitäts-Log
+- Versions-Audit-Trail
+- Berechtigungs-Übersicht
+
+---
+
+### Backup & Archivierung
+
+#### Automatische Backups:
+- Tägliche Snapshots aller Versionen
+- S3-basierte Langzeitarchivierung
+- Disaster-Recovery Prozeduren
+
+#### Archivierung:
+- Alte Versionen nach 1 Jahr archivieren
+- Lösch-Schutz für wichtige Dateien
+- Compliance-konforme Aufbewahrung
+
+---
+
+### Zukünftige Erweiterungen
+
+#### Geplante Features:
+- **OCR-Integration**: Texterkennung in PDFs
+- **Auto-Tagging**: AI-basierte Tag-Generierung
+- **Duplikat-Erkennung**: Automatische Erkennung ähnlicher Dateien
+- **Workflow-Integration**: Genehmigungsprozesse für kritische Dateien
+- **API-Webhooks**: Benachrichtigungen bei Datei-Änderungen
+
+#### Skalierung:
+- CDN-Integration für globale Verfügbarkeit
+- Multi-Tenant-Architektur
+- Advanced Search mit Elasticsearch
+- Machine Learning für Content-Kategorisierung

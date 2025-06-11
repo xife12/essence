@@ -1,0 +1,439 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: CI-Styling-Presets (Vollständig Implementiert)
+
+## Zweck
+Das CI-Styling-Modul definiert Designvorlagen zur konsistenten visuellen Gestaltung von Landingpages, E-Mails, Flyern und Werbeanzeigen. Der Nutzer erhält mit minimalem Input (Farben, Schriften, Button-Stil) automatisch ein stimmiges, CI-konformes Gesamtbild.
+
+---
+
+## 🗄️ Datenbankstruktur
+
+### Haupttabelle: `public.ci_templates`
+
+| Feld                      | Typ      | Beschreibung                                    |
+|---------------------------|----------|-------------------------------------------------|
+| id                        | UUID     | Primärschlüssel (gen_random_uuid())             |
+| name                      | TEXT     | Template-Name (z.B. "Frühjahrskampagne 2025")  |
+| description               | TEXT     | Optional: Beschreibung/Verwendungszweck        |
+| primary_color             | TEXT     | Primärfarbe (Hex-Format)                        |
+| secondary_color           | TEXT     | Sekundärfarbe (Hex-Format)                      |
+| accent_color              | TEXT     | Akzentfarbe (Hex-Format)                        |
+| background_color          | TEXT     | Hintergrundfarbe (Standard: #ffffff)            |
+| text_color                | TEXT     | Textfarbe (Standard: #000000)                   |
+| font_family               | TEXT     | Hauptschriftart (z.B. "Inter")                 |
+| font_headline             | TEXT     | Überschriftschriftart                           |
+| font_sizes                | JSONB    | `{h1: "32px", h2: "24px", body: "16px"}`      |
+| button_style              | JSONB    | `{radius: "6px", padding: "12px 24px"}`       |
+| icon_style                | JSONB    | `{style: "outline", color: "auto", shape: "round"}` |
+| block_styles              | JSONB    | Spezifische Block-Designs                       |
+| spacing_config            | JSONB    | Abstände und Spacing-Regeln                    |
+| accessibility_aa_compliant| BOOLEAN  | AA-Konformität erreicht                        |
+| linked_campaign_id        | UUID     | Optional: Verknüpfung zu Kampagne               |
+| campaign_scope            | ENUM     | 'single', 'all' - Kampagnenbereich             |
+| is_default                | BOOLEAN  | Standard-Template (nur eins aktiv)              |
+| parent_ci_id              | UUID     | Optional: Vererbung von Master-CI               |
+| is_master_ci              | BOOLEAN  | Master Corporate Identity Template              |
+| category                  | TEXT     | Kategorisierung (z.B. "Kampagne", "Saisonal")  |
+| target_audience           | JSONB    | Legacy: Zielgruppendaten                        |
+| target_audience_detailed  | JSONB    | `{description, age_min, age_max, interests, sports_goals}` |
+| usage_purpose             | TEXT[]   | Array von Verwendungszwecken                    |
+| logos                     | JSONB    | `{primary, white, black, favicon}` URLs        |
+| tags                      | TEXT[]   | Freie Schlagworte für Suche/Filter             |
+| created_at                | TIMESTAMP| Erstellungszeitpunkt                            |
+| updated_at                | TIMESTAMP| Letzte Änderung                                 |
+
+### Erweiterte Tabellen
+
+#### `public.ci_logos`
+| Feld           | Typ      | Beschreibung                           |
+|----------------|----------|----------------------------------------|
+| id             | UUID     | Primärschlüssel                        |
+| ci_template_id | UUID     | FK → ci_templates.id                   |
+| logo_type      | ENUM     | 'primary', 'white', 'black', 'favicon', 'action_special' |
+| file_asset_id  | UUID     | FK → file_asset.id                     |
+| is_inherited   | BOOLEAN  | Von Master-CI geerbt                   |
+| description    | TEXT     | Optional: Logo-Beschreibung            |
+| created_at     | TIMESTAMP| Erstellungszeitpunkt                   |
+
+#### `public.ci_settings`
+| Feld          | Typ      | Beschreibung                            |
+|---------------|----------|-----------------------------------------|
+| id            | UUID     | Primärschlüssel                         |
+| setting_type  | ENUM     | 'category', 'target_audience_config', 'usage_purpose' |
+| setting_key   | TEXT     | Einstellungsschlüssel                   |
+| setting_value | JSONB    | Einstellungswert (flexibel)             |
+| is_active     | BOOLEAN  | Aktiv/Inaktiv Status                    |
+| created_at    | TIMESTAMP| Erstellungszeitpunkt                    |
+| updated_at    | TIMESTAMP| Letzte Änderung                         |
+
+#### `public.ci_target_audiences`
+| Feld        | Typ      | Beschreibung                 |
+|-------------|----------|------------------------------|
+| id          | UUID     | Primärschlüssel              |
+| name        | TEXT     | Zielgruppenname              |
+| age_min     | INTEGER  | Mindestalter                 |
+| age_max     | INTEGER  | Höchstalter                  |
+| gender      | ENUM     | 'male', 'female', 'all'      |
+| interests   | TEXT[]   | Array von Interessen         |
+| description | TEXT     | Beschreibung                 |
+| is_active   | BOOLEAN  | Aktiv/Inaktiv                |
+| created_at  | TIMESTAMP| Erstellungszeitpunkt         |
+
+---
+
+## 🎨 UI/UX Implementierung
+
+### Dashboard-Layout (`app/(protected)/ci-styling/page.tsx`)
+
+#### **Header-Bereich**
+```tsx
+- Titel: "CI-Styling Dashboard"
+- Untertitel: "Verwalten Sie alle Ihre Corporate Identity Styles an einem Ort"
+- Aktions-Buttons: 
+  - "Einstellungen" (führt zu /ci-styling/einstellungen)
+  - "Neues Style anlegen" (führt zu /ci-styling/einstellungen?create=true)
+```
+
+#### **Filter-System**
+```tsx
+- Toggle-Button "Filter" mit aktivem/inaktivem Zustand
+- Ausklappbare Filter-Sektion mit 4 Dropdowns:
+  - Kategorie (aus ci_settings geladen)
+  - Kampagne (aus campaigns-API)
+  - Verwendungszweck (vordefinierte Liste)
+  - Zielgruppe (definiert/undefiniert)
+- "Filter zurücksetzen" Button bei aktiven Filtern
+```
+
+#### **Grid-Layout**
+```tsx
+- Responsive Grid: 1-4 Spalten je Bildschirmgröße
+- Master-Design IMMER als erstes Element (wenn vorhanden)
+- Gefilterte Designs folgen danach
+- Empty-State für "Erstes Style erstellen"
+- No-Results-State bei leeren Filtern
+```
+
+### StyleCard-Komponente
+
+#### **Card-Struktur**
+```tsx
+- Master-Designs: Gelber Rand + Gradient-Hintergrund
+- Normale Designs: Grauer Rand mit Hover-Effekt
+- Crown-Icon für Master-Designs
+- Farbvorschau: 3 Kreise (Primär-, Sekundär-, Akzentfarbe)
+- Font-Familie angezeigt
+- Live-Vorschau mit Beispiel-Elementen
+```
+
+#### **Aktions-Buttons**
+```tsx
+- Settings-Icon: Führt zu /ci-styling/einstellungen?style={id}
+- Edit-Icon: Führt zu /ci-styling/editor?id={id}
+- Copy-Icon: Dupliziert das Design (nur bei Nicht-Master)
+- Trash-Icon: Öffnet Delete-Modal (nur bei Nicht-Master)
+- Alle Buttons haben Hover-States und Loading-Deaktivierung
+```
+
+#### **Badge-System**
+```tsx
+- Kategorie-Badge: Blau mit Tag-Icon
+- Kampagnen-Badge: Grün mit Target-Icon
+- Verwendungszweck-Badge: Lila mit Globe-Icon
+- Zielgruppen-Badge: Orange mit Users-Icon
+- Status-Badge: "Standard" für Default-Templates
+```
+
+### Delete-Confirmation Modal
+
+#### **Modal-Design**
+```tsx
+- Overlay: Schwarzer Hintergrund (50% Transparenz)
+- Modal: Weißer Container mit abgerundeten Ecken
+- Icon-Bereich: Roter Kreis mit Trash-Icon
+- Titel: "Style löschen"
+- Warnung: "Diese Aktion kann nicht rückgängig gemacht werden"
+- Style-Name wird hervorgehoben
+```
+
+#### **Button-Bereich**
+```tsx
+- "Abbrechen": Grauer Button (schließt Modal)
+- "Löschen": Roter Button mit Loading-Spinner
+- Beide Buttons werden während Löschvorgang deaktiviert
+- Loading-Text: "Löschen..." mit Spinner
+```
+
+---
+
+## 🔧 API-Struktur (`app/lib/api/ci-templates.ts`)
+
+### **CITemplatesAPI Objekt**
+
+#### **CRUD-Operationen**
+```tsx
+- getAll(): Promise<CITemplate[]> - Alle Templates laden
+- getMasterCIs(): Promise<CITemplate[]> - Nur Master-CIs
+- getSubCIs(parentId): Promise<CITemplate[]> - Sub-CIs einer Master-CI
+- getById(id): Promise<CITemplate | null> - Einzelnes Template
+- create(template): Promise<CITemplate> - Neues Template erstellen
+- update(id, template): Promise<CITemplate> - Template aktualisieren
+- delete(id): Promise<void> - Template löschen (mit Logging)
+- duplicate(id, newName): Promise<CITemplate> - Template duplizieren
+```
+
+#### **Logo-Management**
+```tsx
+- getLogos(templateId): Promise<CILogo[]> - Logos eines Templates
+- addLogo(logo): Promise<CILogo> - Logo hinzufügen
+- updateLogo(id, logo): Promise<CILogo> - Logo aktualisieren
+- deleteLogo(id): Promise<void> - Logo löschen
+```
+
+#### **Einstellungs-Management**
+```tsx
+- getSettings(type?): Promise<CISetting[]> - System-Einstellungen
+- saveSetting(key, value): Promise<CISetting> - Einstellung speichern
+- updateSetting(type, key, value): Promise<CISetting> - Einstellung aktualisieren
+```
+
+#### **Utility-Funktionen**
+```tsx
+- getInheritedSettings(templateId): Promise<CITemplate> - Vererbung von Master-CI
+- calculateContrast(color1, color2): number - AA-Konformität prüfen
+- exportBrandGuidelines(templateId): Promise<Blob> - PDF-Export (geplant)
+```
+
+---
+
+## 🛠️ State Management
+
+### **Haupt-States**
+```tsx
+- styles: CITemplate[] - Alle Nicht-Master Designs
+- masterStyle: CITemplate | null - Das Master-Design
+- isLoading: boolean - Globaler Loading-Zustand
+- showDeleteModal: boolean - Modal-Sichtbarkeit
+- styleToDelete: CITemplate | null - Zu löschendes Design
+```
+
+### **Filter-States**
+```tsx
+- filters: {
+    category: string,
+    campaign: string, 
+    usage_purpose: string,
+    target_group: string
+  }
+- showFilters: boolean - Filter-Sektion sichtbar
+- availableCategories: string[] - Verfügbare Kategorien
+- availableCampaigns: any[] - Verfügbare Kampagnen
+```
+
+### **Loading-Strategien**
+```tsx
+- loadStyles(): Lädt Master + Normale Designs separat
+- loadSettings(): Lädt Kategorien aus ci_settings mit Fallback
+- loadCampaigns(): Placeholder für Kampagnen-Integration
+- Alle API-Calls mit try/catch und Error-Logging
+```
+
+---
+
+## 🎯 Master-CI System
+
+### **Master-Design Konzept**
+- **Ein Master-Design pro System** (is_master_ci = true)
+- **Immer als erstes Element** im Grid angezeigt
+- **Crown-Icon und spezielles Design** zur Unterscheidung
+- **Nicht löschbar** (UI + Validierung)
+- **Vererbung**: Sub-CIs können Eigenschaften übernehmen
+
+### **Auto-Creation Flow**
+```tsx
+- Wenn kein Master existiert: "Kein Masterdesign" Placeholder
+- "Erstellen" Button erzeugt Standard-Master-CI
+- Automatische Weiterleitung zum Design-Editor
+- Standard-Werte: Inter Font, blaues Farbschema
+```
+
+### **Vererbungslogik**
+```tsx
+- parent_ci_id verweist auf Master-CI
+- getInheritedSettings() merged Parent + Child Properties
+- Child-Properties überschreiben Parent-Properties
+- ID und Name bleiben beim Child erhalten
+```
+
+---
+
+## 📱 Responsive Design
+
+### **Breakpoints**
+```tsx
+- Mobile: 1 Spalte (grid-cols-1)
+- Tablet: 2 Spalten (md:grid-cols-2)  
+- Desktop: 3 Spalten (lg:grid-cols-3)
+- Large: 4 Spalten (xl:grid-cols-4)
+```
+
+### **Mobile Optimierungen**
+- **Filter**: Vollbreite Dropdowns
+- **Cards**: Reduzierte Padding-Werte
+- **Buttons**: Touch-freundliche Größen
+- **Modal**: Responsive max-width mit mx-4 margin
+
+---
+
+## 🔍 Filter & Search Logic
+
+### **Filter-Implementierung**
+```tsx
+getFilteredStyles(): 
+- Kategorie: Exakte Übereinstimmung
+- Kampagne: linked_campaign_id Vergleich
+- Verwendungszweck: Array.includes() Check
+- Zielgruppe: Existenz-Check (defined/undefined)
+```
+
+### **Fallback-Mechanismen**
+```tsx
+- Kategorien: FALLBACK_CATEGORIES wenn API fehlschlägt
+- Kampagnen: Placeholder-Daten für Demo
+- Verwendungszweck: PREDEFINED_USAGE_PURPOSES Konstante
+```
+
+---
+
+## 🔄 Routing-Struktur
+
+### **Pfad-Definitionen**
+```
+/ci-styling                           → Dashboard (Übersicht)
+/ci-styling/einstellungen             → Globale Einstellungen
+/ci-styling/einstellungen?create=true → Neues Design erstellen  
+/ci-styling/einstellungen?style={id}  → Design-spezifische Einstellungen
+/ci-styling/editor?id={id}            → Design-Editor (Split-View)
+```
+
+### **Navigation-Flow**
+```
+1. Dashboard → Settings-Icon → Design-Einstellungen
+2. Dashboard → Edit-Icon → Design-Editor  
+3. Dashboard → "Neues Design" → Einstellungen (Create-Mode)
+4. Einstellungen (Create) → "Speichern & Weiter" → Editor
+```
+
+---
+
+## 🎨 Design-Tokens & Styling
+
+### **Farbsystem**
+```css
+- Master-CI: border-yellow-300, bg-gradient-to-br from-yellow-50
+- Normal-Cards: border-gray-200, hover:border-gray-300
+- Delete-Button: text-red-600, hover:bg-red-50
+- Settings-Button: text-blue-600, hover:bg-blue-50
+- Copy-Button: text-green-600, hover:bg-green-50
+```
+
+### **Icon-System**
+```tsx
+- Crown: Master-CI Kennzeichnung
+- Settings: Konfiguration/Einstellungen
+- Edit: Design-Editor öffnen
+- Copy: Design duplizieren
+- Trash2: Design löschen
+- Tag/Target/Globe/Users: Badge-Icons
+```
+
+---
+
+## 🚨 Error Handling & Logging
+
+### **Console-Logging Strategie**
+```tsx
+- 🗑️ Löschfunktionen mit detailliertem Logging
+- ✅ Erfolgreiche API-Operationen
+- ❌ Fehler mit Stack-Trace Details
+- 🔄 Loading-States und Prozess-Tracking
+```
+
+### **User-Feedback**
+```tsx
+- Alert-Dialoge für Erfolg/Fehler
+- Loading-Spinner in Buttons
+- Deaktivierte UI-Elemente während Operationen
+- Modal-States für kritische Aktionen
+```
+
+### **Validierungen**
+```tsx
+- ID-Existence Checks vor API-Calls
+- Master-CI Lösch-Schutz
+- Loading-State Management
+- Error-Boundary-Pattern für API-Fehler
+```
+
+---
+
+## 🔗 Integration mit anderen Modulen
+
+### **Dateimanager-Verknüpfung**
+- Logos werden als file_assets gespeichert
+- Upload über Dateimanager-Komponenten
+- Kategorisierung: 'logo', 'ci_asset'
+
+### **Kampagnen-Integration**
+- linked_campaign_id verknüpft CI mit Kampagnen
+- Automatische CI-Zuweisung bei Kampagnen-Erstellung
+- campaign_scope definiert Anwendungsbereich
+
+### **Landingpage-Integration**
+- CI-Templates werden in Landingpage-Builder verfügbar
+- Automatische Stil-Anwendung basierend auf Kampagne
+- Live-Vorschau mit CI-Einstellungen
+
+---
+
+## 📋 Validation Rules
+
+### **Datenbank-Constraints**
+```sql
+- Nur ein is_master_ci = true Template erlaubt
+- name darf nicht leer sein
+- Farbwerte müssen Hex-Format haben (#xxxxxx)
+- linked_campaign_id muss existierende Kampagne referenzieren
+```
+
+### **Frontend-Validierungen**
+```tsx
+- Master-CI kann nicht gelöscht werden
+- Erforderliche Felder vor Speicherung prüfen
+- Farbkontrast-Validierung für AA-Konformität
+- Template-Name muss eindeutig sein
+```
+
+---
+
+## 🎯 Performance Optimierungen
+
+### **Loading-Strategien**
+- Master und normale Designs parallel laden
+- Lazy Loading für Logo-Assets
+- Caching von Settings und Kategorien
+- Debounced Filter-Updates
+
+### **API-Optimierungen**
+- Batch-Updates für mehrere Eigenschaften
+- Optimistic Updates für bessere UX
+- Error-Recovery mit Retry-Logic
+- Minimale Datenübertragung durch selective Queries
+
+---
+
+Dieses vollständig implementierte CI-Styling-Modul bietet eine professionelle, benutzerfreundliche Oberfläche für Corporate Identity Management mit robusten Backend-Funktionen und modernem UI/UX-Design.
