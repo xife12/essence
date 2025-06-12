@@ -2,7 +2,7 @@ name: Nightly Health Audit
 
 on:
   schedule:
-    - cron: '0 20 * * *'  # Täglich um 22:00 Uhr
+    - cron: '0 20 * * *'  # 22 Uhr deutsche Zeit
   workflow_dispatch:
 
 jobs:
@@ -20,6 +20,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+
+      - name: 📦 Install dependencies (node-fetch, dotenv)
+        run: npm install node-fetch dotenv
 
       - name: 🔍 Run Health Audit Script
         run: node .github/scripts/health-audit.mjs
