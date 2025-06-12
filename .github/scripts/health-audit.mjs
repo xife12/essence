@@ -6,10 +6,16 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../');
-
 const RULE_PATH = path.join(ROOT, '.cursor/rules');
-const REPORT_PATH = path.join(ROOT, 'audit/health-audit-report.md');
 
+// 📁 Ziel: audit/reports/TT_MM_health-audit-report.md
+const today = new Date();
+const dd = String(today.getDate()).padStart(2, '0');
+const mm = String(today.getMonth() + 1).padStart(2, '0');
+const filename = `${dd}_${mm}_health-audit-report.md`;
+const REPORT_PATH = path.join(ROOT, 'audit/reports', filename);
+
+// 🔍 Rule-Files finden
 function findAllMDC(dir, collected = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -20,6 +26,7 @@ function findAllMDC(dir, collected = []) {
   return collected;
 }
 
+// 🔎 Metadaten extrahieren
 function extractMetadata(filepath) {
   const content = fs.readFileSync(filepath, 'utf-8');
   const lines = content.split('\n');
@@ -34,12 +41,13 @@ function extractMetadata(filepath) {
   return metadata;
 }
 
-function generateReport() {
-  const rules = findAllMDC(RULE_PATH).map(extractMetadata);
+// 📋 Report erstellen
+function generateMarkdownReport(rules) {
   const tooLong = rules.filter(r => r.length > 300);
   const missingMeta = rules.filter(r => !r.description || !r.globs);
 
-  const report = [`# 🧠 MemberCore Health Audit – Stand: ${new Date().toISOString().split('T')[0]}`,
+  const lines = [
+    `# 🧠 MemberCore Health Audit – Stand: ${dd}.${mm}`,
     '',
     `## 🔍 Zusammenfassung`,
     `- Geprüfte Regeln: ${rules.length}`,
@@ -55,9 +63,18 @@ function generateReport() {
     ...missingMeta.map(r => `- ${r.path}`)
   ];
 
-  fs.mkdirSync(path.dirname(REPORT_PATH), { recursive: true });
-  fs.writeFileSync(REPORT_PATH, report.join('\n'), 'utf-8');
-  console.log('✅ Health Audit Report erstellt:', REPORT_PATH);
+  return lines.join('\n');
 }
 
-generateReport();
+// 🧪 Lauf starten
+function run() {
+  const rules = findAllMDC(RULE_PATH).map(extractMetadata);
+  const markdown = generateMarkdownReport(rules);
+
+  fs.mkdirSync(path.dirname(REPORT_PATH), { recursive: true });
+  fs.writeFileSync(REPORT_PATH, markdown, 'utf-8');
+
+  console.log('✅ Health Audit gespeichert unter:', REPORT_PATH);
+}
+
+run();
