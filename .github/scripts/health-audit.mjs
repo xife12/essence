@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '../../..');
 const RULES_DIR = path.join(ROOT, '.cursor/rules');
 const REPORT_DIR = path.join(ROOT, 'audit/reports');
+const APP_DIR = path.join(ROOT, 'app');
 
 const today = new Date();
 const dd = String(today.getDate()).padStart(2, '0');
@@ -43,12 +44,10 @@ function parseMDC(filePath) {
   return metadata;
 }
 
-// 🧬 SUPABASE SCHEMA PRÜFUNG
+// SUPABASE DATENBANKVERGLEICH
 async function fetchSupabaseTables() {
   const url = process.env.SUPABASE_API_URL;
   const key = process.env.SUPABASE_API_KEY;
-  const schemaUrl = `${url}/rest/v1/?apikey=${key}`;
-
   try {
     const res = await fetch(`${url}/rest/v1/tables`, {
       headers: {
@@ -60,9 +59,27 @@ async function fetchSupabaseTables() {
     const json = await res.json();
     return json.map(t => t.name);
   } catch (e) {
-    console.error('Supabase-Schema konnte nicht geladen werden:', e);
+    console.error('Supabase Schema konnte nicht geladen werden:', e);
     return [];
   }
+}
+
+function getAllAppCode() {
+  const code = [];
+  const entries = fs.readdirSync(APP_DIR, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(APP_DIR, entry.name);
+    if (entry.isFile() && fullPath.endsWith('.tsx')) code.push(fs.readFileSync(fullPath, 'utf8'));
+    if (entry.isDirectory()) {
+      fs.readdirSync(fullPath).forEach(file => {
+        if (file.endsWith('.tsx')) {
+          const filePath = path.join(fullPath, file);
+          code.push(fs.readFileSync(filePath, 'utf8'));
+        }
+      });
+    }
+  }
+  return code.join('\n');
 }
 
 const files = getAllMDCFiles(RULES_DIR);
@@ -72,24 +89,28 @@ const tooLong = results.filter(r => r.lines > 300);
 const missingMeta = results.filter(r => !r.description || !r.globs);
 const ruleNames = files.map(f => path.basename(f).replace('.mdc', '').toLowerCase());
 
-// 🔄 Platzhalterdaten (bis Live-Vergleiche automatisch integriert sind)
 const duplikate = ruleNames.filter((v, i, a) => a.indexOf(v) !== i);
-const verwaist = ['dashboard-export.mdc'];
+const verwaist = [];
+const appCode = getAllAppCode();
+for (const file of files) {
+  const name = path.basename(file).replace('.mdc', '');
+  if (!appCode.includes(name)) verwaist.push(path.basename(file));
+}
+
 const dbKonflikte = [];
 const supabaseTables = await fetchSupabaseTables();
-
 for (const table of supabaseTables) {
   const found = ruleNames.some(name => name.includes(table));
   if (!found) dbKonflikte.push(`${table} fehlt in .mdc-Dateien`);
 }
 
-const empfehlungen = [
-  ...tooLong.map(t => `Regel zu lang → aufteilen: ${path.basename(t.file)}`),
-  ...missingMeta.map(t => `Fehlende Metadaten: ${path.basename(t.file)}`),
-  ...dbKonflikte.map(t => `Datenbankregel fehlt: ${t}`)
+const aufgaben = [
+  ...verwaist.map(f => `📌 Datei ${f} ist verwaist – mit dir besprechen, ob sie gelöscht oder neu verlinkt werden soll.`),
+  ...tooLong.map(t => `📌 Datei ${path.basename(t.file)} ist zu lang – besprechen, wie sie aufgeteilt wird.`),
+  ...missingMeta.map(t => `📌 Datei ${path.basename(t.file)} hat keine globs oder description – Agent ergänzen lassen.`),
+  ...dbKonflikte.map(f => `📌 Tabelle ${f} → passende Regel gemeinsam mit dir definieren.`)
 ];
 
-// 📝 Generiere Markdown Report
 const report = `# 🧠 MemberCore Health Audit – Stand: ${dd}.${mm}
 
 ## 🔍 Zusammenfassung
@@ -99,7 +120,7 @@ const report = `# 🧠 MemberCore Health Audit – Stand: ${dd}.${mm}
 - Verwaiste Regeln: ${verwaist.length}
 - Duplikate gefunden: ${duplikate.length}
 - Datenbankkonflikte: ${dbKonflikte.length}
-- Empfehlungen: ${empfehlungen.length}
+- Aufgaben für Agent: ${aufgaben.length}
 
 ---
 
@@ -120,7 +141,7 @@ ${dbKonflikte.map(f => `- ${f}`).join('\n') || '- Keine'}
 ---
 
 ## ✅ Empfehlungen (Cursor Agent)
-${empfehlungen.map(e => `- [ ] ${e}`).join('\n') || '- Keine offenen Maßnahmen'}
+${aufgaben.map(e => `- [ ] ${e}`).join('\n') || '- Keine offenen Maßnahmen'}
 `;
 
 fs.writeFileSync(REPORT_PATH, report);
