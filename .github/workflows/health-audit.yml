@@ -2,32 +2,32 @@ name: Nightly Health Audit
 
 on:
   schedule:
-    - cron: '0 20 * * *'  # Täglich um 22:00 Uhr (deutsche Zeit = UTC+2)
-  workflow_dispatch:        # Manuell auslösbar über GitHub-Oberfläche
+    - cron: '0 20 * * *'  # Täglich um 22:00 Uhr
+  workflow_dispatch:
 
 jobs:
   audit:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write       # 🟢 Wichtig: erlaubt das Zurückschreiben ins Repo
+      contents: write
 
     steps:
-      - name: 📥 Code auschecken
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v3
 
-      - name: 🛠 Node installieren
+      - name: 🛠 Install Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: 🔍 Health Audit ausführen
+      - name: 🔍 Run Health Audit Script
         run: node .github/scripts/health-audit.mjs
 
-      - name: ✅ Änderungen committen & pushen
+      - name: ✅ Commit & Push Report
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "📋 nightly health audit"
+          commit_message: "📋 Nightly Health Audit Report"
           branch: main
           commit_user_name: MemberCore-Bot
           commit_user_email: bot@membercore.ai
