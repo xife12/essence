@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: "Führt ein vollständiges Audit aller Rule-Dateien durch (Struktur, Globs, Inhalt, Projektsynchronität)"
+alias: "@audit-rules"
+globs:
+  - "**/.cursor/rules/**/*.mdc"
+  - "**/*.mdc"
+---
+## Regelprüfung für alle Rule-Dateien:
+
+1. **Position prüfen**  
+   - Liegt die Datei im passenden Modulordner?
+   - Befindet sie sich in einem `.cursor/rules/`-Ordner?
+   - Passt die Datei zur Modulstruktur und Projektarchitektur?
+
+2. **Dateiname analysieren**  
+   - Beginnt mit Modulnamen? (z. B. `email-ui.mdc`)
+   - Thema klar erkennbar? (`-ui`, `-db`, `-validation`, etc.)
+   - Keine generischen Namen wie `neu.mdc` oder `test.mdc`
+
+3. **Globs validieren**  
+   - Ist `globs:` vorhanden?
+   - Deckt der `globs:`-Pfad den richtigen Kontext ab?
+   - Ist der Glob zu weit oder zu eng gefasst?
+
+4. **Inhaltliche Trennschärfe prüfen**  
+   - Enthält die Datei nur **ein Thema** (UI, DB, Validation, Logik)?
+   - Bei vermischten Themen → Vorschlag zur **Aufspaltung**
+   - Ist die Datei zu lang/komplex → Aufteilung empfehlen
+
+5. **Projektsynchronität analysieren**  
+   - Vergleiche Inhalt der Rule mit dem aktuellen Projektstand:
+     - Gibt es im Code, in der Navigation oder Supabase-Tabellen Elemente, die **nicht dokumentiert oder geregelt sind**?
+     - Falls ja → **ergänze Regelpunkte automatisch** oder schlage das vor
+
+6. **Verweise und Redundanzen prüfen**  
+   - Gibt es überlappende Regeln für denselben Bereich?
+   - Falls ja → konsolidieren oder referenzieren
+
+7. **Meta-Vervollständigung**  
+   - Wenn `description:` fehlt → automatisch aus Dateiname + Inhalt generieren
+   - Wenn `globs:` fehlt → anhand Speicherort ergänzen
+
+> Ziel: Alle Regeln sind thematisch sauber, vollständig, auf dem aktuellen Stand des Projekts und korrekt einsortiert.
+> nach der Überprüfung erstelle im Ordner .cursor/rules/audit/audit_plan für jedes audit eine Datei mit folgendem Schema TT_MM_audit-plan und dem TT_MM-Audit_Completion

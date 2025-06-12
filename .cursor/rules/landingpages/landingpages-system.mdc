@@ -1,0 +1,11 @@
+---
+description: "Landingpage-System: Dynamische Logiken, Validierung, Verknüpfungen und technische Implementierung"
+alias: "landingpages-system"
+globs: ["lib/api/landingpages.ts", "app/landingpages/**"]
+---
+
+---
+description:
+globs:
+alwaysApply: false
+---

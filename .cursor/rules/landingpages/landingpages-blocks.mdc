@@ -1,0 +1,11 @@
+---
+description: "Landingpage-Blöcke: Alle 20 Block-Typen mit Layouts, Einstellungen und Design-Presets"
+alias: "landingpages-blocks"
+globs: ["components/landingpages/blocks/**"]
+---
+
+---
+description:
+globs:
+alwaysApply: false
+---

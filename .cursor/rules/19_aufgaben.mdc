@@ -1,4 +1,11 @@
 ---
+description: "Aufgaben-System: Task-Management und Mitarbeiter-Workflows"
+alias: "@aufgaben"
+globs:
+  - "components/aufgaben/**"
+  - "lib/api/tasks.ts"
+---
+---
 description: 
 globs: 
 alwaysApply: true

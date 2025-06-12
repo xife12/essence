@@ -10,6 +10,7 @@ interface FieldConfigProps {
   onClose: () => void
   formHasMultiStep?: boolean
   maxSteps?: number
+  allFields?: FormField[]
 }
 
 export default function FieldConfig({ 
@@ -17,7 +18,8 @@ export default function FieldConfig({
   onFieldUpdate, 
   onClose,
   formHasMultiStep = false,
-  maxSteps = 5
+  maxSteps = 5,
+  allFields = []
 }: FieldConfigProps) {
   const [localField, setLocalField] = useState<FormField | null>(null)
 
@@ -527,23 +529,79 @@ export default function FieldConfig({
           </select>
         </div>
 
-        {/* Multi-Step Settings */}
-        {formHasMultiStep && (
-          <div>
+        {/* Multi-Step Settings - New Simple Dropdown */}
+        {formHasMultiStep && allFields && allFields.length > 0 && (
+          <div className="border border-blue-200 rounded-lg p-3 bg-blue-50">
             <label className="block text-xs font-medium text-gray-700 mb-2">
-              Schritt
+              📄 Schritt-Zuordnung
             </label>
-            <select
-              value={localField.step}
-              onChange={(e) => updateField({ step: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {Array.from({ length: Math.max(10, maxSteps) }, (_, i) => i + 1).map(step => (
-                <option key={step} value={step}>
-                  Schritt {step}
-                </option>
-              ))}
-            </select>
+            
+            {/* Current Step Display */}
+            <div className="bg-white rounded p-2 border border-blue-100 mb-3">
+              <div className="text-xs text-gray-600 mb-1">Aktueller Schritt:</div>
+              <div className="font-medium text-sm text-blue-900">
+                🎯 Schritt {localField.step || 1}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {allFields.filter(f => (f.step || 1) === (localField.step || 1)).length} Felder in diesem Schritt
+              </div>
+            </div>
+
+            {/* Step Selection Dropdown */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Verschieben zu Schritt:
+              </label>
+              <select
+                value={localField.step || 1}
+                onChange={(e) => {
+                  const newStep = parseInt(e.target.value)
+                  updateField({ step: newStep })
+                  console.log(`📄 Field moved to step ${newStep}`)
+                }}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {Array.from(new Set(allFields.map(f => f.step || 1)))
+                  .sort((a, b) => a - b)
+                  .map(step => {
+                    const fieldsInStep = allFields.filter(f => (f.step || 1) === step)
+                    return (
+                      <option key={step} value={step}>
+                        Schritt {step} ({fieldsInStep.length} {fieldsInStep.length === 1 ? 'Feld' : 'Felder'})
+                      </option>
+                    )
+                  })}
+              </select>
+            </div>
+
+            {/* Step Overview */}
+            <div className="bg-gray-50 rounded p-2 border mt-3">
+              <div className="text-xs font-medium text-gray-700 mb-1">📊 Schritt-Übersicht:</div>
+              <div className="space-y-1">
+                {Array.from(new Set(allFields.map(f => f.step || 1)))
+                  .sort((a, b) => a - b)
+                  .map(step => {
+                    const fieldsInStep = allFields.filter(f => (f.step || 1) === step)
+                    const isCurrentStep = step === (localField.step || 1)
+                    return (
+                      <div 
+                        key={step} 
+                        className={`text-xs flex justify-between ${
+                          isCurrentStep ? 'font-medium text-blue-600' : 'text-gray-600'
+                        }`}
+                      >
+                        <span>Schritt {step}:</span>
+                        <span>{fieldsInStep.length} Felder</span>
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+
+            {/* Quick Info */}
+            <div className="mt-3 p-2 bg-blue-100 rounded text-xs text-blue-700">
+              💡 <strong>Tipp:</strong> Neue Schritte werden automatisch erstellt, wenn Sie Felder in der Canvas zwischen Schritten verschieben.
+            </div>
           </div>
         )}
 

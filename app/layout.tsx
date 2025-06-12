@@ -16,7 +16,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="de">
-      <body className={inter.className}>
+      <head>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            /* Fallback CSS falls Tailwind nicht lädt */
+            .bg-blue-600 { background-color: #2563eb; }
+            .text-white { color: white; }
+            .p-4 { padding: 1rem; }
+            .rounded { border-radius: 0.375rem; }
+          `
+        }} />
+      </head>
+      <body className={`${inter.className} bg-gray-50`}>
         {children}
       </body>
     </html>

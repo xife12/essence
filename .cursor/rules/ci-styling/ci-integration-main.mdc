@@ -1,0 +1,120 @@
+```
+
+### **Fallback-Mechanismen**
+```tsx
+- Kategorien: FALLBACK_CATEGORIES wenn API fehlschlägt
+- Kampagnen: Placeholder-Daten für Demo
+- Verwendungszweck: PREDEFINED_USAGE_PURPOSES Konstante
+```
+
+---
+
+## 🔄 Routing-Struktur
+
+### **Pfad-Definitionen**
+```
+/ci-styling                           → Dashboard (Übersicht)
+/ci-styling/einstellungen             → Globale Einstellungen
+/ci-styling/einstellungen?create=true → Neues Design erstellen  
+/ci-styling/einstellungen?style={id}  → Design-spezifische Einstellungen
+/ci-styling/editor?id={id}            → Design-Editor (Split-View)
+```
+
+### **Navigation-Flow**
+```
+1. Dashboard → Settings-Icon → Design-Einstellungen
+2. Dashboard → Edit-Icon → Design-Editor  
+3. Dashboard → "Neues Design" → Einstellungen (Create-Mode)
+4. Einstellungen (Create) → "Speichern & Weiter" → Editor
+```
+
+---
+
+## 🎨 Design-Tokens & Styling
+
+### **Farbsystem**
+```css
+- Master-CI: border-yellow-300, bg-gradient-to-br from-yellow-50
+- Normal-Cards: border-gray-200, hover:border-gray-300
+- Delete-Button: text-red-600, hover:bg-red-50
+- Settings-Button: text-blue-600, hover:bg-blue-50
+- Copy-Button: text-green-600, hover:bg-green-50
+```
+
+### **Icon-System**
+```tsx
+- Crown: Master-CI Kennzeichnung
+- Settings: Konfiguration/Einstellungen
+- Edit: Design-Editor öffnen
+- Copy: Design duplizieren
+- Trash2: Design löschen
+- Tag/Target/Globe/Users: Badge-Icons
+```
+
+---
+
+## 🚨 Error Handling & Logging
+
+### **Console-Logging Strategie**
+```tsx
+- 🗑️ Löschfunktionen mit detailliertem Logging
+- ✅ Erfolgreiche API-Operationen
+- ❌ Fehler mit Stack-Trace Details
+- 🔄 Loading-States und Prozess-Tracking
+```
+
+### **User-Feedback**
+```tsx
+- Alert-Dialoge für Erfolg/Fehler
+- Loading-Spinner in Buttons
+- Deaktivierte UI-Elemente während Operationen
+- Modal-States für kritische Aktionen
+```
+
+### **Validierungen**
+```tsx
+- ID-Existence Checks vor API-Calls
+- Master-CI Lösch-Schutz
+- Loading-State Management
+- Error-Boundary-Pattern für API-Fehler
+```
+
+---
+
+## 🔗 Integration mit anderen Modulen
+
+### **Dateimanager-Verknüpfung**
+- Logos werden als file_assets gespeichert
+- Upload über Dateimanager-Komponenten
+- Kategorisierung: 'logo', 'ci_asset'
+
+### **Kampagnen-Integration**
+- linked_campaign_id verknüpft CI mit Kampagnen
+- Automatische CI-Zuweisung bei Kampagnen-Erstellung
+- campaign_scope definiert Anwendungsbereich
+
+### **Landingpage-Integration**
+- CI-Templates werden in Landingpage-Builder verfügbar
+- Automatische Stil-Anwendung basierend auf Kampagne
+- Live-Vorschau mit CI-Einstellungen
+
+---
+
+## 📋 Validation Rules
+
+### **Datenbank-Constraints**
+```sql
+- Nur ein is_master_ci = true Template erlaubt
+- name darf nicht leer sein
+- Farbwerte müssen Hex-Format haben (#xxxxxx)
+- linked_campaign_id muss existierende Kampagne referenzieren
+```
+
+### **Frontend-Validierungen**
+```tsx
+- Master-CI kann nicht gelöscht werden
+- Erforderliche Felder vor Speicherung prüfen
+- Farbkontrast-Validierung für AA-Konformität
+- Template-Name muss eindeutig sein
+```
+

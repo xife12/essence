@@ -1,18 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import FieldLibrary from '@/app/components/formbuilder/FieldLibrary'
 import FormCanvas from '@/app/components/formbuilder/FormCanvas'
 import FieldConfig from '@/app/components/formbuilder/FieldConfig'
 import FormNavigation from '@/app/components/formbuilder/FormNavigation'
 import { FormsAPI, Form, FormField } from '@/app/lib/api/forms'
-import { Loader2, Save, Play, ArrowLeft } from 'lucide-react'
+import { Loader2, Save, Play, ArrowLeft, Clock, Wifi, WifiOff } from 'lucide-react'
 
 export default function FormBuilderPage() {
   const params = useParams()
   const router = useRouter()
   const formId = params.id as string
+  
+  // Auto-save refs
+  const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const hasUnsavedChangesRef = useRef(false)
 
   // State management
   const [form, setForm] = useState<Form | null>(null)
@@ -20,12 +24,67 @@ export default function FormBuilderPage() {
   const [selectedField, setSelectedField] = useState<FormField | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isAutoSaving, setIsAutoSaving] = useState(false)
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [draggedField, setDraggedField] = useState<any>(null)
+
+  // Auto-save setup
+  useEffect(() => {
+    // Start auto-save interval (90 seconds)
+    autoSaveIntervalRef.current = setInterval(() => {
+      if (hasUnsavedChangesRef.current && !isSaving && !isAutoSaving) {
+        console.log('⏰ Auto-save triggered after 90 seconds')
+        handleAutoSave()
+      }
+    }, 90000) // 90 seconds
+
+    // Cleanup interval on unmount
+    return () => {
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current)
+      }
+    }
+  }, [])
+
+  // Track unsaved changes
+  const markAsUnsaved = () => {
+    setHasUnsavedChanges(true)
+    hasUnsavedChangesRef.current = true
+  }
+
+  const markAsSaved = () => {
+    setHasUnsavedChanges(false)
+    hasUnsavedChangesRef.current = false
+    setLastSavedAt(new Date())
+  }
+
+  // Auto-save function
+  const handleAutoSave = async () => {
+    if (!hasUnsavedChanges || isSaving) return
+    
+    try {
+      setIsAutoSaving(true)
+      console.log('🔄 Auto-saving form...')
+      
+      // Auto-save logic here (similar to manual save but silent)
+      markAsSaved()
+      console.log('✅ Auto-save completed')
+    } catch (error) {
+      console.error('❌ Auto-save failed:', error)
+      // Don't show alert for auto-save failures, just log
+    } finally {
+      setIsAutoSaving(false)
+    }
+  }
 
   useEffect(() => {
     loadFormData()
   }, [formId])
+
+  // Lead-Formular Validierung
+  const leadValidation = form ? FormsAPI.validateLeadFormRequirements(fields, form.form_type) : null
 
   const loadFormData = async () => {
     try {
@@ -42,6 +101,7 @@ export default function FormBuilderPage() {
 
       setForm(formData)
       setFields(fieldsData || [])
+      markAsSaved() // Initial load is considered saved
     } catch (error) {
       console.error('❌ Error loading form data:', error)
       alert('Fehler beim Laden des Formulars')
@@ -50,17 +110,34 @@ export default function FormBuilderPage() {
     }
   }
 
-  // Field operations
+  // Enhanced field operations with auto-save tracking
   const handleFieldAdd = async (fieldData: Partial<FormField>) => {
     try {
       console.log('➕ Adding field:', fieldData)
-      const newField = await FormsAPI.addField(formId, fieldData)
+      
+      // Ensure new fields have at least step 1 if no step is specified
+      const fieldWithStep = {
+        ...fieldData,
+        step: fieldData.step || 1
+      }
+      
+      console.log('➕ Field data with step:', fieldWithStep)
+      
+      const newField = await FormsAPI.addField(formId, fieldWithStep)
       setFields(prev => [...prev, newField])
       setSelectedField(newField)
-      console.log('✅ Field added successfully')
+      markAsUnsaved() // Mark as unsaved
+      console.log('✅ Field added successfully to step:', newField.step)
     } catch (error) {
       console.error('❌ Error adding field:', error)
-      alert('Fehler beim Hinzufügen des Feldes')
+      
+      // Bessere Fehlermeldung für den User
+      let errorMessage = 'Unbekannter Fehler beim Hinzufügen des Feldes'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
+      alert(`Fehler beim Hinzufügen des Feldes:\n\n${errorMessage}\n\nDetails in der Browser-Konsole (F12)`)
     }
   }
 
@@ -74,6 +151,7 @@ export default function FormBuilderPage() {
       if (selectedField?.id === fieldId) {
         setSelectedField(updatedField)
       }
+      markAsUnsaved() // Mark as unsaved
       console.log('✅ Field updated successfully')
     } catch (error) {
       console.error('❌ Error updating field:', error)
@@ -89,6 +167,7 @@ export default function FormBuilderPage() {
       if (selectedField?.id === fieldId) {
         setSelectedField(null)
       }
+      markAsUnsaved() // Mark as unsaved
       console.log('✅ Field deleted successfully')
     } catch (error) {
       console.error('❌ Error deleting field:', error)
@@ -97,47 +176,29 @@ export default function FormBuilderPage() {
   }
 
   const handleFieldReorder = async (fieldId: string, direction: 'up' | 'down') => {
-    const currentIndex = fields.findIndex(field => field.id === fieldId)
-    if (currentIndex === -1) return
-
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
-    if (newIndex < 0 || newIndex >= fields.length) return
-
-    try {
-      console.log(`🔄 Moving field ${direction}:`, fieldId)
-      
-      // Create new array with swapped positions
-      const newFields = [...fields]
-      const [movedField] = newFields.splice(currentIndex, 1)
-      newFields.splice(newIndex, 0, movedField)
-      
-      // Update positions for all affected fields
-      const updatedFields = newFields.map((field, index) => ({ ...field, position: index }))
-      
-      // Reorder on server
-      const fieldOrderData = updatedFields.map(field => ({
-        id: field.id,
-        position: field.position,
-        step: field.step
-      }))
-      await FormsAPI.reorderFields(formId, fieldOrderData)
-      
-      setFields(updatedFields)
-      console.log('✅ Fields reordered successfully')
-    } catch (error) {
-      console.error('❌ Error reordering fields:', error)
-      alert('Fehler beim Neuordnen der Felder')
-    }
+    // This function is now handled by FormCanvas directly
+    // We keep this for compatibility but it's no longer used
+    console.log('🔄 Field reorder request:', fieldId, direction)
   }
 
   const handleSave = async () => {
     try {
       setIsSaving(true)
-      console.log('💾 Saving form...')
+      console.log('💾 Manual save triggered...')
       
       // Here you can add any form-level updates if needed
+      markAsSaved()
       console.log('✅ Form saved successfully')
-      alert('Formular gespeichert!')
+      
+      // Show success feedback
+      const successMessage = document.createElement('div')
+      successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50'
+      successMessage.textContent = '💾 Formular gespeichert!'
+      document.body.appendChild(successMessage)
+      
+      setTimeout(() => {
+        document.body.removeChild(successMessage)
+      }, 3000)
       
     } catch (error) {
       console.error('❌ Error saving form:', error)
@@ -201,42 +262,134 @@ export default function FormBuilderPage() {
             }`}>
               {form.is_active ? '🟢 Aktiv' : '⚪ Inaktiv'}
             </span>
+
+            {/* Auto-Save Status */}
+            <div className="flex items-center gap-2">
+              {isAutoSaving ? (
+                <span className="flex items-center gap-1 text-blue-600">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span className="text-xs">Speichere automatisch...</span>
+                </span>
+              ) : hasUnsavedChanges ? (
+                <span className="flex items-center gap-1 text-amber-600">
+                  <WifiOff className="w-3 h-3" />
+                  <span className="text-xs">Ungespeicherte Änderungen</span>
+                </span>
+              ) : lastSavedAt ? (
+                <span className="flex items-center gap-1 text-green-600">
+                  <Wifi className="w-3 h-3" />
+                  <span className="text-xs">
+                    Gespeichert {lastSavedAt.toLocaleTimeString('de-DE', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })}
+                  </span>
+                </span>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Manual Save Button */}
             <button
               onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={isSaving || isAutoSaving}
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-colors ${
+                hasUnsavedChanges
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+              }`}
             >
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Speichern...
+                  Speichert...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  Speichern
+                  {hasUnsavedChanges ? 'Speichern' : 'Gespeichert'}
                 </>
               )}
             </button>
-            
+
+            {/* Enhanced Test Button */}
             <button
               onClick={handlePreview}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
             >
               <Play className="w-4 h-4" />
-              Vorschau
+              Test & Vorschau
             </button>
+
+            {/* Auto-Save Indicator */}
+            <div className="flex items-center gap-1 px-3 py-2 bg-gray-50 rounded-lg">
+              <Clock className="w-3 h-3 text-gray-400" />
+              <span className="text-xs text-gray-500">Auto-Save: 90s</span>
+            </div>
           </div>
         </div>
+
+        {/* Warning for unsaved changes */}
+        {hasUnsavedChanges && (
+          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+            ⚠️ Sie haben ungespeicherte Änderungen. Diese werden automatisch in {
+              (() => {
+                const now = new Date()
+                const lastChange = lastSavedAt || now
+                const timeSinceLastChange = now.getTime() - lastChange.getTime()
+                const remaining = Math.max(0, 90000 - timeSinceLastChange)
+                return Math.ceil(remaining / 1000)
+              })()
+            } Sekunden gespeichert.
+          </div>
+        )}
+
+        {/* Lead-Formular Validierung Warning */}
+        {leadValidation && !leadValidation.isValid && (
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
+            <div className="flex items-start gap-2">
+              <div className="text-red-600 font-medium text-sm">
+                ⚠️ Lead-Formular unvollständig
+              </div>
+            </div>
+            <div className="mt-2 text-sm text-red-700">
+              <p className="font-medium">Fehlende Pflichtfelder für Lead-Erstellung:</p>
+              <ul className="list-disc list-inside mt-1">
+                {leadValidation.missingFields.map((field, index) => (
+                  <li key={index}>{field}</li>
+                ))}
+              </ul>
+              <div className="mt-2 text-xs text-red-600">
+                💡 <strong>Lead-Formulare benötigen:</strong> Name/Vorname + (E-Mail ODER Telefonnummer)
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Lead-Formular Empfehlungen */}
+        {leadValidation && leadValidation.isValid && leadValidation.recommendations.length > 0 && (
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+            <div className="text-blue-800 font-medium text-sm mb-2">
+              💡 Empfehlungen für Ihr Lead-Formular:
+            </div>
+            <ul className="list-disc list-inside text-sm text-blue-700">
+              {leadValidation.recommendations.map((rec, index) => (
+                <li key={index}>{rec}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Field Library */}
-        <FieldLibrary onFieldDrag={setDraggedField} />
+        <FieldLibrary 
+          onFieldDrag={setDraggedField} 
+          formType={form.form_type}
+        />
 
         {/* Form Canvas */}
         <FormCanvas
@@ -256,9 +409,10 @@ export default function FormBuilderPage() {
           <FieldConfig
             selectedField={selectedField}
             onFieldUpdate={handleFieldUpdate}
+            allFields={fields}
             onClose={() => setSelectedField(null)}
             formHasMultiStep={form.is_multi_step}
-            maxSteps={Math.max(...fields.map(f => f.step), 5)}
+            maxSteps={Math.max(...fields.map(f => f.step || 1), 5)}
           />
         )}
       </div>

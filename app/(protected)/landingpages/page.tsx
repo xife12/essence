@@ -95,15 +95,15 @@ export default function LandingPagesOverview() {
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6">
+      {/* Header mit Action Button */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Landingpages</h1>
+          <h2 className="text-xl font-semibold text-gray-900">Meine Landingpages</h2>
           <p className="text-gray-600">Verwalten Sie Ihre Marketing-Landingpages</p>
         </div>
         <button
-          onClick={() => router.push('/landingpages/new')}
+          onClick={() => router.push('/landingpages/neu')}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus size={20} />
@@ -112,7 +112,7 @@ export default function LandingPagesOverview() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -157,7 +157,7 @@ export default function LandingPagesOverview() {
       {/* Landingpages Liste */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Alle Landingpages</h2>
+          <h3 className="text-lg font-semibold text-gray-900">Alle Landingpages</h3>
         </div>
 
         {landingPages.length === 0 ? (
@@ -170,7 +170,7 @@ export default function LandingPagesOverview() {
               Erstellen Sie Ihre erste Landingpage, um mit der Lead-Generierung zu beginnen.
             </p>
             <button
-              onClick={() => router.push('/landingpages/new')}
+              onClick={() => router.push('/landingpages/neu')}
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus size={20} />
@@ -258,7 +258,7 @@ export default function LandingPagesOverview() {
                           </button>
                         )}
                         <Link
-                          href={`/landingpages/${page.id}`}
+                          href={`/landingpages/${page.id}/builder`}
                           className="text-gray-400 hover:text-blue-600 p-1 rounded"
                           title="Bearbeiten"
                         >
@@ -279,26 +279,6 @@ export default function LandingPagesOverview() {
             </table>
           </div>
         )}
-      </div>
-
-      {/* Testimonials Shortcut */}
-      <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Testimonials verwalten
-            </h3>
-            <p className="text-gray-600">
-              Verwalten Sie Kundenbewertungen für Ihre Landingpages
-            </p>
-          </div>
-          <Link
-            href="/landingpages/testimonials"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Zu Testimonials
-          </Link>
-        </div>
       </div>
 
       {/* Delete Modal */}

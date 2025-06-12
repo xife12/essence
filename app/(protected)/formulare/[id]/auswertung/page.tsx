@@ -15,10 +15,19 @@ export default function FormAnalytics() {
   const [submissions, setSubmissions] = useState<FormSubmission[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
+  const [showTestData, setShowTestData] = useState(false)
 
   useEffect(() => {
     loadData()
   }, [formId, dateRange])
+
+  useEffect(() => {
+    console.log('🔍 Debug: showTestData changed to:', showTestData)
+    // Re-trigger filtering when test data toggle changes
+    if (submissions.length > 0) {
+      console.log('🔍 Debug: Triggering re-filter due to showTestData change')
+    }
+  }, [showTestData])
 
   const loadData = async () => {
     try {
@@ -63,17 +72,44 @@ export default function FormAnalytics() {
 
   // Analytics calculations
   const getFilteredSubmissions = () => {
-    if (dateRange === 'all') return submissions
+    let filtered = submissions
+    
+    console.log('🔍 Debug: Original submissions:', submissions.length)
+    console.log('🔍 Debug: Test submissions in original:', submissions.filter(s => s.is_test_submission).length)
+    console.log('🔍 Debug: showTestData flag:', showTestData)
+    
+    // Filter by test data preference
+    if (!showTestData) {
+      filtered = filtered.filter(s => !s.is_test_submission)
+      console.log('🔍 Debug: After filtering out test data:', filtered.length)
+    } else {
+      console.log('🔍 Debug: Including test data, total:', filtered.length)
+    }
+    
+    // Filter by date range
+    if (dateRange === 'all') {
+      console.log('🔍 Debug: No date filtering, final count:', filtered.length)
+      return filtered
+    }
     
     const now = new Date()
     const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90
     const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
     
-    return submissions.filter(s => new Date(s.created_at) >= cutoff)
+    const dateFiltered = filtered.filter(s => new Date(s.created_at) >= cutoff)
+    console.log('🔍 Debug: After date filtering:', dateFiltered.length, 'cutoff:', cutoff)
+    
+    return dateFiltered
   }
 
   const filteredSubmissions = getFilteredSubmissions()
   const totalSubmissions = filteredSubmissions.length
+  
+  // Test data statistics
+  const testSubmissions = submissions.filter(s => s.is_test_submission)
+  const realSubmissions = submissions.filter(s => !s.is_test_submission)
+  const testLeadsCount = filteredSubmissions.filter(s => s.is_test_submission && s.lead_id).length
+  const realLeadsCount = filteredSubmissions.filter(s => !s.is_test_submission && s.lead_id).length
   
   // Daily submissions for chart
   const getDailySubmissions = () => {
@@ -129,6 +165,17 @@ export default function FormAnalytics() {
           </div>
           
           <div className="flex items-center gap-3">
+            {/* Test Data Filter */}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showTestData}
+                onChange={(e) => setShowTestData(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-gray-600">Test-Daten anzeigen</span>
+            </label>
+            
             {/* Date Range Filter */}
             <select
               value={dateRange}
@@ -148,6 +195,73 @@ export default function FormAnalytics() {
               <Download className="w-4 h-4" />
               Export CSV
             </button>
+            
+            {/* Debug: Create Test Submission Button */}
+            <button
+              onClick={async () => {
+                try {
+                  console.log('🧪 Creating debug test submission...')
+                  const testData = {
+                    nachname: 'Debug',
+                    firstname: 'Test', 
+                    e_mail_adresse: 'debug@test.com',
+                    telefonnummer: '0123456789',
+                    debug_timestamp: new Date().toISOString()
+                  }
+                  
+                  await FormsAPI.createTestSubmission(formId, testData)
+                  console.log('✅ Debug test submission created')
+                  
+                  // Reload data
+                  await loadData()
+                  alert('Debug Test-Submission erstellt!')
+                } catch (error) {
+                  console.error('❌ Error creating debug submission:', error)
+                  alert('Fehler beim Erstellen des Test-Submissions')
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+            >
+              🧪 Debug Test-Submission
+            </button>
+            
+            {/* Debug: Direct DB Query Button */}
+            <button
+              onClick={async () => {
+                try {
+                  console.log('🔍 Testing direct database access...')
+                  
+                  // Import Supabase client directly
+                  const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs')
+                  const supabase = createClientComponentClient()
+                  
+                  // Direct query to check what's in the database
+                  const { data, error } = await supabase
+                    .from('form_submissions')
+                    .select('*')
+                    .eq('form_id', formId)
+                    .order('created_at', { ascending: false })
+                    .limit(10)
+                  
+                  console.log('🔍 Direct DB query result:', { data, error })
+                  console.log('🔍 Found submissions:', data?.length || 0)
+                  console.log('🔍 Test submissions:', data?.filter(s => s.is_test_submission).length || 0)
+                  
+                  if (error) {
+                    console.error('❌ Direct query error:', error)
+                    alert(`DB Query Error: ${error.message}`)
+                  } else {
+                    alert(`Direct DB Query: Found ${data?.length || 0} submissions (${data?.filter(s => s.is_test_submission).length || 0} test)`)
+                  }
+                } catch (error) {
+                  console.error('❌ Error in direct query:', error)
+                  alert('Fehler bei direkter DB-Abfrage')
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              🔍 Debug DB-Query
+            </button>
           </div>
         </div>
       </div>
@@ -162,6 +276,11 @@ export default function FormAnalytics() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Gesamte Eingaben</p>
                 <p className="text-2xl font-semibold text-gray-900">{totalSubmissions}</p>
+                {showTestData && testSubmissions.length > 0 && (
+                  <p className="text-xs text-yellow-600 mt-1">
+                    🧪 {testSubmissions.length} Test-Einträge vorhanden
+                  </p>
+                )}
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
                 <Users className="w-6 h-6 text-blue-600" />
@@ -295,6 +414,34 @@ export default function FormAnalytics() {
                   </span>
                 </div>
               )}
+              
+              {/* Test Data Statistics */}
+              {testSubmissions.length > 0 && (
+                <>
+                  <hr className="my-4" />
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-yellow-800 mb-2">🧪 Test-Daten</h4>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Test-Submissions:</span>
+                      <span className="text-sm font-medium text-yellow-700">
+                        {testSubmissions.length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Test-Leads erstellt:</span>
+                      <span className="text-sm font-medium text-yellow-700">
+                        {testSubmissions.filter(s => s.lead_id).length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Auto-Löschung:</span>
+                      <span className="text-sm font-medium text-yellow-700">
+                        Nach 3 Stunden
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -320,6 +467,9 @@ export default function FormAnalytics() {
                       ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Typ
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Eingegangen am
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -335,9 +485,20 @@ export default function FormAnalytics() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredSubmissions.slice(0, 20).map((submission) => (
-                    <tr key={submission.id} className="hover:bg-gray-50">
+                    <tr key={submission.id} className={`hover:bg-gray-50 ${submission.is_test_submission ? 'bg-yellow-50' : ''}`}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {submission.id.substring(0, 8)}...
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {submission.is_test_submission ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            🧪 Test
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            ✅ Echt
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(submission.created_at).toLocaleString('de-DE')}
@@ -347,12 +508,19 @@ export default function FormAnalytics() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {submission.lead_id ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Ja
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mb-1">
+                              ✅ Ja
+                            </span>
+                            {submission.is_test_submission && (
+                              <span className="text-xs text-yellow-600">
+                                🧪 Test-Lead
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Nein
+                            ❌ Nein
                           </span>
                         )}
                       </td>

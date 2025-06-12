@@ -3,66 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Search, Filter, X, Calendar } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
-import LeadTable, { Lead } from '../../components/leads/LeadTable';
+import LeadTable from '../../components/leads/LeadTable';
 import Modal from '../../components/ui/Modal';
 import LeadForm, { LeadData } from '../../components/leads/LeadForm';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-
-// Dummy-Daten für die Entwicklung
-const DUMMY_LEADS: Lead[] = [
-  {
-    id: '550e8400-e29b-41d4-a716-446655440000',
-    first_name: 'Max',
-    last_name: 'Mustermann',
-    phone: '+49 123 4567890',
-    email: 'max@example.com',
-    source: 'referral',
-    status: 'open',
-    created_at: '2023-08-15T10:30:00Z',
-  },
-  {
-    id: '550e8400-e29b-41d4-a716-446655440001',
-    first_name: 'Anna',
-    last_name: 'Schmidt',
-    phone: '+49 987 6543210',
-    email: 'anna@example.com',
-    source: 'social_media',
-    status: 'contacted',
-    contact_attempts: [
-      {
-        date: '2023-08-14T14:20:00Z',
-        method: 'phone',
-        staff: 'staff1',
-      }
-    ],
-    campaign: {
-      id: '1',
-      name: 'Sommer-Aktion 2023',
-    },
-    created_at: '2023-08-12T14:20:00Z',
-  },
-  {
-    id: '550e8400-e29b-41d4-a716-446655440002',
-    first_name: 'Thomas',
-    last_name: 'Weber',
-    email: 'thomas@example.com',
-    source: 'website',
-    status: 'appointment',
-    appointment_date: '2023-09-05',
-    appointment_time: '14:30',
-    created_at: '2023-08-10T09:15:00Z',
-  },
-  {
-    id: '550e8400-e29b-41d4-a716-446655440003',
-    first_name: 'Julia',
-    last_name: 'Meyer',
-    phone: '+49 111 2223344',
-    source: 'walk_in',
-    status: 'lost',
-    created_at: '2023-08-05T16:45:00Z',
-  },
-];
+import { LeadsAPI, Lead } from '../../lib/api/forms';
 
 // Dummy-Kampagnen
 const DUMMY_CAMPAIGNS = [
@@ -113,11 +59,12 @@ const DUMMY_MODULES = [
 ];
 
 export default function LeadsPage() {
-  const [leads, setLeads] = useState<Lead[]>(DUMMY_LEADS);
-  const [filteredLeads, setFilteredLeads] = useState<Lead[]>(DUMMY_LEADS);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showTestLeads, setShowTestLeads] = useState(false);
   
   // Details-Modal-Status
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -128,6 +75,24 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState<Lead['status'] | ''>('');
   const [monthFilter, setMonthFilter] = useState<string>('');
   const [campaignFilter, setCampaignFilter] = useState<string>('');
+
+  // Load leads from database
+  useEffect(() => {
+    loadLeads()
+  }, [showTestLeads])
+
+  const loadLeads = async () => {
+    try {
+      setIsLoading(true)
+      const leadsData = await LeadsAPI.getAll(showTestLeads)
+      setLeads(leadsData)
+    } catch (error) {
+      console.error('❌ Error loading leads:', error)
+      alert('Fehler beim Laden der Leads')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Filter leads when filter criteria change
   useEffect(() => {
@@ -284,6 +249,18 @@ export default function LeadsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={showTestLeads}
+              onChange={(e) => setShowTestLeads(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            Test-Leads anzeigen
+          </label>
         </div>
         
         <Button

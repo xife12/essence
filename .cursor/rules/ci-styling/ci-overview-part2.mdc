@@ -1,0 +1,75 @@
+| id          | UUID     | Primärschlüssel              |
+| name        | TEXT     | Zielgruppenname              |
+| age_min     | INTEGER  | Mindestalter                 |
+| age_max     | INTEGER  | Höchstalter                  |
+| gender      | ENUM     | 'male', 'female', 'all'      |
+| interests   | TEXT[]   | Array von Interessen         |
+| description | TEXT     | Beschreibung                 |
+| is_active   | BOOLEAN  | Aktiv/Inaktiv                |
+| created_at  | TIMESTAMP| Erstellungszeitpunkt         |
+
+---
+
+## 🎨 UI/UX Implementierung
+
+### Dashboard-Layout (`app/(protected)/ci-styling/page.tsx`)
+
+#### **Header-Bereich**
+```tsx
+- Titel: "CI-Styling Dashboard"
+- Untertitel: "Verwalten Sie alle Ihre Corporate Identity Styles an einem Ort"
+- Aktions-Buttons: 
+  - "Einstellungen" (führt zu /ci-styling/einstellungen)
+  - "Neues Style anlegen" (führt zu /ci-styling/einstellungen?create=true)
+```
+
+#### **Filter-System**
+```tsx
+- Toggle-Button "Filter" mit aktivem/inaktivem Zustand
+- Ausklappbare Filter-Sektion mit 4 Dropdowns:
+  - Kategorie (aus ci_settings geladen)
+  - Kampagne (aus campaigns-API)
+  - Verwendungszweck (vordefinierte Liste)
+  - Zielgruppe (definiert/undefiniert)
+- "Filter zurücksetzen" Button bei aktiven Filtern
+```
+
+#### **Grid-Layout**
+```tsx
+- Responsive Grid: 1-4 Spalten je Bildschirmgröße
+- Master-Design IMMER als erstes Element (wenn vorhanden)
+- Gefilterte Designs folgen danach
+- Empty-State für "Erstes Style erstellen"
+- No-Results-State bei leeren Filtern
+```
+
+### StyleCard-Komponente
+
+#### **Card-Struktur**
+```tsx
+- Master-Designs: Gelber Rand + Gradient-Hintergrund
+- Normale Designs: Grauer Rand mit Hover-Effekt
+- Crown-Icon für Master-Designs
+- Farbvorschau: 3 Kreise (Primär-, Sekundär-, Akzentfarbe)
+- Font-Familie angezeigt
+- Live-Vorschau mit Beispiel-Elementen
+```
+
+#### **Aktions-Buttons**
+```tsx
+- Settings-Icon: Führt zu /ci-styling/einstellungen?style={id}
+- Edit-Icon: Führt zu /ci-styling/editor?id={id}
+- Copy-Icon: Dupliziert das Design (nur bei Nicht-Master)
+- Trash-Icon: Öffnet Delete-Modal (nur bei Nicht-Master)
+- Alle Buttons haben Hover-States und Loading-Deaktivierung
+```
+
+#### **Badge-System**
+```tsx
+- Kategorie-Badge: Blau mit Tag-Icon
+- Kampagnen-Badge: Grün mit Target-Icon
+- Verwendungszweck-Badge: Lila mit Globe-Icon
+- Zielgruppen-Badge: Orange mit Users-Icon
+- Status-Badge: "Standard" für Default-Templates
+```
+

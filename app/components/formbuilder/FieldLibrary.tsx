@@ -22,7 +22,9 @@ import {
   CreditCard,
   Euro,
   Shield,
-  Users
+  Users,
+  UserPlus,
+  CalendarDays
 } from 'lucide-react'
 
 export interface FieldDefinition {
@@ -52,6 +54,44 @@ const FIELD_DEFINITIONS: FieldDefinition[] = [
     }
   },
   {
+    id: 'lead_firstname',
+    type: 'text',
+    label: 'Vorname (Lead)',
+    icon: Type,
+    category: 'basic',
+    description: 'Vorname für Lead-Erstellung',
+    defaultConfig: {
+      label: 'Vorname',
+      placeholder: 'Ihr Vorname',
+      field_name: 'firstname',
+      is_required: true,
+      field_width: 'half',
+      validation_rules: {
+        min_length: 2,
+        max_length: 50
+      }
+    }
+  },
+  {
+    id: 'lead_lastname',
+    type: 'text',
+    label: 'Nachname (Lead)',
+    icon: Type,
+    category: 'basic',
+    description: 'Nachname für Lead-Erstellung',
+    defaultConfig: {
+      label: 'Nachname',
+      placeholder: 'Ihr Nachname',
+      field_name: 'lastname',
+      is_required: true,
+      field_width: 'half',
+      validation_rules: {
+        min_length: 2,
+        max_length: 50
+      }
+    }
+  },
+  {
     id: 'email',
     type: 'email',
     label: 'E-Mail',
@@ -61,8 +101,12 @@ const FIELD_DEFINITIONS: FieldDefinition[] = [
     defaultConfig: {
       label: 'E-Mail-Adresse',
       placeholder: 'ihre@email.com',
+      field_name: 'email',
       is_required: true,
-      field_width: 'full'
+      field_width: 'full',
+      validation_rules: {
+        email_validation: true
+      }
     }
   },
   {
@@ -75,8 +119,12 @@ const FIELD_DEFINITIONS: FieldDefinition[] = [
     defaultConfig: {
       label: 'Telefonnummer',
       placeholder: '+49 123 456789',
+      field_name: 'phone',
       is_required: false,
-      field_width: 'half'
+      field_width: 'half',
+      validation_rules: {
+        phone_validation: true
+      }
     }
   },
   {
@@ -377,19 +425,127 @@ const FIELD_DEFINITIONS: FieldDefinition[] = [
       include_modules: true,
       include_discounts: true
     }
+  },
+
+  // Future Fields (Placeholder - ausgraben bis implementiert)
+  {
+    id: 'registration_fields',
+    type: 'registration',
+    label: 'Anmeldung-Felder',
+    icon: UserPlus,
+    category: 'dynamic',
+    description: 'Event- oder Service-Anmeldung',
+    defaultConfig: {
+      label: 'Anmeldung',
+      field_width: 'full',
+      event_selection: true,
+      participant_details: true
+    }
+  },
+  {
+    id: 'booking_fields',
+    type: 'booking',
+    label: 'Buchung-Felder',
+    icon: CalendarDays,
+    category: 'dynamic',
+    description: 'Termin- und Ressourcenbuchung',
+    defaultConfig: {
+      label: 'Termin buchen',
+      field_width: 'full',
+      date_selection: true,
+      time_selection: true,
+      resource_selection: true
+    }
   }
 ]
 
 interface FieldLibraryProps {
   onFieldDrag: (field: FieldDefinition) => void
+  formType?: string // Neu: Form-Type für bedingte Verfügbarkeit
 }
 
-export default function FieldLibrary({ onFieldDrag }: FieldLibraryProps) {
+export default function FieldLibrary({ onFieldDrag, formType = 'contact' }: FieldLibraryProps) {
   const handleDragStart = (e: React.DragEvent, field: FieldDefinition) => {
+    // Prüfe ob Feld für diesen Form-Type verfügbar ist
+    if (!isFieldAvailableForFormType(field, formType)) {
+      e.preventDefault()
+      return
+    }
+    
     console.log('🎯 Dragging field:', field.type)
     e.dataTransfer.setData('application/json', JSON.stringify(field))
     e.dataTransfer.effectAllowed = 'copy'
     onFieldDrag(field)
+  }
+
+  // Form-Type abhängige Feldverfügbarkeit
+  const isFieldAvailableForFormType = (field: FieldDefinition, formType: string): boolean => {
+    switch (formType) {
+      case 'lead_capture':
+        // Bei Lead-Formularen: Alle Felder verfügbar, aber besondere Empfehlung für Lead-spezifische Felder
+        return true
+        
+      case 'survey':
+        // Bei Umfragen: keine Identifikation erforderlich
+        return !['signature', 'address', 'lead_firstname', 'lead_lastname'].includes(field.type)
+        
+      case 'feedback':
+        // Bei Feedback: meist anonym
+        return !['signature', 'address', 'contract_types', 'pricing_calculator', 'lead_firstname', 'lead_lastname'].includes(field.type)
+        
+      case 'registration':
+        // Bei Anmeldung: Aktuell verfügbar, später ausgrauen
+        if (field.type === 'registration') {
+          return false // Ausgrauen bis implementiert
+        }
+        return true
+        
+      case 'booking':
+        // Bei Buchung: Aktuell verfügbar, später ausgrauen  
+        if (field.type === 'booking') {
+          return false // Ausgrauen bis implementiert
+        }
+        return true
+        
+      case 'contact':
+      default:
+        // Bei Kontakt: Alle Felder verfügbar außer Lead-spezifische
+        return !['lead_firstname', 'lead_lastname'].includes(field.id)
+    }
+  }
+
+  const getFieldDisabledReason = (field: FieldDefinition, formType: string): string | null => {
+    if (formType === 'lead_capture') {
+      if (['lead_firstname', 'lead_lastname'].includes(field.id)) {
+        return '⭐ Empfohlen für Lead-Formulare'
+      }
+      if (field.type === 'email') {
+        return '✅ Pflichtfeld für Lead-Erstellung'
+      }
+      if (field.type === 'phone') {
+        return '💡 Alternative zu E-Mail für Lead-Erstellung'
+      }
+      if (field.type === 'consent') {
+        return '🔒 DSGVO-konform - empfohlen für Lead-Formulare'
+      }
+    }
+    
+    if (formType === 'registration' && field.type === 'registration') {
+      return 'Anmeldung-Felder werden bald verfügbar sein'
+    }
+    if (formType === 'booking' && field.type === 'booking') {
+      return 'Buchung-Felder werden bald verfügbar sein'
+    }
+    if (formType === 'survey' && ['signature', 'address', 'lead_firstname', 'lead_lastname'].includes(field.type)) {
+      return 'Nicht empfohlen für anonyme Umfragen'
+    }
+    if (formType === 'feedback' && ['signature', 'address', 'contract_types', 'pricing_calculator', 'lead_firstname', 'lead_lastname'].includes(field.type)) {
+      return 'Nicht geeignet für Feedback-Formulare'
+    }
+    if (formType === 'contact' && ['lead_firstname', 'lead_lastname'].includes(field.id)) {
+      return 'Spezifisch für Lead-Formulare'
+    }
+    return null
   }
 
   const categories = [
@@ -420,24 +576,39 @@ export default function FieldLibrary({ onFieldDrag }: FieldLibraryProps) {
               <div className="p-2 space-y-1">
                 {categoryFields.map(field => {
                   const IconComponent = field.icon
+                  const isAvailable = isFieldAvailableForFormType(field, formType)
+                  const disabledReason = getFieldDisabledReason(field, formType)
                   
                   return (
                     <div
                       key={field.id}
-                      draggable
+                      draggable={isAvailable}
                       onDragStart={(e) => handleDragStart(e, field)}
-                      className="flex items-center gap-2 p-2 rounded-lg cursor-grab hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 transition-all group"
-                      title={field.description}
+                      className={`flex items-center gap-2 p-2 rounded-lg transition-all group ${
+                        isAvailable 
+                          ? 'cursor-grab hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200' 
+                          : 'cursor-not-allowed opacity-50 bg-gray-100'
+                      }`}
+                      title={disabledReason || field.description}
                     >
                       <div className="flex-shrink-0">
-                        <IconComponent className="w-4 h-4 text-gray-500 group-hover:text-gray-700" />
+                        <IconComponent className={`w-4 h-4 ${
+                          isAvailable 
+                            ? 'text-gray-500 group-hover:text-gray-700' 
+                            : 'text-gray-400'
+                        }`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-gray-900 truncate">
+                        <div className={`text-xs font-medium truncate ${
+                          isAvailable ? 'text-gray-900' : 'text-gray-500'
+                        }`}>
                           {field.label}
+                          {!isAvailable && ' 🚫'}
                         </div>
-                        <div className="text-xs text-gray-500 truncate">
-                          {field.description}
+                        <div className={`text-xs truncate ${
+                          isAvailable ? 'text-gray-500' : 'text-gray-400'
+                        }`}>
+                          {disabledReason || field.description}
                         </div>
                       </div>
                     </div>

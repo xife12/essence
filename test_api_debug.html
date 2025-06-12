@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Debug Test</title>
+</head>
+<body>
+    <h1>API Debug Test</h1>
+    <button onclick="testAPI()">Test Submissions API</button>
+    <div id="results"></div>
+    
+    <script>
+        async function testAPI() {
+            const formId = 'b89f5e94-906c-4e41-b1d9-949ee7b0848f';
+            
+            try {
+                console.log('Testing submissions API...');
+                
+                const response = await fetch(`http://localhost:3000/api/forms/${formId}/submissions`);
+                const data = await response.json();
+                
+                console.log('API Response:', data);
+                
+                document.getElementById('results').innerHTML = `
+                    <h2>Results:</h2>
+                    <p>Total submissions: ${data.length}</p>
+                    <p>Test submissions: ${data.filter(s => s.is_test_submission).length}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('results').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

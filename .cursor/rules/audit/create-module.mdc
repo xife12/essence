@@ -1,0 +1,26 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: "Erzeugt die initiale Rule-Struktur für ein neues Modul"
+alias: "@create-module"
+globs:
+  - "modules/**"
+---
+
+Wenn ein neues Modul erstellt wird (z. B. `email-postfach`), generiere automatisch:
+
+- `email-ui.mdc` mit Regeln zu Darstellung, Komponenten, Interaktionen
+- `email-db.mdc` mit DB-Struktur, Tabellen, Referenzen
+- `email-validation.mdc` mit Eingabelogik, Regeln, Pflichtfeldern
+
+Jede Rule erhält:
+- korrektes `globs:` mit Modulpfad
+- sprechenden Namen
+- Einleitung mit Beschreibung, Zweck und Strukturhinweisen
+
+> Beispiel:
+> `globs: ["modules/email/.**"]`  
+> `description: "UI-Komponenten und Layoutvorgaben für Modul Email-Postfach"`

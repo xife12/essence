@@ -1,0 +1,75 @@
+- filters: {
+    category: string,
+    campaign: string, 
+    usage_purpose: string,
+    target_group: string
+  }
+- showFilters: boolean - Filter-Sektion sichtbar
+- availableCategories: string[] - Verfügbare Kategorien
+- availableCampaigns: any[] - Verfügbare Kampagnen
+```
+
+### **Loading-Strategien**
+```tsx
+- loadStyles(): Lädt Master + Normale Designs separat
+- loadSettings(): Lädt Kategorien aus ci_settings mit Fallback
+- loadCampaigns(): Placeholder für Kampagnen-Integration
+- Alle API-Calls mit try/catch und Error-Logging
+```
+
+---
+
+## 🎯 Master-CI System
+
+### **Master-Design Konzept**
+- **Ein Master-Design pro System** (is_master_ci = true)
+- **Immer als erstes Element** im Grid angezeigt
+- **Crown-Icon und spezielles Design** zur Unterscheidung
+- **Nicht löschbar** (UI + Validierung)
+- **Vererbung**: Sub-CIs können Eigenschaften übernehmen
+
+### **Auto-Creation Flow**
+```tsx
+- Wenn kein Master existiert: "Kein Masterdesign" Placeholder
+- "Erstellen" Button erzeugt Standard-Master-CI
+- Automatische Weiterleitung zum Design-Editor
+- Standard-Werte: Inter Font, blaues Farbschema
+```
+
+### **Vererbungslogik**
+```tsx
+- parent_ci_id verweist auf Master-CI
+- getInheritedSettings() merged Parent + Child Properties
+- Child-Properties überschreiben Parent-Properties
+- ID und Name bleiben beim Child erhalten
+```
+
+---
+
+## 📱 Responsive Design
+
+### **Breakpoints**
+```tsx
+- Mobile: 1 Spalte (grid-cols-1)
+- Tablet: 2 Spalten (md:grid-cols-2)  
+- Desktop: 3 Spalten (lg:grid-cols-3)
+- Large: 4 Spalten (xl:grid-cols-4)
+```
+
+### **Mobile Optimierungen**
+- **Filter**: Vollbreite Dropdowns
+- **Cards**: Reduzierte Padding-Werte
+- **Buttons**: Touch-freundliche Größen
+- **Modal**: Responsive max-width mit mx-4 margin
+
+---
+
+## 🔍 Filter & Search Logic
+
+### **Filter-Implementierung**
+```tsx
+getFilteredStyles(): 
+- Kategorie: Exakte Übereinstimmung
+- Kampagne: linked_campaign_id Vergleich
+- Verwendungszweck: Array.includes() Check
+- Zielgruppe: Existenz-Check (defined/undefined)

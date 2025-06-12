@@ -42,7 +42,54 @@ export default function FormSettings() {
 
   const handleInputChange = (field: string, value: any) => {
     if (!form) return
+    
+    // Special handling for multi-step activation
+    if (field === 'is_multi_step' && value === true && !form.is_multi_step) {
+      // When enabling multi-step for the first time, we need to ensure proper step distribution
+      handleMultiStepActivation()
+    }
+    
     setForm({ ...form, [field]: value })
+  }
+
+  const handleMultiStepActivation = async () => {
+    try {
+      // Check if we have any fields
+      const fieldsResponse = await FormsAPI.getFields(formId)
+      const currentFields = fieldsResponse || []
+      
+      if (currentFields.length > 0) {
+        // Update all existing fields to be in step 1 if they don't have a step
+        const fieldsToUpdate = currentFields.filter(field => !field.step || field.step === 0)
+        
+        for (const field of fieldsToUpdate) {
+          await FormsAPI.updateField(field.id, { step: 1 })
+        }
+        
+        console.log('✅ Multi-step activated: All existing fields moved to step 1')
+        
+        // Show helpful message
+        const notification = document.createElement('div')
+        notification.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50'
+        notification.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span>📄 Multi-Step aktiviert!</span>
+          </div>
+          <div class="text-xs mt-1 opacity-90">
+            Alle Felder sind jetzt in Schritt 1. Fügen Sie Felder zu Schritt 2+ im Builder hinzu.
+          </div>
+        `
+        document.body.appendChild(notification)
+        
+        setTimeout(() => {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification)
+          }
+        }, 5000)
+      }
+    } catch (error) {
+      console.error('❌ Error activating multi-step:', error)
+    }
   }
 
   const handleSave = async () => {
@@ -209,45 +256,121 @@ export default function FormSettings() {
                   </div>
 
                   {/* Form Type */}
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Formulartyp
+                  <div>
+                    <label htmlFor="form_type" className="block text-sm font-medium text-gray-700 mb-1">
+                      Formulartyp *
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {FORM_TYPES.map((type) => (
-                        <label
-                          key={type.value}
-                          className={`relative flex cursor-pointer rounded-lg border p-3 focus:outline-none ${
-                            form.form_type === type.value
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-300 bg-white hover:bg-gray-50'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="form_type"
-                            value={type.value}
-                            checked={form.form_type === type.value}
-                            onChange={(e) => handleInputChange('form_type', e.target.value)}
-                            className="sr-only"
-                          />
-                          <div className="flex flex-1 flex-col">
-                            <span className="block text-sm font-medium text-gray-900">
-                              {type.label}
-                            </span>
-                            <span className="block text-xs text-gray-500">
-                              {type.description}
-                            </span>
-                          </div>
-                          {form.form_type === type.value && (
-                            <div className="text-blue-600">
-                              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
+                    <select
+                      id="form_type"
+                      value={form.form_type}
+                      onChange={(e) => handleInputChange('form_type', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {FORM_TYPES.map(type => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {FORM_TYPES.find(t => t.value === form.form_type)?.description}
+                    </p>
+                  </div>
+
+                  {/* Multi-Step Enhanced */}
+                  <div className="col-span-full">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id="is_multi_step"
+                          checked={form.is_multi_step}
+                          onChange={(e) => handleInputChange('is_multi_step', e.target.checked)}
+                          className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <label htmlFor="is_multi_step" className="text-sm font-medium text-gray-900">
+                            Multi-Step Formular aktivieren
+                          </label>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Teilt das Formular in mehrere Schritte auf für bessere Benutzerführung
+                          </p>
+                          
+                          {!form.is_multi_step ? (
+                            <div className="mt-3 p-3 bg-white rounded border border-blue-200">
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">🎯 Was passiert beim Aktivieren:</h4>
+                              <ul className="text-sm text-gray-600 space-y-1">
+                                <li>• Alle vorhandenen Felder werden automatisch zu Schritt 1</li>
+                                <li>• Sie können im Builder neue Felder zu Schritt 2+ hinzufügen</li>
+                                <li>• Drag & Drop zwischen Schritten wird aktiviert</li>
+                                <li>• Automatische Schritt-Navigation in der Vorschau</li>
+                              </ul>
+                            </div>
+                          ) : (
+                            <div className="mt-3 p-3 bg-white rounded border border-blue-200">
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">✨ Multi-Step Features aktiviert:</h4>
+                              <ul className="text-sm text-gray-600 space-y-1">
+                                <li>• Alle Felder starten in Schritt 1</li>
+                                <li>• Visuelle Schritt-Rahmen mit CI-konformen Farben</li>
+                                <li>• Drag & Drop zwischen Schritten möglich</li>
+                                <li>• Automatische Schritt-Nummerierung</li>
+                                <li>• Ziehen Sie Felder in den "Neuen Schritt erstellen" Bereich für weitere Schritte</li>
+                              </ul>
                             </div>
                           )}
-                        </label>
-                      ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Auto Lead Creation Enhanced */}
+                  <div className="col-span-full">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id="auto_lead_creation"
+                          checked={form.auto_lead_creation}
+                          onChange={(e) => handleInputChange('auto_lead_creation', e.target.checked)}
+                          className="mt-1 h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        />
+                        <div className="flex-1">
+                          <label htmlFor="auto_lead_creation" className="text-sm font-medium text-gray-900">
+                            Automatische Lead-Erstellung
+                          </label>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Erstellt automatisch einen Lead-Eintrag aus Formular-Eingaben
+                          </p>
+                          
+                          {/* Form Type specific Lead Logic */}
+                          <div className="mt-3 p-3 bg-white rounded border border-green-200">
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">
+                              Lead-Erstellung für "{FORM_TYPES.find(t => t.value === form.form_type)?.label}":
+                            </h4>
+                            {form.form_type === 'survey' && (
+                              <div className="text-sm text-amber-700 bg-amber-50 p-2 rounded">
+                                ⚠️ Bei Umfragen wird standardmäßig kein Lead erstellt (Anonymität). 
+                                Aktivieren Sie diese Option nur wenn nötig.
+                              </div>
+                            )}
+                            {form.form_type === 'lead_capture' && (
+                              <div className="text-sm text-green-700">
+                                ✅ Empfohlen für Lead-Erfassung Formulare
+                              </div>
+                            )}
+                            {['contact', 'registration', 'booking'].includes(form.form_type) && (
+                              <div className="text-sm text-blue-700">
+                                💡 Optional - je nach Verwendungszweck
+                              </div>
+                            )}
+                            {form.form_type === 'feedback' && (
+                              <div className="text-sm text-gray-600">
+                                📝 Meist nicht nötig für reines Feedback
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

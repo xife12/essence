@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: "Führt ein Abschluss-Audit für ein fertig entwickeltes Modul durch"
+alias: "@finalize-module-audit"
+globs:
+  - "modules/**"
+  - "supabase/**/*.sql"
+  - "types/**/*.ts"
+---
+
+1. Scanne den Code (UI, DB, Types, API) des fertigen Moduls
+2. Vergleiche mit vorhandenen `.mdc`-Rules
+3. Ergänze neue Regeln, wenn:
+   - neue Komponenten/UX-Elemente verwendet werden
+   - neue Tabellen/Felder/Constraints (Supabase) vorhanden sind
+   - Validierungen oder Workflows geändert wurden
+4. Passe bestehende Rule-Dateien an oder teile sie auf
+5. Erstelle `rules_updated.md`, wenn mehrere Änderungen aufgetreten sind

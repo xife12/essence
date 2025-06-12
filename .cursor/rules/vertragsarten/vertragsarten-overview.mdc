@@ -1,0 +1,72 @@
+---
+description: "Vertragsarten-Management: Konditionen, Module und Preisgestaltung"
+alias: "@vertragsarten"
+globs:
+  - "app/(protected)/vertragsarten/**"
+  - "components/vertragsarten/**"
+  - "lib/api/contract-types.ts"
+---
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Vertragsarten
+
+## Zweck
+Vertragsarten definieren die konfigurierbaren Konditionen und Optionen für Mitgliedschaften. Dazu zählen Laufzeit, Beiträge, optionale Module und Rabatte.
+
+---
+
+## Tabelle: `public.contract_types`
+
+| Spalte              | Typ             | Beschreibung                                         |
+|---------------------|------------------|------------------------------------------------------|
+| id                  | UUID (PK)        | Eindeutiger Identifikator                            |
+| name                | TEXT             | Vertragsbezeichnung                                 |
+| description         | TEXT             | Freitext zur Erläuterung                            |
+| term                | INTEGER          | Laufzeit in Monaten (manuell eingegeben)            |
+| price_per_month     | DECIMAL(8,2)     | Monatlicher Beitrag                                 |
+| bonus_period        | INTEGER          | Bonuszeitraum (Monate, optional)                    |
+| auto_renew          | BOOLEAN          | Automatische Verlängerung                           |
+| renewal_term        | INTEGER          | Verlängerungsdauer (wenn auto_renew = true)         |
+| has_group_discount  | BOOLEAN          | Gruppenrabatt erlaubt?                              |
+| group_discount_rate | DECIMAL(5,2)     | Rabatt in % (nur wenn has_group_discount = true)    |
+| has_paid_modules    | BOOLEAN          | Kostenpflichtige Module erlaubt?                    |
+| has_free_modules    | BOOLEAN          | Kostenfreie Module erlaubt?                         |
+| active              | BOOLEAN          | Aktiv/inaktiv                                        |
+| created_at          | TIMESTAMP        | Anlagezeitpunkt                                     |
+| updated_at          | TIMESTAMP        | Änderungszeitpunkt                                  |
+
+---
+
+## Beziehung: `contract_type_modules`
+
+| Spalte              | Typ              | Beschreibung                                  |
+|---------------------|------------------|-----------------------------------------------|
+| id                  | UUID (PK)        | Modul-ID                                      |
+| contract_type_id    | FK → contract_types | Zugehörige Vertragsart                     |
+| name                | TEXT             | Modulname                                     |
+| is_paid             | BOOLEAN          | true = kostenpflichtig, false = kostenfrei    |
+| price               | DECIMAL(8,2)     | Preis (nur bei kostenpflichtig)               |
+| created_at          | TIMESTAMP        | Angelegt am                                   |
+
+---
+
+## UI-Komponenten
+
+### Übersichtstabelle
+
+| Spalte             | Beschreibung                          |
+|--------------------|---------------------------------------|
+| Name               | Vertragsbezeichnung                   |
+| Laufzeit           | z. B. „12 Monate“                     |
+| Beitrag            | Preis pro Monat                       |
+| Gruppenrabatt      | Ja / Nein                             |
+| Zubuchbare Module  | Ja / Nein                             |
+| Kostenfreie Module | Ja / Nein                             |
+| Bonuszeit          | optional, z. B. „+2 Monate“           |
+| Aktiv              | Badge                                 |
+| Aktion             | Bearbeiten / Deaktivieren             |
+
+---

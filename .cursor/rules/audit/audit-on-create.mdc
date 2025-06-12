@@ -1,0 +1,23 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: "Überprüft neue oder geänderte Rule-Dateien direkt beim Einfügen"
+alias: "@audit-on-create"
+globs:
+  - "**/.cursor/rules/**/*.mdc"
+---
+
+Wenn eine neue `.mdc`-Datei erstellt oder geändert wird, prüfe sofort:
+
+- Passt der Dateiname zum Modul?
+- Enthält sie zu viele Bereiche? (→ ggf. splitten)
+- Ist ein `description:` und `globs:` gesetzt?
+- Gibt es bereits eine ähnliche Rule im Projekt? (→ Warnung bei Überschneidung)
+
+> Falls nötig:
+> - teile sie auf
+> - verschiebe sie in den richtigen Modulordner
+> - ergänze fehlende Metadaten

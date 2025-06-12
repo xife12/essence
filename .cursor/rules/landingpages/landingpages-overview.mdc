@@ -1,0 +1,11 @@
+---
+description: "Landingpage-Modul: Übersicht, Datenbankstruktur und Workflow für modulare Zielseiten mit visuellem Builder"
+alias: "landingpages"
+globs: ["app/landingpages/**", "components/landingpages/**"]
+---
+
+---
+description:
+globs:
+alwaysApply: false
+---

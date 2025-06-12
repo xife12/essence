@@ -6,28 +6,7 @@ import Table from '../ui/Table';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Link from 'next/link';
-
-export type Lead = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  phone?: string;
-  email?: string;
-  source?: string;
-  status: 'open' | 'consultation' | 'converted' | 'lost' | 'contacted' | 'appointment';
-  campaign?: {
-    id: string;
-    name: string;
-  };
-  created_at: string;
-  appointment_date?: string;
-  appointment_time?: string;
-  contact_attempts?: Array<{
-    date: string;
-    method: string;
-    staff: string;
-  }>;
-};
+import { Lead } from '../../lib/api/forms';
 
 type LeadTableProps = {
   data: Lead[];
@@ -80,16 +59,27 @@ export default function LeadTable({
   };
 
   const getStatusBadge = (status: Lead['status']) => {
-    const statusConfig: Record<Lead['status'], { label: string; variant: 'green' | 'blue' | 'red' | 'yellow' | 'purple' | 'gray' }> = {
-      open: { label: 'Offen', variant: 'blue' },
-      consultation: { label: 'In Beratung', variant: 'yellow' },
-      converted: { label: 'Konvertiert', variant: 'green' },
-      lost: { label: 'Verloren', variant: 'red' },
-      contacted: { label: 'Kontaktiert', variant: 'purple' },
-      appointment: { label: 'Terminiert', variant: 'yellow' },
+    const statusConfig = {
+      open: { label: 'Offen', variant: 'blue' as const },
+      contacted: { label: 'Kontaktiert', variant: 'purple' as const },
+      appointment: { label: 'Terminiert', variant: 'yellow' as const },
+      consultation: { label: 'In Beratung', variant: 'yellow' as const },
+      converted: { label: 'Konvertiert', variant: 'green' as const },
+      completed: { label: 'Abgeschlossen', variant: 'green' as const },
+      lost: { label: 'Verloren', variant: 'red' as const },
     };
     
     const config = statusConfig[status];
+    
+    // Debug logging and fallback handling
+    if (!config) {
+      console.warn('⚠️ Unknown status in LeadTable:', status);
+      return (
+        <Badge variant="gray">
+          {status || 'Unbekannt'}
+        </Badge>
+      );
+    }
     
     return (
       <Badge variant={config.variant}>
@@ -101,32 +91,49 @@ export default function LeadTable({
   const columns = [
     {
       header: 'Name',
-      accessor: (item: Lead) => (
-        <div>
-          <div className="font-medium">{`${item.first_name} ${item.last_name}`}</div>
-          <div className="text-xs text-gray-500">ID: {item.id.substring(0, 8)}</div>
-        </div>
-      ),
+      accessor: (item: Lead) => {
+        const displayName = item.name || `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Unbekannt';
+        return (
+          <div>
+            <div className="font-medium">{displayName}</div>
+            <div className="text-xs text-gray-500">ID: {item.id.substring(0, 8)}</div>
+            {item.is_test_lead && (
+              <div className="text-xs text-amber-600 font-medium">🧪 Test</div>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Kontakt',
-      accessor: (item: Lead) => (
-        <div className="space-y-1">
-          {item.phone && (
-            <div className="flex items-center gap-1">
-              <Phone size={14} className="text-gray-400" />
-              <span>{item.phone}</span>
-            </div>
-          )}
-          {item.email && (
-            <div className="flex items-center gap-1">
-              <Mail size={14} className="text-gray-400" />
-              <span>{item.email}</span>
-            </div>
-          )}
-          {!item.phone && !item.email && '-'}
-        </div>
-      ),
+      accessor: (item: Lead) => {
+        const hasPhone = item.phone;
+        const hasEmail = item.email;
+        const contact = item.contact;
+        
+        return (
+          <div className="space-y-1">
+            {hasPhone && (
+              <div className="flex items-center gap-1">
+                <Phone size={14} className="text-gray-400" />
+                <span>{hasPhone}</span>
+              </div>
+            )}
+            {hasEmail && (
+              <div className="flex items-center gap-1">
+                <Mail size={14} className="text-gray-400" />
+                <span>{hasEmail}</span>
+              </div>
+            )}
+            {!hasPhone && !hasEmail && contact && (
+              <div className="flex items-center gap-1">
+                <span>{contact}</span>
+              </div>
+            )}
+            {!hasPhone && !hasEmail && !contact && '-'}
+          </div>
+        );
+      },
     },
     {
       header: 'Quelle',
