@@ -1,0 +1,28 @@
+name: Nightly Health Audit
+
+on:
+  schedule:
+    - cron: '0 20 * * *' # jeden Abend um 22 Uhr deutsche Zeit (20:00 UTC)
+  workflow_dispatch:      # manuell auslösbar über GitHub Oberfläche
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v3
+
+      - name: Node installieren
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Health Audit ausführen
+        run: node .github/scripts/health-audit.mjs
+
+      - name: Änderungen committen & pushen
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "📋 nightly health audit"
+          branch: main
