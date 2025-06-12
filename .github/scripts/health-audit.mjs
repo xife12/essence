@@ -2,6 +2,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,25 +43,53 @@ function parseMDC(filePath) {
   return metadata;
 }
 
+// 🧬 SUPABASE SCHEMA PRÜFUNG
+async function fetchSupabaseTables() {
+  const url = process.env.SUPABASE_API_URL;
+  const key = process.env.SUPABASE_API_KEY;
+  const schemaUrl = `${url}/rest/v1/?apikey=${key}`;
+
+  try {
+    const res = await fetch(`${url}/rest/v1/tables`, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`
+      }
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.map(t => t.name);
+  } catch (e) {
+    console.error('Supabase-Schema konnte nicht geladen werden:', e);
+    return [];
+  }
+}
+
 const files = getAllMDCFiles(RULES_DIR);
 const results = files.map(parseMDC);
 
 const tooLong = results.filter(r => r.lines > 300);
 const missingMeta = results.filter(r => !r.description || !r.globs);
+const ruleNames = files.map(f => path.basename(f).replace('.mdc', '').toLowerCase());
 
-// Platzhalter für zusätzliche Analysen (werden später dynamisch befüllt)
-const duplikate = ['landingpages.mdc', 'landingpage-builder.mdc'];
+// 🔄 Platzhalterdaten (bis Live-Vergleiche automatisch integriert sind)
+const duplikate = ruleNames.filter((v, i, a) => a.indexOf(v) !== i);
 const verwaist = ['dashboard-export.mdc'];
-const dbKonflikte = ['contract_bonuses fehlt in rules', 'beratung-db enthält ungültige Felder'];
+const dbKonflikte = [];
+const supabaseTables = await fetchSupabaseTables();
+
+for (const table of supabaseTables) {
+  const found = ruleNames.some(name => name.includes(table));
+  if (!found) dbKonflikte.push(`${table} fehlt in .mdc-Dateien`);
+}
+
 const empfehlungen = [
-  'landingpages.mdc aufteilen in -ui.mdc & -meta.mdc',
-  'mitgliedschaften.mdc aufteilen',
-  'dashboard-export archivieren',
-  'fehlende Supabase-Tabelle ergänzen',
-  'nicht verknüpfte Komponente aus Navigation entfernen'
+  ...tooLong.map(t => `Regel zu lang → aufteilen: ${path.basename(t.file)}`),
+  ...missingMeta.map(t => `Fehlende Metadaten: ${path.basename(t.file)}`),
+  ...dbKonflikte.map(t => `Datenbankregel fehlt: ${t}`)
 ];
 
-// Generiere Markdown Report
+// 📝 Generiere Markdown Report
 const report = `# 🧠 MemberCore Health Audit – Stand: ${dd}.${mm}
 
 ## 🔍 Zusammenfassung
@@ -75,21 +106,21 @@ const report = `# 🧠 MemberCore Health Audit – Stand: ${dd}.${mm}
 ## 🟡 Auffälligkeiten
 
 ### ❌ Duplikate
-${duplikate.map(f => `- ${f}`).join('\n')}
+${[...new Set(duplikate)].map(f => `- ${f}`).join('\n') || '- Keine'}
 
 ### ⚠️ Aufspaltung empfohlen
-${tooLong.map(f => `- ${path.basename(f.file)} (${f.lines} Zeilen)`).join('\n')}
+${tooLong.map(f => `- ${path.basename(f.file)} (${f.lines} Zeilen)`).join('\n') || '- Keine'}
 
 ### ❗️ Verwaist
-${verwaist.map(f => `- ${f}`).join('\n')}
+${verwaist.map(f => `- ${f}`).join('\n') || '- Keine'}
 
 ### 🧬 Datenbank nicht synchron
-${dbKonflikte.map(f => `- ${f}`).join('\n')}
+${dbKonflikte.map(f => `- ${f}`).join('\n') || '- Keine'}
 
 ---
 
 ## ✅ Empfehlungen (Cursor Agent)
-${empfehlungen.map(e => `- [ ] ${e}`).join('\n')}
+${empfehlungen.map(e => `- [ ] ${e}`).join('\n') || '- Keine offenen Maßnahmen'}
 `;
 
 fs.writeFileSync(REPORT_PATH, report);
