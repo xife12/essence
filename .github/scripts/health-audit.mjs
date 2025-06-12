@@ -46,8 +46,8 @@ function parseMDC(filePath) {
 
 // SUPABASE DATENBANKVERGLEICH
 async function fetchSupabaseTables() {
-  const url = process.env.SUPABASE_API_URL;
-  const key = process.env.SUPABASE_API_KEY;
+  const url = process.env.local.SUPABASE_API_URL;
+  const key = process.env.local.SUPABASE_API_KEY;
   try {
     const res = await fetch(`${url}/rest/v1/tables`, {
       headers: {
