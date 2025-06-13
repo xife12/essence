@@ -65,46 +65,6 @@ export default function LandingpagesLayout({
         </p>
       </div>
 
-      {/* Navigation Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <SubNavItem 
-          href="/landingpages" 
-          icon={Globe} 
-          label="Landingpage Builder" 
-          description="Seiten erstellen und bearbeiten"
-        />
-        <SubNavItem 
-          href="/landingpages/testimonials" 
-          icon={MessageSquare} 
-          label="Testimonials" 
-          description="Kundenbewertungen verwalten"
-        />
-        <SubNavItem 
-          href="/landingpages/templates" 
-          icon={FileText} 
-          label="Seitenvorlagen" 
-          description="Vorlagen erstellen und nutzen"
-        />
-        <SubNavItem 
-          href="/landingpages/forms" 
-          icon={FormInput} 
-          label="Formulare" 
-          description="Formular-Templates verwalten"
-        />
-        <SubNavItem 
-          href="/landingpages/design" 
-          icon={Palette} 
-          label="Design System" 
-          description="CI-Templates und Styles"
-        />
-        <SubNavItem 
-          href="/landingpages/settings" 
-          icon={Settings} 
-          label="Einstellungen" 
-          description="Rechtliches und Tracking"
-        />
-      </div>
-
       {/* Content */}
       <div className="mt-8">
         {children}

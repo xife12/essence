@@ -1,0 +1,137 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Mitarbeiterverwaltung (aktualisiert)
+
+## Tabellen: `public.staff`, `auth.users`, `public.staff_hours`, `public.staff_file_permissions`
+
+### Mitarbeiter-Basisdaten
+- `id`: UUID (FK → auth.users.id)
+- `rolle`: Enum: admin, studioleiter, mitarbeiter
+- `created_at`, `updated_at`
+- (aus auth.users): `email`, optional `first_name`, `last_name`
+
+## UI-Struktur: Tab-System
+Die Mitarbeiterverwaltung ist in **2 Tabs** unterteilt:
+
+### Tab 1: Übersicht
+- Tabelle: Name, E-Mail, Rolle, Letzter Login
+- Filterbar nach Rolle
+- Suchfunktion nach Name/E-Mail
+- Aktionen: Bearbeiten, Deaktivieren
+
+### Tab 2: Dateimanager-Rechte
+- **Admin-Oberfläche** zur Verwaltung der Dateimanager-Berechtigungen
+- Berechtigungsmatrix pro Mitarbeiter
+- Live-Updates der Berechtigungen
+- Rollenbasierte Sichtbarkeit
+
+## Mitarbeiter anlegen
+- Nur durch Admin oder Studioleiter
+- Modal mit Feldern:
+  - Vorname, Nachname
+  - E-Mail-Adresse
+  - Rolle (Dropdown)
+- Nach Speichern:
+  - Einladung via Supabase E-Mail-Auth
+  - Benutzer erscheint in Liste sobald bestätigt
+  - **Automatische Dateimanager-Berechtigungen** je nach Rolle
+
+## Rollen & Berechtigungen
+| Rolle       | Beschreibung                                           | Dateimanager-Rechte |
+|-------------|--------------------------------------------------------|---------------------|
+| Admin       | Vollzugriff auf alle Module + Systemeinstellungen      | Automatisch: all_files + Admin-Dateien |
+| Studioleiter | Darf Mitarbeiter verwalten (außer Admins), Stunden pflegen | Automatisch: all_files + Admin-Dateien |
+| Mitarbeiter | Nur Leads/Beratung bearbeiten, keine Adminfunktionen   | Konfigurierbar: none/own_files/all_files |
+
+## Sichtbarkeit & Sicherheit
+- Login via Supabase Auth (E-Mail + Passwort)
+- 2FA optional aktivierbar
+- Nur sichtbare Passwörter durch Rollenzuordnung
+- Deaktivieren statt Löschen (Auditfähig)
+- Historie bleibt bestehen
+
+---
+
+## 🔒 Dateimanager-Berechtigungsverwaltung
+
+### Tabelle: `staff_file_permissions`
+- `id`: UUID
+- `staff_id`: FK → staff (UNIQUE)
+- `upload_permission`: ENUM ('none', 'own_files', 'all_files')
+- `can_see_admin_files`: BOOLEAN
+- `created_at`, `updated_at`: Timestamps
+
+### Upload-Berechtigungen:
+| Berechtigung | Beschreibung | Icon | Verhalten |
+|-------------|--------------|------|-----------|
+| **none** | Keine Upload-Berechtigung | ❌ | Kann keine Dateien hochladen oder sehen |
+| **own_files** | Nur eigene Dateien | 📁 | Kann eigene Dateien hochladen und verwalten |
+| **all_files** | Alle Dateien | 🛡️ | Kann alle (sichtbaren) Dateien verwalten |
+
+### Admin-Dateien-Zugriff:
+- **Admin/Studioleiter**: Automatisch alle Admin-Dateien sichtbar
+- **Mitarbeiter**: Optional freigeschaltet über `can_see_admin_files`
+
+### UI-Komponenten:
+- `FilePermissionsTab`: Berechtigungsmatrix-Tabelle
+- **Live-Updates**: Änderungen werden sofort gespeichert
+- **Farbkodierung**: Rot (keine), Blau (eigene), Grün (alle)
+- **Toggle-Buttons**: Ein-Klick für Admin-Dateien-Zugriff
+- **Dropdown-Auswahl**: Upload-Berechtigungen für Mitarbeiter
+- **Automatik-Anzeige**: Admins/Studioleiter haben feste Rechte
+
+### Validierungslogik:
+- Admins/Studioleiter erhalten automatisch `all_files` + `can_see_admin_files = true`
+- Neue Mitarbeiter erhalten standardmäßig `none` + `can_see_admin_files = false`
+- Änderungen nur durch Admin/Studioleiter möglich
+- Mitarbeiter sehen nur ihre eigenen Berechtigungen
+
+---
+
+## ⏱️ Stundenerfassung & Urlaub
+
+### Tabelle: `staff_hours`
+- `id`: uuid
+- `staff_id`: FK → staff
+- `date`: Arbeitsdatum
+- `hours`: gearbeitete Stunden (decimal)
+- `reason`: optionaler Freitext (z. B. "BGM-Einsatz")
+- `created_at`: Timestamp
+
+### Funktionen:
+- Stunden können durch Mitarbeiter (eigene) oder Studioleiter/Admin (alle) erfasst werden
+- Anzeige als Wochen- und Monatsübersicht pro Mitarbeiter
+- Visualisierung:
+  - Balkenanzeige (z. B. 32/40 Std.)
+  - Ampelfarben bei Unter-/Übererfüllung
+- Urlaubstage und Krankheitstage können als reason erfasst oder in ein separates Feld ausgelagert werden
+
+### UI-Komponenten:
+- `StundenCard`: aktuelle Woche, Summe, Icon
+- `StundenModal`: Stunden erfassen (Datum, Zeit, Grund)
+- `StundenTabelle`: Monatsübersicht
+
+---
+
+## 🔗 Integration mit anderen Modulen
+
+### Dateimanager-Modul:
+- Berechtigungen werden von `staff_file_permissions` abgerufen
+- RLS-Policies in `file_asset` prüfen diese Berechtigungen
+- Storage-Policies entsprechend konfiguriert
+
+### Workflow bei Rollenänderung:
+1. **Rolle wird geändert** (z.B. Mitarbeiter → Studioleiter)
+2. **Dateimanager-Berechtigungen werden automatisch angepasst**
+3. **Bestehende Uploads bleiben bestehen**
+4. **Neue Berechtigungen werden sofort aktiv**
+
+### API-Endpunkte:
+- `getStaffFilePermissions()`: Alle Berechtigungen abrufen
+- `updateStaffFilePermissions(staffId, permissions)`: Berechtigungen aktualisieren
+- `getCurrentUserRole()`: Eigene Rolle abrufen
+- `canUserUploadFiles()`: Upload-Berechtigung prüfen
+- `canUserSeeAdminFiles()`: Admin-Dateien-Berechtigung prüfen

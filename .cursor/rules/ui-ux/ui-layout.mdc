@@ -3,3 +3,49 @@ description:
 globs:
 alwaysApply: false
 ---
+# UI/UX Layout & Design-System
+
+## Layout-Grundregeln
+
+- 12-Spalten-Layout mit:
+  - Horizontaler Gutter: 24px
+  - Vertikaler Abstand: 16px
+- Breakpoints: mobile-first (`sm`, `md`, `lg`, `xl`)
+
+```tsx
+// Beispiel: Layout-Grid
+<div className="grid grid-cols-12 gap-x-6 gap-y-4">
+  <div className="col-span-12 md:col-span-6">Inhalt</div>
+  <div className="col-span-12 md:col-span-6">Inhalt</div>
+</div>
+```
+
+---
+
+## Farben (Tailwind Tokens)
+
+* Primary: `#3B82F6` → `bg-blue-500`
+* Hover: `#2563EB`
+* Active: `#60A5FA`
+* Text Primary: `#111827`
+* Text Secondary: `#6B7280`
+* Hintergrund: `#F9FAFB`, Cards: `#FFFFFF`
+
+---
+
+## Typografie
+
+* Font: `Inter`, fallback: `sans-serif`
+* Größen:
+  * H1: 28px / 36px
+  * H2: 24px / 32px
+  * Body: 16px / 24px
+  * Small: 14px / 20px
+
+---
+
+## Mobile-Verhalten
+
+* Sidebar wird zu Offcanvas-Menü
+* Hamburger oben links
+* Fokus-Indikator & ARIA-Labels für alle interaktiven Elemente

@@ -1,201 +1,297 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Settings, Palette, Type, Image, Layout, Eye, Grid3X3, Columns, Square, Rows, Layers } from 'lucide-react'
-import { LandingPage, LandingPageBlock, LayoutType, PresetType } from '../../../../../lib/api/landingpages'
+import React, { useState, useEffect } from 'react'
+import { Settings, Grid3X3, Palette, Eye, Upload, Square, Columns, Rows, Layers, Type, Image, Layout, Users, Sliders } from 'lucide-react'
+import { LandingPage, LandingPageBlock, PresetType } from '../../../../../lib/api/landingpages'
+import { CITemplate } from '../../../../../lib/api/ci-templates'
+import { LayoutType } from '../../../../../lib/api/landingpages'
+import supabase from '../../../../../lib/supabaseClient'
 
 interface ConfigPanelProps {
   landingpage: LandingPage
   selectedBlock: LandingPageBlock | null
   onUpdateBlock: (blockId: string, updates: Partial<LandingPageBlock>) => void
   onUpdateLandingpage: (updates: Partial<LandingPage>) => void
+  ciTemplate: CITemplate | null
+  onOpenTestimonialWizard?: (blockId: string) => void
+}
+
+// Testimonial Interface für Supabase Daten
+interface Testimonial {
+  id: string;
+  name: string;
+  firstname?: string;
+  lastname?: string;
+  gender?: 'Männlich' | 'Weiblich' | 'Divers';
+  age?: number;
+  rating: number;
+  text_content: string;
+  file_asset?: {
+    id: string;
+    filename: string;
+    file_url: string;
+  };
+  tags: string[];
+  training_goals: string[];
+  member_since?: string;
+  is_active: boolean;
 }
 
 // ============================================================================
 // Preset Definitions for each Block Type
 // ============================================================================
 
-const BLOCK_PRESETS = {
+const LAYOUT_OPTIONS = {
+  default: [
+    { value: 'default', label: 'Standard', icon: Square },
+    { value: 'wide', label: 'Breit', icon: Columns },
+    { value: 'narrow', label: 'Schmal', icon: Rows }
+  ],
   header: [
-    { value: 'hero-centered', label: 'Hero Zentriert', description: 'Große Überschrift in der Mitte' },
-    { value: 'hero-split', label: 'Hero Split', description: 'Text links, Bild rechts' },
-    { value: 'image-overlay', label: 'Bild Overlay', description: 'Text über Hintergrundbild' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' },
-    { value: 'clean-color', label: 'Farbig', description: 'Mit Hintergrundfarbe' }
-  ],
-  text: [
-    { value: 'default', label: 'Standard', description: 'Normaler Fließtext' },
-    { value: 'classic-paragraph', label: 'Klassisch', description: 'Traditionelles Layout' },
-    { value: 'two-column-info', label: 'Zwei Spalten', description: 'Text in zwei Spalten' },
-    { value: 'callout-quote', label: 'Zitat', description: 'Hervorgehobenes Zitat' },
-    { value: 'info-card', label: 'Info-Card', description: 'Text in einer Karte' }
-  ],
-  image: [
-    { value: 'default', label: 'Standard', description: 'Einfaches Bild' },
-    { value: 'lightbox-grid', label: 'Galerie', description: 'Bild-Galerie mit Lightbox' },
-    { value: 'scroll-carousel', label: 'Karussell', description: 'Horizontales Scrollen' },
-    { value: 'wide-banner', label: 'Banner', description: 'Vollbreites Banner-Bild' },
-    { value: 'hover-zoom', label: 'Hover Zoom', description: 'Zoom-Effekt bei Hover' },
-    { value: 'split-image-text', label: 'Split Layout', description: 'Bild und Text nebeneinander' }
-  ],
-  video: [
-    { value: 'default', label: 'Standard', description: 'Einfaches Video' },
-    { value: 'clean-video', label: 'Clean', description: 'Minimalistisches Design' },
-    { value: 'framed', label: 'Gerahmt', description: 'Video mit Rahmen' },
-    { value: 'side-by-side', label: 'Nebeneinander', description: 'Video und Text' },
-    { value: 'overlay-start', label: 'Overlay Start', description: 'Mit Play-Button Overlay' },
-    { value: 'youtube-card', label: 'YouTube Card', description: 'YouTube-ähnliches Design' }
-  ],
-  button: [
-    { value: 'default', label: 'Standard', description: 'Normaler Button' },
-    { value: 'flat', label: 'Flach', description: 'Ohne Schatten' },
-    { value: 'rounded', label: 'Rund', description: 'Abgerundete Ecken' },
-    { value: 'ghost', label: 'Ghost', description: 'Nur Umrandung' },
-    { value: 'shadowed', label: 'Schatten', description: 'Mit Schatten-Effekt' },
-    { value: 'icon-text', label: 'Mit Icon', description: 'Button mit Icon' }
-  ],
-  form: [
-    { value: 'default', label: 'Standard', description: 'Klassisches Formular' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' },
-    { value: 'clean-color', label: 'Farbig', description: 'Mit Hintergrundfarbe' },
-    { value: 'inline', label: 'Inline', description: 'Horizontales Layout' }
-  ],
-  icon: [
-    { value: 'default', label: 'Standard', description: 'Icons in einer Reihe' },
-    { value: 'grid', label: 'Grid', description: 'Icons im Raster' },
-    { value: 'circular', label: 'Rund', description: 'Runde Icon-Container' },
-    { value: 'minimal', label: 'Minimal', description: 'Nur Icons ohne Container' }
+    { value: 'center', label: 'Zentriert', icon: Square },
+    { value: 'left', label: 'Linksbündig', icon: Columns },
+    { value: 'split', label: 'Geteilt', icon: Layers },
+    { value: 'overlay', label: 'Overlay', icon: Rows }
   ],
   testimonial: [
-    { value: 'default', label: 'Standard', description: 'Klassische Testimonials' },
-    { value: 'cards', label: 'Karten', description: 'Als Karten-Layout' },
-    { value: 'carousel', label: 'Karussell', description: 'Scrollbare Testimonials' },
-    { value: 'centered', label: 'Zentriert', description: 'Ein Testimonial zentriert' }
-  ],
-  pricing: [
-    { value: 'default', label: 'Standard', description: 'Klassische Preistabelle' },
-    { value: 'cards', label: 'Karten', description: 'Als separate Karten' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' },
-    { value: 'highlight', label: 'Highlight', description: 'Mit hervorgehobenem Plan' }
-  ],
-  feature: [
-    { value: 'default', label: 'Standard', description: 'Features in einer Liste' },
-    { value: 'grid', label: 'Grid', description: 'Features im Raster' },
-    { value: 'alternating', label: 'Abwechselnd', description: 'Links-rechts-Layout' },
-    { value: 'centered', label: 'Zentriert', description: 'Alle Features zentriert' }
-  ],
-  countdown: [
-    { value: 'default', label: 'Standard', description: 'Klassischer Countdown' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' },
-    { value: 'bold', label: 'Fett', description: 'Große, fette Zahlen' },
-    { value: 'circular', label: 'Rund', description: 'Runde Countdown-Boxen' }
-  ],
-  service: [
-    { value: 'default', label: 'Standard', description: 'Services als Liste' },
-    { value: 'cards', label: 'Karten', description: 'Services als Karten' },
-    { value: 'table', label: 'Tabelle', description: 'Als Tabellen-Layout' },
-    { value: 'grid', label: 'Grid', description: 'Services im Raster' }
-  ],
-  faq: [
-    { value: 'default', label: 'Standard', description: 'Klassisches Accordion' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' },
-    { value: 'cards', label: 'Karten', description: 'FAQ als Karten' },
-    { value: 'two-column', label: 'Zwei Spalten', description: 'FAQ in zwei Spalten' }
-  ],
-  contact: [
-    { value: 'default', label: 'Standard', description: 'Klassische Kontakt-Info' },
-    { value: 'cards', label: 'Karten', description: 'Info als Karten' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' },
-    { value: 'centered', label: 'Zentriert', description: 'Alle Infos zentriert' }
-  ],
-  team: [
-    { value: 'default', label: 'Standard', description: 'Team-Mitglieder als Karten' },
-    { value: 'grid', label: 'Grid', description: 'Team im Raster' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' },
-    { value: 'carousel', label: 'Karussell', description: 'Scrollbare Team-Liste' }
-  ],
-  statistics: [
-    { value: 'default', label: 'Standard', description: 'Statistiken in einer Reihe' },
-    { value: 'cards', label: 'Karten', description: 'Stats als Karten' },
-    { value: 'minimal', label: 'Minimal', description: 'Nur Zahlen und Labels' },
-    { value: 'circular', label: 'Rund', description: 'Runde Statistik-Container' }
-  ],
-  trust_logos: [
-    { value: 'default', label: 'Standard', description: 'Logos in einer Reihe' },
-    { value: 'grid', label: 'Grid', description: 'Logos im Raster' },
-    { value: 'carousel', label: 'Karussell', description: 'Scrollbare Logo-Liste' },
-    { value: 'minimal', label: 'Minimal', description: 'Nur Logos ohne Container' }
-  ],
-  gallery: [
-    { value: 'default', label: 'Standard', description: 'Klassische Galerie' },
-    { value: 'masonry', label: 'Masonry', description: 'Pinterest-Style Layout' },
-    { value: 'carousel', label: 'Karussell', description: 'Scrollbare Galerie' },
-    { value: 'lightbox', label: 'Lightbox', description: 'Mit Lightbox-Effekt' }
-  ],
-  blog_preview: [
-    { value: 'default', label: 'Standard', description: 'Blog-Artikel als Karten' },
-    { value: 'list', label: 'Liste', description: 'Als einfache Liste' },
-    { value: 'grid', label: 'Grid', description: 'Artikel im Raster' },
-    { value: 'featured', label: 'Featured', description: 'Mit hervorgehobenem Artikel' }
-  ],
-  courseplan: [
-    { value: 'default', label: 'Standard', description: 'Klassischer Kursplan' },
-    { value: 'calendar', label: 'Kalender', description: 'Als Kalender-Layout' },
-    { value: 'timeline', label: 'Timeline', description: 'Als Timeline-Layout' },
-    { value: 'cards', label: 'Karten', description: 'Kurse als Karten' }
-  ],
-  gamification: [
-    { value: 'default', label: 'Standard', description: 'Klassisches Glücksrad' },
-    { value: 'modern', label: 'Modern', description: 'Modernes Design' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' },
-    { value: 'colorful', label: 'Bunt', description: 'Bunte Farbgebung' }
-  ],
-  cta: [
-    { value: 'default', label: 'Standard', description: 'Klassischer Call-to-Action' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' },
-    { value: 'bold', label: 'Fett', description: 'Großer, fetter CTA' },
-    { value: 'centered', label: 'Zentriert', description: 'Zentrierter CTA' }
-  ],
-  hero: [
-    { value: 'default', label: 'Standard', description: 'Klassischer Hero-Bereich' },
-    { value: 'split', label: 'Split', description: 'Text und Bild nebeneinander' },
-    { value: 'overlay', label: 'Overlay', description: 'Text über Hintergrundbild' },
-    { value: 'minimal', label: 'Minimal', description: 'Reduziertes Design' }
+    { value: 'grid', label: 'Raster', icon: Grid3X3 },
+    { value: 'carousel', label: 'Karussell', icon: Columns },
+    { value: 'stack', label: 'Gestapelt', icon: Rows }
   ]
 }
 
-const LAYOUT_OPTIONS = {
-  header: [
-    { value: '1-col', label: 'Eine Spalte', icon: Square },
-    { value: 'split', label: 'Split Layout', icon: Columns },
-    { value: 'fullwidth', label: 'Vollbreit', icon: Rows }
-  ],
-  text: [
-    { value: '1-col', label: 'Eine Spalte', icon: Square },
-    { value: '2-col', label: 'Zwei Spalten', icon: Columns },
-    { value: 'fullwidth', label: 'Vollbreit', icon: Rows }
-  ],
-  image: [
-    { value: '1-col', label: 'Eine Spalte', icon: Square },
-    { value: '2-col', label: 'Zwei Spalten', icon: Columns },
-    { value: '3-col', label: 'Drei Spalten', icon: Grid3X3 },
-    { value: 'grid', label: 'Grid Layout', icon: Layers },
-    { value: 'fullwidth', label: 'Vollbreit', icon: Rows }
-  ],
-  default: [
-    { value: '1-col', label: 'Eine Spalte', icon: Square },
-    { value: '2-col', label: 'Zwei Spalten', icon: Columns },
-    { value: 'fullwidth', label: 'Vollbreit', icon: Rows }
-  ]
+// Mini-Preview-Komponente für Header-Presets
+function HeaderPresetPreview({ preset, ciTemplate, imageUrl }: { preset: string, ciTemplate: CITemplate | null, imageUrl?: string }) {
+  const bg = ciTemplate?.primary_color || '#2563eb';
+  const textColor = ciTemplate?.text_color || '#fff';
+  const fontFamily = ciTemplate?.font_headline || ciTemplate?.font_family || 'inherit';
+  const accent = ciTemplate?.accent_color || '#a21caf';
+  const buttonRadius = ciTemplate?.button_style?.radius || '6px';
+  // Bild-Logik
+  const img = imageUrl || undefined;
+  // Preview-Größe und Style
+  const previewStyle = {
+    width: 120,
+    height: 56,
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: 8,
+    overflow: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+    position: 'relative' as const
+  };
+  switch (preset) {
+    case 'hero-centered':
+      return (
+        <div style={previewStyle}>
+          <div style={{ background: bg, color: textColor, fontFamily, width: '100%', height: '100%', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 6 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, lineHeight: '16px', width: '90%', textAlign: 'center', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Headline</div>
+            <div style={{ fontSize: 11, opacity: 0.8, width: '90%', textAlign: 'center', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Subline</div>
+            <div style={{ background: accent, color: '#fff', borderRadius: buttonRadius, fontSize: 10, padding: '2px 10px', marginTop: 2, minWidth: 36, textAlign: 'center' }}>Button</div>
+          </div>
+        </div>
+      );
+    case 'hero-split':
+      return (
+        <div style={previewStyle}>
+          <div style={{ background: bg, color: textColor, fontFamily, width: '100%', height: '100%', borderRadius: 8, display: 'flex', flexDirection: 'row', alignItems: 'center', padding: 6 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, lineHeight: '15px', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Headline</div>
+              <div style={{ fontSize: 10, opacity: 0.8, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Subline</div>
+              <div style={{ background: accent, color: '#fff', borderRadius: buttonRadius, fontSize: 9, padding: '1.5px 8px', marginTop: 1, minWidth: 28, textAlign: 'center' }}>Button</div>
+            </div>
+            <div style={{ width: 32, height: 32, borderRadius: 6, marginLeft: 8, background: '#f3f4f6', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb' }}>
+              {img ? (
+                <img src={img} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }} />
+              ) : (
+                <span style={{ color: '#bbb', fontSize: 11 }}>IMG</span>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    case 'image-overlay':
+      return (
+        <div style={previewStyle}>
+          <div style={{ background: bg, color: textColor, fontFamily, width: '100%', height: '100%', borderRadius: 8, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            {img && <img src={img} alt="Preview" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, opacity: 0.6 }} />}
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.18)', borderRadius: 8 }} />
+            <div style={{ zIndex: 2, width: '100%', textAlign: 'center', padding: '8px 0' }}>
+              <div style={{ fontWeight: 700, fontSize: 13, lineHeight: '15px', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Headline</div>
+              <div style={{ fontSize: 10, opacity: 0.8, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Subline</div>
+              <div style={{ background: accent, color: '#fff', borderRadius: buttonRadius, fontSize: 9, padding: '1.5px 8px', marginTop: 1, minWidth: 28, textAlign: 'center', display: 'inline-block' }}>Button</div>
+            </div>
+            <div style={{ position: 'absolute', right: 6, bottom: 6, width: 20, height: 20, borderRadius: 4, background: '#f3f4f6', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb', zIndex: 3 }}>
+              {img ? (
+                <img src={img} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
+              ) : (
+                <span style={{ color: '#bbb', fontSize: 9 }}>IMG</span>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    case 'minimal':
+      return (
+        <div style={previewStyle}>
+          <div style={{ background: '#fff', color: textColor, fontFamily, border: `1px solid ${bg}`, width: '100%', height: '100%', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 6 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, lineHeight: '16px', width: '90%', textAlign: 'center', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Headline</div>
+            <div style={{ fontSize: 11, opacity: 0.6, width: '90%', textAlign: 'center' }}>Subline</div>
+          </div>
+        </div>
+      );
+    case 'clean-color':
+      return (
+        <div style={previewStyle}>
+          <div style={{ background: accent, color: '#fff', fontFamily, width: '100%', height: '100%', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 6 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, lineHeight: '16px', width: '90%', textAlign: 'center', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Headline</div>
+            <div style={{ fontSize: 11, opacity: 0.8, width: '90%', textAlign: 'center' }}>Subline</div>
+          </div>
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
+// Mini-Preview-Komponente für Testimonial-Presets
+function TestimonialPresetPreview({ preset, testimonials, config, ciTemplate }: { preset: string, testimonials: any[], config: any, ciTemplate: CITemplate | null }) {
+  // Farben aus CI
+  const accent = ciTemplate?.accent_color || '#a21caf';
+  const cardBg = ciTemplate?.background_color || '#fff';
+  const textColor = ciTemplate?.text_color || '#222';
+  const starColor = '#fbbf24';
+  // Hilfsfunktion für Sterne
+  const renderStars = (count: number) => (
+    <span style={{ color: starColor, fontSize: 11 }}>{'★'.repeat(count)}{'☆'.repeat(5 - count)}</span>
+  );
+  // Dummy-Daten fallback
+  const data = testimonials && testimonials.length > 0 ? testimonials : [
+    { name: 'Max Mustermann', rating: 5, text: 'Super Beratung und tolles Team!', image: '', age: 32 },
+    { name: 'Anna Schmidt', rating: 4, text: 'Sehr zufrieden, komme gerne wieder.', image: '', age: 28 },
+    { name: 'T. Müller', rating: 5, text: 'Top Studio!', image: '', age: 45 }
+  ];
+  // Filter & Limit
+  const filtered = data.filter(t => !config.min_age || t.age >= config.min_age).slice(0, config.count || 3);
+  // Anzeigeoptionen
+  const showName = config.show_name ?? true;
+  const showStars = config.show_stars ?? true;
+  const showFirstname = config.show_firstname ?? false;
+  const showNameShort = config.show_name_short ?? false;
+  const showText = config.show_text_excerpt ?? true;
+  const showImage = config.show_image ?? true;
+  // Name-Logik
+  const getName = (t: any) => showFirstname ? t.name.split(' ')[0] : (showNameShort ? (t.name[0] + '. ' + t.name.split(' ')[1]) : t.name);
+  // Text-Logik
+  const getText = (t: any) => showText ? (t.text.length > 30 ? t.text.slice(0, 30) + '…' : t.text) : '';
+  // Verschiedene Layouts
+  switch (preset) {
+    case 'default':
+      // Klassisch: 3 nebeneinander
+      return (
+        <div style={{ display: 'flex', gap: 4, width: 120, height: 56 }}>
+          {filtered.slice(0, 3).map((t, i) => (
+            <div key={i} style={{ background: cardBg, color: textColor, borderRadius: 6, flex: 1, padding: 4, fontSize: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid #eee' }}>
+              {showImage && <div style={{ width: 18, height: 18, borderRadius: 9, background: '#eee', marginBottom: 2, overflow: 'hidden' }}>{t.image ? <img src={t.image} alt="img" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 9 }} /> : <span style={{ color: '#bbb', fontSize: 9 }}>IMG</span>}</div>}
+              {showStars && renderStars(t.rating)}
+              {showName && <div style={{ fontWeight: 600, marginTop: 1 }}>{getName(t)}</div>}
+              {showText && <div style={{ fontSize: 9, opacity: 0.7, textAlign: 'center' }}>{getText(t)}</div>}
+            </div>
+          ))}
+        </div>
+      );
+    case 'cards':
+      // Karten-Layout: 2 größere Cards
+      return (
+        <div style={{ display: 'flex', gap: 6, width: 120, height: 56 }}>
+          {filtered.slice(0, 2).map((t, i) => (
+            <div key={i} style={{ background: accent, color: '#fff', borderRadius: 8, flex: 1, padding: 6, fontSize: 11, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {showImage && <div style={{ width: 20, height: 20, borderRadius: 10, background: '#fff', marginBottom: 2, overflow: 'hidden' }}>{t.image ? <img src={t.image} alt="img" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} /> : <span style={{ color: '#bbb', fontSize: 9 }}>IMG</span>}</div>}
+              {showStars && renderStars(t.rating)}
+              {showName && <div style={{ fontWeight: 700, marginTop: 1 }}>{getName(t)}</div>}
+              {showText && <div style={{ fontSize: 9, opacity: 0.8, textAlign: 'center' }}>{getText(t)}</div>}
+            </div>
+          ))}
+        </div>
+      );
+    case 'carousel':
+      // Karussell: 1 großes Testimonial mit Pfeilen
+      return (
+        <div style={{ width: 120, height: 56, background: cardBg, borderRadius: 8, border: '1px solid #eee', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+          <div style={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: accent, opacity: 0.7 }}>{'‹'}</div>
+          <div style={{ flex: 1, textAlign: 'center', fontSize: 11 }}>
+            {showImage && <div style={{ width: 20, height: 20, borderRadius: 10, background: '#eee', margin: '0 auto 2px', overflow: 'hidden' }}>{filtered[0]?.image ? <img src={filtered[0].image} alt="img" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} /> : <span style={{ color: '#bbb', fontSize: 9 }}>IMG</span>}</div>}
+            {showStars && renderStars(filtered[0]?.rating || 5)}
+            {showName && <div style={{ fontWeight: 600 }}>{getName(filtered[0] || {})}</div>}
+            {showText && <div style={{ fontSize: 9, opacity: 0.7 }}>{getText(filtered[0] || {})}</div>}
+          </div>
+          <div style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: accent, opacity: 0.7 }}>{'›'}</div>
+        </div>
+      );
+    case 'centered':
+      // Ein großes, zentriertes Testimonial
+      return (
+        <div style={{ width: 120, height: 56, background: accent, borderRadius: 8, color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: 12, padding: 6 }}>
+          {showImage && <div style={{ width: 22, height: 22, borderRadius: 11, background: '#fff', marginBottom: 2, overflow: 'hidden' }}>{filtered[0]?.image ? <img src={filtered[0].image} alt="img" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11 }} /> : <span style={{ color: '#bbb', fontSize: 10 }}>IMG</span>}</div>}
+          {showStars && renderStars(filtered[0]?.rating || 5)}
+          {showName && <div style={{ fontWeight: 700 }}>{getName(filtered[0] || {})}</div>}
+          {showText && <div style={{ fontSize: 10, opacity: 0.9, textAlign: 'center' }}>{getText(filtered[0] || {})}</div>}
+        </div>
+      );
+    default:
+      return null;
+  }
 }
 
 export default function ConfigPanel({
   landingpage,
   selectedBlock,
   onUpdateBlock,
-  onUpdateLandingpage
+  onUpdateLandingpage,
+  ciTemplate,
+  onOpenTestimonialWizard
 }: ConfigPanelProps) {
-  const [activeTab, setActiveTab] = useState<'content' | 'layout' | 'style' | 'page'>('content')
+  const [activeTab, setActiveTab] = useState<'content' | 'testimonials'>('content')
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
+  const [loadingTestimonials, setLoadingTestimonials] = useState(false)
+
+  // Load testimonials when component mounts or when testimonial block is selected
+  useEffect(() => {
+    if (selectedBlock?.block_type === 'testimonial') {
+      fetchTestimonials()
+    }
+  }, [selectedBlock?.block_type])
+
+  const fetchTestimonials = async () => {
+    setLoadingTestimonials(true)
+    try {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .select(`
+          *,
+          file_asset:file_asset_id (
+            id,
+            filename,
+            file_url
+          )
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+      if (!error && data) {
+        setTestimonials(data)
+      } else {
+        console.error('Error loading testimonials:', error)
+      }
+    } catch (error) {
+      console.error('Error fetching testimonials:', error)
+    } finally {
+      setLoadingTestimonials(false)
+    }
+  }
 
   const updateBlockContent = (key: string, value: any) => {
     if (!selectedBlock) return
@@ -215,7 +311,48 @@ export default function ConfigPanel({
 
   const updateBlockPreset = (preset: PresetType) => {
     if (!selectedBlock) return
-    onUpdateBlock(selectedBlock.id, { preset })
+    
+    // WICHTIG: Bewahre alle aktuellen Einstellungen auf und ändere nur das Preset
+    const currentContent = selectedBlock.content_json || {}
+    const newContent = {
+      ...currentContent, // Alle aktuellen Einstellungen beibehalten
+      preset: preset     // Nur das Preset ändern
+    }
+    
+    onUpdateBlock(selectedBlock.id, { 
+      preset: preset,
+      content_json: newContent
+    })
+  }
+
+  // Handler für Testimonial-Auswahl
+  const handleTestimonialToggle = (testimonialId: string) => {
+    if (!selectedBlock) return
+    
+    const currentSelection = selectedBlock.content_json.selectedTestimonials || []
+    const isSelected = currentSelection.includes(testimonialId)
+    
+    if (isSelected) {
+      updateBlockContent('selectedTestimonials', currentSelection.filter((id: string) => id !== testimonialId))
+    } else {
+      updateBlockContent('selectedTestimonials', [...currentSelection, testimonialId])
+    }
+  }
+
+  // Alle Testimonials auswählen/abwählen
+  const handleSelectAllTestimonials = () => {
+    if (!selectedBlock) return
+    
+    const currentSelection = selectedBlock.content_json.selectedTestimonials || []
+    const allTestimonialIds = testimonials.map(t => t.id)
+    
+    if (currentSelection.length === allTestimonialIds.length) {
+      // Alle abwählen
+      updateBlockContent('selectedTestimonials', [])
+    } else {
+      // Alle auswählen
+      updateBlockContent('selectedTestimonials', allTestimonialIds)
+    }
   }
 
   // ========================================================================
@@ -433,7 +570,46 @@ export default function ConfigPanel({
 
     const blockType = selectedBlock.block_type
     const layouts = LAYOUT_OPTIONS[blockType] || LAYOUT_OPTIONS.default
-    const presets = BLOCK_PRESETS[blockType] || []
+
+    // Testimonial-Presets nur für testimonial-Block
+    if (blockType === 'testimonial') {
+      const testimonialPresets = [
+        { value: 'default', label: 'Standard', description: 'Klassische Reihe' },
+        { value: 'cards', label: 'Karten', description: 'Testimonials als Karten' },
+        { value: 'carousel', label: 'Karussell', description: 'Scrollbare Einzelansicht' },
+        { value: 'centered', label: 'Zentriert', description: 'Ein großes Testimonial' }
+      ];
+      return (
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Stil-Vorlage
+            </label>
+            <div className="space-y-2">
+              {testimonialPresets.map((preset) => (
+                <button
+                  key={preset.value}
+                  onClick={() => updateBlockPreset(preset.value as PresetType)}
+                  className={`w-full text-left p-3 rounded-lg border flex items-center gap-3 transition-all ${
+                    selectedBlock.preset === preset.value
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="w-32 mr-3">
+                    <TestimonialPresetPreview preset={preset.value} testimonials={selectedBlock.content_json?.testimonials || []} config={selectedBlock.content_json} ciTemplate={ciTemplate} />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">{preset.label}</div>
+                    <div className="text-sm text-gray-600 mt-1">{preset.description}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-6">
@@ -462,31 +638,6 @@ export default function ConfigPanel({
             })}
           </div>
         </div>
-
-        {/* Preset Selection */}
-        {presets.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Stil-Vorlage
-            </label>
-            <div className="space-y-2">
-              {presets.map((preset) => (
-                <button
-                  key={preset.value}
-                  onClick={() => updateBlockPreset(preset.value as PresetType)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all ${
-                    selectedBlock.preset === preset.value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="font-medium text-gray-900">{preset.label}</div>
-                  <div className="text-sm text-gray-600 mt-1">{preset.description}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Spacing & Margins */}
         <div>
@@ -610,56 +761,35 @@ export default function ConfigPanel({
     switch (selectedBlock.block_type) {
       case 'header':
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Überschrift
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Überschrift</label>
               <input
                 type="text"
                 value={content.headline || ''}
                 onChange={(e) => updateBlockContent('headline', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ihre Überschrift hier..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Hauptüberschrift eingeben..."
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Unterüberschrift
-              </label>
-              <textarea
+              <label className="block text-sm font-medium text-gray-700 mb-2">Unterzeile</label>
+              <input
+                type="text"
                 value={content.subheadline || ''}
                 onChange={(e) => updateBlockContent('subheadline', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Beschreibung..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Unterzeile eingeben..."
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Button Text
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Button-Text</label>
               <input
                 type="text"
                 value={content.button_text || ''}
                 onChange={(e) => updateBlockContent('button_text', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Jetzt starten"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Button URL
-              </label>
-              <input
-                type="url"
-                value={content.button_url || ''}
-                onChange={(e) => updateBlockContent('button_url', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="z.B. Jetzt starten"
               />
             </div>
           </div>
@@ -667,52 +797,37 @@ export default function ConfigPanel({
 
       case 'text':
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Text Inhalt
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Überschrift</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => updateBlockContent('headline', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Optional: Überschrift"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Text-Inhalt</label>
               <textarea
                 value={content.content || ''}
                 onChange={(e) => updateBlockContent('content', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={8}
-                placeholder="Fügen Sie hier Ihren Text hinzu..."
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ihren Text hier eingeben..."
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Sie können HTML-Tags für Formatierung verwenden.
-              </p>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Text-Ausrichtung
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Schriftgröße</label>
               <select
-                value={content.text_align || 'left'}
-                onChange={(e) => updateBlockContent('text_align', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="left">Linksbündig</option>
-                <option value="center">Zentriert</option>
-                <option value="right">Rechtsbündig</option>
-                <option value="justify">Blocksatz</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Textgröße
-              </label>
-              <select
-                value={content.font_size || 'medium'}
-                onChange={(e) => updateBlockContent('font_size', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={content.fontSize || 'medium'}
+                onChange={(e) => updateBlockContent('fontSize', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="small">Klein</option>
-                <option value="medium">Normal</option>
+                <option value="medium">Mittel</option>
                 <option value="large">Groß</option>
-                <option value="xl">Sehr groß</option>
               </select>
             </div>
           </div>
@@ -720,75 +835,275 @@ export default function ConfigPanel({
 
       case 'button':
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Button Text
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Button-Text</label>
               <input
                 type="text"
                 value={content.text || ''}
                 onChange={(e) => updateBlockContent('text', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Button Text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Button-Beschriftung"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Link URL
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Link-URL</label>
               <input
                 type="url"
                 value={content.url || ''}
                 onChange={(e) => updateBlockContent('url', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="https://..."
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Button Stil
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Button-Stil</label>
               <select
                 value={content.style || 'primary'}
                 onChange={(e) => updateBlockContent('style', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="primary">Primär</option>
                 <option value="secondary">Sekundär</option>
-                <option value="outline">Outline</option>
                 <option value="ghost">Ghost</option>
+                <option value="outline">Outline</option>
               </select>
             </div>
+          </div>
+        )
 
+      case 'feature':
+        return (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Überschrift</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => updateBlockContent('headline', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="z.B. Unsere Features"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Features</label>
+              <div className="space-y-3">
+                {(content.features || []).map((feature, index) => (
+                  <div key={index} className="border p-3 rounded-lg">
+                    <div className="grid grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        value={feature.icon || ''}
+                        onChange={(e) => {
+                          const newFeatures = [...(content.features || [])]
+                          newFeatures[index] = { ...feature, icon: e.target.value }
+                          updateBlockContent('features', newFeatures)
+                        }}
+                        placeholder="Icon (z.B. ⚡)"
+                        className="px-2 py-1 border rounded"
+                      />
+                      <input
+                        type="text"
+                        value={feature.title || ''}
+                        onChange={(e) => {
+                          const newFeatures = [...(content.features || [])]
+                          newFeatures[index] = { ...feature, title: e.target.value }
+                          updateBlockContent('features', newFeatures)
+                        }}
+                        placeholder="Titel"
+                        className="px-2 py-1 border rounded"
+                      />
+                      <input
+                        type="text"
+                        value={feature.description || ''}
+                        onChange={(e) => {
+                          const newFeatures = [...(content.features || [])]
+                          newFeatures[index] = { ...feature, description: e.target.value }
+                          updateBlockContent('features', newFeatures)
+                        }}
+                        placeholder="Beschreibung"
+                        className="px-2 py-1 border rounded"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const newFeatures = [...(content.features || []), { icon: '⚡', title: 'Neues Feature', description: 'Beschreibung' }]
+                    updateBlockContent('features', newFeatures)
+                  }}
+                  className="w-full py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+                >
+                  + Feature hinzufügen
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'pricing':
+        return (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Überschrift</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => updateBlockContent('headline', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="z.B. Unsere Preise"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Preispläne</label>
+              <div className="space-y-4">
+                {(content.plans || []).map((plan, index) => (
+                  <div key={index} className="border p-4 rounded-lg">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <input
+                        type="text"
+                        value={plan.name || ''}
+                        onChange={(e) => {
+                          const newPlans = [...(content.plans || [])]
+                          newPlans[index] = { ...plan, name: e.target.value }
+                          updateBlockContent('plans', newPlans)
+                        }}
+                        placeholder="Plan-Name"
+                        className="px-2 py-1 border rounded"
+                      />
+                      <input
+                        type="text"
+                        value={plan.price || ''}
+                        onChange={(e) => {
+                          const newPlans = [...(content.plans || [])]
+                          newPlans[index] = { ...plan, price: e.target.value }
+                          updateBlockContent('plans', newPlans)
+                        }}
+                        placeholder="Preis (z.B. 29€)"
+                        className="px-2 py-1 border rounded"
+                      />
+                    </div>
+                    <textarea
+                      value={(plan.features || []).join('\n')}
+                      onChange={(e) => {
+                        const newPlans = [...(content.plans || [])]
+                        newPlans[index] = { ...plan, features: e.target.value.split('\n').filter(f => f.trim()) }
+                        updateBlockContent('plans', newPlans)
+                      }}
+                      placeholder="Features (eine pro Zeile)"
+                      rows={3}
+                      className="w-full px-2 py-1 border rounded"
+                    />
+                    <label className="flex items-center gap-2 mt-2">
+                      <input
+                        type="checkbox"
+                        checked={plan.highlighted || false}
+                        onChange={(e) => {
+                          const newPlans = [...(content.plans || [])]
+                          newPlans[index] = { ...plan, highlighted: e.target.checked }
+                          updateBlockContent('plans', newPlans)
+                        }}
+                      />
+                      Hervorgehoben
+                    </label>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const newPlans = [...(content.plans || []), { name: 'Neuer Plan', price: '29€', features: ['Feature 1'], highlighted: false }]
+                    updateBlockContent('plans', newPlans)
+                  }}
+                  className="w-full py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+                >
+                  + Plan hinzufügen
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'faq':
+        return (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Überschrift</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => updateBlockContent('headline', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="z.B. Häufige Fragen"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">FAQ-Einträge</label>
+              <div className="space-y-3">
+                {(content.faqs || []).map((faq, index) => (
+                  <div key={index} className="border p-3 rounded-lg">
+                    <input
+                      type="text"
+                      value={faq.question || ''}
+                      onChange={(e) => {
+                        const newFaqs = [...(content.faqs || [])]
+                        newFaqs[index] = { ...faq, question: e.target.value }
+                        updateBlockContent('faqs', newFaqs)
+                      }}
+                      placeholder="Frage"
+                      className="w-full px-2 py-1 border rounded mb-2"
+                    />
+                    <textarea
+                      value={faq.answer || ''}
+                      onChange={(e) => {
+                        const newFaqs = [...(content.faqs || [])]
+                        newFaqs[index] = { ...faq, answer: e.target.value }
+                        updateBlockContent('faqs', newFaqs)
+                      }}
+                      placeholder="Antwort"
+                      rows={2}
+                      className="w-full px-2 py-1 border rounded"
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const newFaqs = [...(content.faqs || []), { question: 'Neue Frage?', answer: 'Neue Antwort...' }]
+                    updateBlockContent('faqs', newFaqs)
+                  }}
+                  className="w-full py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+                >
+                  + FAQ hinzufügen
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'spacer':
+        return (
+          <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Button Größe
+                Höhe ({content.height || 50}px)
               </label>
-              <select
-                value={content.size || 'medium'}
-                onChange={(e) => updateBlockContent('size', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="small">Klein</option>
-                <option value="medium">Normal</option>
-                <option value="large">Groß</option>
-              </select>
-            </div>
-
-            <div className="flex items-center">
               <input
-                type="checkbox"
-                id="new_tab"
-                checked={content.open_new_tab || false}
-                onChange={(e) => updateBlockContent('open_new_tab', e.target.checked)}
-                className="mr-2"
+                type="range"
+                min="10"
+                max="200"
+                value={content.height || 50}
+                onChange={(e) => updateBlockContent('height', parseInt(e.target.value))}
+                className="w-full"
               />
-              <label htmlFor="new_tab" className="text-sm text-gray-700">
-                In neuem Tab öffnen
-              </label>
+            </div>
+            <div>
+              <input
+                type="number"
+                value={content.height || 50}
+                onChange={(e) => updateBlockContent('height', parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                min="10"
+                max="500"
+                placeholder="Höhe in Pixeln"
+              />
             </div>
           </div>
         )
@@ -902,422 +1217,6 @@ export default function ConfigPanel({
                   </label>
                 ))}
               </div>
-            </div>
-          </div>
-        )
-
-      case 'spacer':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Höhe (px)
-              </label>
-              <input
-                type="number"
-                value={content.height || 50}
-                onChange={(e) => updateBlockContent('height', parseInt(e.target.value) || 50)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                min="10"
-                max="500"
-              />
-            </div>
-          </div>
-        )
-
-      case 'pricing':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Titel
-              </label>
-              <input
-                type="text"
-                value={content.title || 'Unsere Preise'}
-                onChange={(e) => updateBlockContent('title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preispläne (JSON)
-              </label>
-              <textarea
-                value={JSON.stringify(content.plans || [], null, 2)}
-                onChange={(e) => {
-                  try {
-                    const plans = JSON.parse(e.target.value)
-                    updateBlockContent('plans', plans)
-                  } catch (error) {
-                    // Invalid JSON, ignore
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                rows={8}
-                placeholder='[{"name": "Basic", "price": 29, "features": ["Feature 1"]}]'
-              />
-            </div>
-          </div>
-        )
-
-      case 'video':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Video URL
-              </label>
-              <input
-                type="url"
-                value={content.url || ''}
-                onChange={(e) => updateBlockContent('url', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://youtube.com/watch?v=..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Thumbnail URL (optional)
-              </label>
-              <input
-                type="url"
-                value={content.thumbnail || ''}
-                onChange={(e) => updateBlockContent('thumbnail', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://..."
-              />
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="autoplay"
-                checked={content.autoplay || false}
-                onChange={(e) => updateBlockContent('autoplay', e.target.checked)}
-                className="mr-2"
-              />
-              <label htmlFor="autoplay" className="text-sm text-gray-700">
-                Autoplay aktivieren
-              </label>
-            </div>
-          </div>
-        )
-
-      case 'icon':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Titel
-              </label>
-              <input
-                type="text"
-                value={content.title || ''}
-                onChange={(e) => updateBlockContent('title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Unsere Vorteile"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Icons (JSON)
-              </label>
-              <textarea
-                value={JSON.stringify(content.icons || [], null, 2)}
-                onChange={(e) => {
-                  try {
-                    const icons = JSON.parse(e.target.value)
-                    updateBlockContent('icons', icons)
-                  } catch (error) {
-                    // Invalid JSON, ignore
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                rows={6}
-                placeholder='[{"icon": "star", "title": "Qualität", "description": "Beschreibung"}]'
-              />
-            </div>
-          </div>
-        )
-
-      case 'testimonial':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Titel
-              </label>
-              <input
-                type="text"
-                value={content.title || 'Was unsere Kunden sagen'}
-                onChange={(e) => updateBlockContent('title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Testimonials (JSON)
-              </label>
-              <textarea
-                value={JSON.stringify(content.testimonials || [], null, 2)}
-                onChange={(e) => {
-                  try {
-                    const testimonials = JSON.parse(e.target.value)
-                    updateBlockContent('testimonials', testimonials)
-                  } catch (error) {
-                    // Invalid JSON, ignore
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                rows={8}
-                placeholder='[{"name": "Max", "rating": 5, "text": "Super!", "company": "Firma"}]'
-              />
-            </div>
-          </div>
-        )
-
-      case 'feature':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Titel
-              </label>
-              <input
-                type="text"
-                value={content.title || 'Unsere Features'}
-                onChange={(e) => updateBlockContent('title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Features (JSON)
-              </label>
-              <textarea
-                value={JSON.stringify(content.features || [], null, 2)}
-                onChange={(e) => {
-                  try {
-                    const features = JSON.parse(e.target.value)
-                    updateBlockContent('features', features)
-                  } catch (error) {
-                    // Invalid JSON, ignore
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                rows={6}
-                placeholder='[{"title": "Feature", "description": "Beschreibung", "icon": "star"}]'
-              />
-            </div>
-          </div>
-        )
-
-      case 'countdown':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Titel
-              </label>
-              <input
-                type="text"
-                value={content.title || 'Begrenzte Zeit!'}
-                onChange={(e) => updateBlockContent('title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Enddatum
-              </label>
-              <input
-                type="datetime-local"
-                value={content.end_date ? new Date(content.end_date).toISOString().slice(0, 16) : ''}
-                onChange={(e) => updateBlockContent('end_date', e.target.value ? new Date(e.target.value).toISOString() : '')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Beschreibung
-              </label>
-              <textarea
-                value={content.description || ''}
-                onChange={(e) => updateBlockContent('description', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Aktion läuft ab"
-              />
-            </div>
-          </div>
-        )
-
-      case 'faq':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Titel
-              </label>
-              <input
-                type="text"
-                value={content.title || 'Häufige Fragen'}
-                onChange={(e) => updateBlockContent('title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                FAQ Einträge (JSON)
-              </label>
-              <textarea
-                value={JSON.stringify(content.faqs || [], null, 2)}
-                onChange={(e) => {
-                  try {
-                    const faqs = JSON.parse(e.target.value)
-                    updateBlockContent('faqs', faqs)
-                  } catch (error) {
-                    // Invalid JSON, ignore
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                rows={8}
-                placeholder='[{"question": "Frage?", "answer": "Antwort"}]'
-              />
-            </div>
-          </div>
-        )
-
-      case 'contact':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Titel
-              </label>
-              <input
-                type="text"
-                value={content.title || 'Kontakt'}
-                onChange={(e) => updateBlockContent('title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Adresse
-              </label>
-              <textarea
-                value={content.address || ''}
-                onChange={(e) => updateBlockContent('address', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Musterstraße 123, 12345 Musterstadt"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Telefon
-              </label>
-              <input
-                type="tel"
-                value={content.phone || ''}
-                onChange={(e) => updateBlockContent('phone', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="+49 123 456789"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                E-Mail
-              </label>
-              <input
-                type="email"
-                value={content.email || ''}
-                onChange={(e) => updateBlockContent('email', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="info@studio.de"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Öffnungszeiten
-              </label>
-              <textarea
-                value={content.hours || ''}
-                onChange={(e) => updateBlockContent('hours', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Mo-Fr: 6-22 Uhr, Sa-So: 8-20 Uhr"
-              />
-            </div>
-          </div>
-        )
-
-      case 'cta':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Titel
-              </label>
-              <input
-                type="text"
-                value={content.title || 'Bereit anzufangen?'}
-                onChange={(e) => updateBlockContent('title', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Beschreibung
-              </label>
-              <textarea
-                value={content.description || ''}
-                onChange={(e) => updateBlockContent('description', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Werden Sie noch heute Mitglied!"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Button Text
-              </label>
-              <input
-                type="text"
-                value={content.button_text || ''}
-                onChange={(e) => updateBlockContent('button_text', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Jetzt anmelden"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Button URL
-              </label>
-              <input
-                type="url"
-                value={content.button_url || ''}
-                onChange={(e) => updateBlockContent('button_url', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://..."
-              />
             </div>
           </div>
         )
@@ -1543,55 +1442,171 @@ export default function ConfigPanel({
     )
   }
 
+  // ========================================================================
+  // Testimonial Selection Configuration
+  // ========================================================================
+
+  const renderTestimonialSelection = () => {
+    if (!selectedBlock) return null
+
+    const selectedTestimonials = selectedBlock.content_json.selectedTestimonials || []
+
+    return (
+      <div className="space-y-6">
+        {/* Header mit Auswahl-Actions */}
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium text-gray-700">
+            Testimonials auswählen ({selectedTestimonials.length} von {testimonials.length})
+          </h4>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSelectAllTestimonials}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            >
+              {selectedTestimonials.length === testimonials.length && testimonials.length > 0 
+                ? 'Alle abwählen' 
+                : 'Alle auswählen'
+              }
+            </button>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        {loadingTestimonials ? (
+          <div className="text-center py-4 text-gray-500">
+            <div className="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full"></div>
+            <p className="mt-2 text-sm">Lade Testimonials...</p>
+          </div>
+        ) : testimonials.length === 0 ? (
+          <div className="text-center py-4 text-gray-500">
+            <p className="text-sm">Keine Testimonials gefunden.</p>
+            <p className="text-xs mt-1">Erstellen Sie zuerst Testimonials im Dashboard.</p>
+          </div>
+        ) : (
+          /* Testimonial Liste */
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {testimonials.map(testimonial => {
+              const isSelected = selectedTestimonials.includes(testimonial.id)
+              const displayName = testimonial.firstname && testimonial.lastname 
+                ? `${testimonial.firstname} ${testimonial.lastname}`
+                : testimonial.name || 'Unbekannt'
+
+              return (
+                <label
+                  key={testimonial.id}
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    isSelected 
+                      ? 'border-blue-300 bg-blue-50' 
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleTestimonialToggle(testimonial.id)}
+                    className="mt-1 rounded"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm text-gray-900">{displayName}</span>
+                      {testimonial.age && (
+                        <span className="text-xs text-gray-500">({testimonial.age})</span>
+                      )}
+                      {testimonial.gender && (
+                        <span className="text-xs text-gray-500">
+                          {testimonial.gender === 'Männlich' ? '♂' : testimonial.gender === 'Weiblich' ? '♀' : '⚧'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <span 
+                          key={star} 
+                          className={`text-xs ${star <= testimonial.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                      <span className="text-xs text-gray-500 ml-1">({testimonial.rating})</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                      {testimonial.text_content.length > 60 
+                        ? testimonial.text_content.slice(0, 60) + '...' 
+                        : testimonial.text_content
+                      }
+                    </p>
+                    {testimonial.training_goals && testimonial.training_goals.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {testimonial.training_goals.slice(0, 2).map(goal => (
+                          <span 
+                            key={goal} 
+                            className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full"
+                          >
+                            {goal}
+                          </span>
+                        ))}
+                        {testimonial.training_goals.length > 2 && (
+                          <span className="text-xs text-gray-500">
+                            +{testimonial.training_goals.length - 2} weitere
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </label>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Selected Count Info */}
+        {selectedTestimonials.length > 0 && (
+          <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+            <strong>{selectedTestimonials.length}</strong> Testimonial(s) ausgewählt
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-1 overflow-x-auto">
+        <div className="flex items-center gap-1">
+          {selectedBlock?.block_type === 'testimonial' ? (
+            // Tab-Navigation für Testimonial-Blöcke
+            <>
           <button
             onClick={() => setActiveTab('content')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm ${
               activeTab === 'content'
                 ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
             <Settings size={16} />
             Inhalt
           </button>
           <button
-            onClick={() => setActiveTab('layout')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap ${
-              activeTab === 'layout'
+                onClick={() => setActiveTab('testimonials')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm ${
+                  activeTab === 'testimonials' 
                 ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            <Grid3X3 size={16} />
-            Layout
+                <Users size={16} />
+                Testimonials
           </button>
-          <button
-            onClick={() => setActiveTab('style')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap ${
-              activeTab === 'style'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            <Palette size={16} />
-            Stil
+            </>
+          ) : (
+            // Standard-Tab für andere Block-Typen
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm bg-blue-100 text-blue-700">
+              <Settings size={16} />
+              Inhalt
           </button>
-          <button
-            onClick={() => setActiveTab('page')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap ${
-              activeTab === 'page'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            <Eye size={16} />
-            Seite
-          </button>
+          )}
         </div>
       </div>
 
@@ -1599,7 +1614,7 @@ export default function ConfigPanel({
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
           {/* Block Info Header (when block is selected) */}
-          {(activeTab === 'content' || activeTab === 'layout' || activeTab === 'style') && selectedBlock && (
+          {selectedBlock && (
             <div className="mb-6 p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-md flex items-center justify-center text-sm font-medium">
@@ -1618,10 +1633,10 @@ export default function ConfigPanel({
           )}
 
           {/* Configuration Content */}
-          {activeTab === 'content' && renderContentConfig()}
-          {activeTab === 'layout' && renderLayoutConfig()}
-          {activeTab === 'style' && renderStyleConfig()}
-          {activeTab === 'page' && renderPageConfig()}
+          {selectedBlock?.block_type === 'testimonial' && activeTab === 'testimonials' 
+            ? renderTestimonialSelection() 
+            : renderContentConfig()
+          }
         </div>
       </div>
     </div>

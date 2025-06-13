@@ -3,3 +3,82 @@ description:
 globs:
 alwaysApply: false
 ---
+# Modul: Mitglieder
+
+## Tabelle: `public.members`
+
+| Spalte        | Typ       | Beschreibung                                   |
+|---------------|-----------|------------------------------------------------|
+| id            | UUID      | Primärschlüssel                                |
+| name          | TEXT      | Pflichtfeld (kombiniert aus firstname + lastname) |
+| contact       | TEXT      | optional, z. B. E-Mail, Telefonnummer          |
+| firstname     | TEXT      | optional                                       |
+| lastname      | TEXT      | optional                                       |
+| phone         | TEXT      | optional                                       |
+| email         | TEXT      | optional                                       |
+| birthdate     | DATE      | optional                                       |
+| member_number | TEXT      | optional, z. B. aus Altbestand                 |
+| created_at    | TIMESTAMP | automatisch                                    |
+| updated_at    | TIMESTAMP | automatisch                                    |
+
+---
+
+## Übersicht
+
+- Tabellenansicht mit:
+  - Name
+  - Kontakt (E-Mail oder Telefon)
+  - Vertragsart + Restlaufzeit (farbiger Badge)
+  - Status (abgeleitet: aktiv / gekündigt / geplant)
+  - Aktion: "Details anzeigen"
+- Floating Action Button: "+" Mitglied" → öffnet Modal zur Neuanlage
+- **Anzeige geplanter Verträge**:
+  - Wenn kein aktiver Vertrag, aber ein geplanter Vertrag existiert, wird dieser in der Übersicht angezeigt
+  - Geplante Verträge sind visuell mit einem blauen Badge "Geplant (in X Tagen)" gekennzeichnet
+
+---
+
+## Detailansicht (Registerkarten)
+
+- **Übersicht**:
+  - Persönliche Daten
+  - Aktueller Vertrag (inkl. Vertragsart, Laufzeit, Restlaufzeit)
+  - **Kampagnenanzeige**: Falls ein Vertrag über eine Kampagne abgeschlossen wurde
+  - **Status-Badges neben dem Namen**:
+    - Vertragsstatus (aktiv, geplant, gekündigt, etc.)
+    - Restlaufzeit mit Ampelsystem (grün, gelb, rot)
+    - Mitgliedschaftszähler (wie oft der Kunde bereits verlängert hat)
+
+- **Verträge**:
+  - Tabelle aller Mitgliedschaften
+  - **Kampagnenanzeige**: Jede Mitgliedschaft zeigt die zugehörige Kampagne (falls vorhanden)
+  - Buttons:
+    - "Vertrag verlängern"
+    - "Vertrag kündigen"
+    - "Vertrag stilllegen" (für aktive Verträge)
+    - "Reaktivieren" (für stillgelegte Verträge)
+
+- **Beratung** (optional):
+  - Verknüpfte Beratungsgespräche
+  - Zugriff auf Beratungsverlauf
+
+- **Aktivität** (optional):
+  - Chronologische Historie (Statuswechsel, Vertragsupdates, Kontaktänderungen)
+
+---
+
+## Rollenrechte
+
+| Rolle         | Berechtigung                      |
+|---------------|-----------------------------------|
+| Mitarbeiter   | Mitglied einsehen & anlegen       |
+| Studioleiter  | Vollzugriff                       |
+| Admin         | Vollzugriff                       |
+
+---
+
+## Regeln
+
+- Anlage auch mit rückwirkendem Datum möglich
+- Hinweis im Modal: "Mitgliedschaft muss separat hinterlegt werden"
+- Verlängerung oder Kündigung erfolgt über Tab "Verträge"

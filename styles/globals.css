@@ -1,0 +1,74 @@
+/* Wizard Animationen */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation-name: fadeIn;
+  animation-fill-mode: both;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px);}
+  to   { opacity: 1; transform: translateY(0);}
+}
+.animate-slide-up {
+  animation-name: slideUp;
+  animation-fill-mode: both;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-40px);}
+  to   { opacity: 1; transform: translateY(0);}
+}
+.animate-slide-down {
+  animation-name: slideDown;
+  animation-fill-mode: both;
+}
+
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(40px);}
+  to   { opacity: 1; transform: translateX(0);}
+}
+.animate-slide-left {
+  animation-name: slideLeft;
+  animation-fill-mode: both;
+}
+
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(-40px);}
+  to   { opacity: 1; transform: translateX(0);}
+}
+.animate-slide-right {
+  animation-name: slideRight;
+  animation-fill-mode: both;
+}
+
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.8);}
+  to   { opacity: 1; transform: scale(1);}
+}
+.animate-zoom-in {
+  animation-name: zoomIn;
+  animation-fill-mode: both;
+}
+
+@keyframes bounceIn {
+  0%   { opacity: 0; transform: scale(0.8);}
+  60%  { opacity: 1; transform: scale(1.05);}
+  80%  { transform: scale(0.97);}
+  100% { transform: scale(1);}
+}
+.animate-bounce-in {
+  animation-name: bounceIn;
+  animation-fill-mode: both;
+}
+
+/* Scrollbar ausblenden für mobile Karussells */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;             /* Safari und Chrome */
+} 

@@ -1,0 +1,96 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+alias: "@health-audit"
+description: Führt ein vollständiges Audit über Regeln, Projektstruktur, Navigation, DB und Umsetzungskonsistenz durch.
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - ".cursor/rules/Health-audit/*.mdc"
+  - "app/**/*"
+  - "supabase/schema.sql"
+---
+
+# 🧠 Vollständiges Cursor Audit: Projekt- & Regelprüfung
+
+Dieses Audit beschreibt einen umfassenden Prüfprozess für das gesamte Projekt (nicht nur `.mdc`-Dateien). Es soll regelmäßig oder gezielt ausgeführt werden können und deckt sowohl strukturelle Probleme, doppelte Features, Regel-Konflikte als auch UI-Fehler und verwaiste Komponenten ab.
+
+## 📌 Ziel
+- Duplikate, verwaiste Regeln, Routingfehler
+- DB-Struktur und Regelabgleich
+- Modul-Duplikate und UI-Inkonsistenzen
+- Differenzanalyse: Regelinhalt vs. Implementierung
+
+## ✅ Prüfbereiche
+
+### 1. `.mdc`-Rules
+- globs, description, alias vorhanden?
+- Länge > 300 Zeilen → split?
+- Richtiger Pfad?
+- Mehrthemen-Regeln? (DB + UI gemischt)
+
+### 2. Navigation
+- Navigationspunkte ohne Regel?
+- Menü vs. Route vs. Regel verknüpft?
+
+### 3. Komponenten
+- doppelte Komponenten?
+- unbenutzte Komponenten?
+- mehrfach referenzierte Libraries?
+
+### 4. Datenbankabgleich
+- Tabellen ohne `.mdc`-Regel?
+- RLS / FK / ENUM stimmen?
+- Felder in Regel ≠ Supabase?
+
+### 5. Regel/Umsetzungsabgleich
+- Was steht in der Regel, aber fehlt im Code?
+- Was ist im Code, aber in keiner Regel?
+- Was ist abgeschlossen, aber in Regel nicht finalisiert?
+
+## 📝 Beispielreport
+
+```markdown speichern in .cursor/rules/audit/Health-audit/TT_MM_health-audit-report.md
+# 🔍 MemberCore Health Audit Report – <DATUM>
+# 🔍 MemberCore Vollaudit – <DATUM>
+
+## Zusammenfassung
+- Regeln geprüft: 24
+- Komponenten gescannt: 183
+- Routen geprüft: 39
+- Datenbanktabellen: 18
+- Probleme gefunden: 12
+
+---
+
+## 📄 Doppelte Komponenten
+- `LandingPageHeader.tsx` vs `LandingPageHeaderV2.tsx`
+- `EmailSettings.tsx` vs `EmailSetup.tsx`
+
+## ❗️ Verwaiste Regeln
+- `beratung-ui.mdc` wird nirgends verwendet
+
+## ⚠️ Navigation ohne Regelbindung
+- `kursplan/neu` ist im Menü, aber keine Regel `kursplan-ui.mdc`
+
+## 🧬 DB-Regelkonflikte
+- Tabelle `contract_bonuses` fehlt in Rules
+- Regel `vertragstypen-db.mdc` referenziert Spalte `bonus_id`, die in Supabase nicht existiert
+
+## 🔄 Regel-Implementierungs-Diskrepanz
+- `formular-mitgliedschaft-ui.mdc` beschreibt 5 Felder – Komponente `Mitgliedschaftsformular.tsx` hat nur 2
+- `PremiumBanner.tsx` wird verwendet, aber ist in keiner `.mdc` definiert
+
+## 🧠 Agent-Aufgaben
+- [ ] 📌 `EmailSettings.tsx` doppelt vorhanden – was ist gültig?
+- [ ] 📌 `kursplan/neu` ist verlinkt, aber Regel fehlt → gemeinsam definieren?
+- [ ] 📌 Tabelle `contract_bonuses` → neue Regel anlegen?
+- [ ] 📌 `PremiumBanner.tsx` ohne Regel → Agent fragt: „Soll ich eine Regel erzeugen?“
+...
+
+## 🔄 Regel-Implementierungs-Diskrepanz
+- `formular-mitgliedschaft-ui.mdc` beschreibt 5 Felder – Komponente hat nur 2
+- `PremiumBanner.tsx` ist im Code, aber ohne `.mdc`-Definition

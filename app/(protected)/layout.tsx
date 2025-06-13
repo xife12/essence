@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Users, UserPlus, CalendarClock, Activity, 
-  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe, Palette, Settings, FileText
+  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe, Palette, Settings, FileText, ChevronDown, MessageSquare
 } from 'lucide-react';
 import supabase from '../lib/supabaseClient';
 
@@ -16,6 +16,14 @@ export default function ProtectedLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
+  const [landingpagesOpen, setLandingpagesOpen] = useState(pathname.startsWith('/landingpages'));
+
+  // Submenü immer offen, wenn auf Landingpages-Route
+  React.useEffect(() => {
+    if (pathname.startsWith('/landingpages')) {
+      setLandingpagesOpen(true);
+    }
+  }, [pathname]);
 
   const handleSignOut = async () => {
     // Nur in Production ausloggen
@@ -76,7 +84,29 @@ export default function ProtectedLayout({
               <p className={`text-xs uppercase text-gray-500 mb-2 ${!sidebarOpen && 'sr-only'}`}>Marketing</p>
               <nav className="flex flex-col gap-1">
                 <NavItem href="/kampagnen" icon={Activity} label="Kampagnen" />
-                <NavItem href="/landingpages" icon={Globe} label="Landingpages" />
+                {/* Landingpages mit Submenü */}
+                <button
+                  type="button"
+                  className={`flex items-center w-full px-3 py-2 rounded-md text-sm font-medium focus:outline-none transition-colors ${
+                    pathname.startsWith('/landingpages')
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                  onClick={() => setLandingpagesOpen((open) => !open)}
+                  aria-expanded={landingpagesOpen}
+                >
+                  <Globe size={20} className="mr-3" />
+                  {sidebarOpen && <span>Landingpages</span>}
+                  {sidebarOpen && <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${landingpagesOpen ? 'rotate-180' : ''}`} />}
+                </button>
+                {landingpagesOpen && sidebarOpen && (
+                  <ul className="ml-8 mt-1 space-y-1">
+                    <li><NavItem href="/landingpages" icon={Globe} label="Landingpage Builder" /></li>
+                    <li><NavItem href="/landingpages/testimonials" icon={MessageSquare} label="Testimonials" /></li>
+                    <li><NavItem href="/landingpages/templates" icon={FileText} label="Seitenvorlagen" /></li>
+                    <li><NavItem href="/landingpages/settings" icon={Settings} label="Einstellungen" /></li>
+                  </ul>
+                )}
                 <NavItem href="/formulare" icon={FileText} label="Formulare" />
                 <NavItem href="/ci-styling" icon={Palette} label="CI-Styling" />
               </nav>

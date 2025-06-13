@@ -3,3 +3,20 @@ description:
 globs:
 alwaysApply: false
 ---
+# Mitglieder-Daten & Synchronisierung
+
+## Datenpersistenz
+
+- **Lokale Datenspeicherung**:
+  - Alle Änderungen an Mitgliedsdaten werden im `localStorage` persistiert
+  - Jedes Mitglied wird unter einem eigenen Schlüssel `member_[id]` gespeichert
+  - Beim Neuladen der Seite werden Daten automatisch aus dem localStorage geladen
+
+---
+
+## Daten-Synchronisierung
+
+- **Bidirektionale Synchronisierung**:
+  - Änderungen in der Detailansicht werden in der Übersicht reflektiert
+  - Aktive Mitgliedschaften werden korrekt in der Mitgliederliste angezeigt
+  - Status `planned` wird in der Übersicht mit blauem Badge dargestellt

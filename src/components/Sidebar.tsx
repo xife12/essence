@@ -3,13 +3,22 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard, Users, UserRound, CalendarClock, 
-  FileSpreadsheet, Megaphone, ShieldCheck, FileText, Clock 
+  LayoutDashboard, Users, CalendarClock, 
+  FileSpreadsheet, Megaphone, ShieldCheck, FileText, Clock, ChevronDown, Globe, MessageSquare, Settings, Palette, FormInput 
 } from 'lucide-react';
+import React from 'react';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [landingpagesOpen, setLandingpagesOpen] = React.useState(pathname.startsWith('/landingpages'));
   
+  // Submenü immer offen, wenn auf Landingpages-Route
+  React.useEffect(() => {
+    if (pathname.startsWith('/landingpages')) {
+      setLandingpagesOpen(true);
+    }
+  }, [pathname]);
+
   const isActive = (path: string) => {
     return pathname === path || pathname.startsWith(`${path}/`);
   };
@@ -22,7 +31,7 @@ export default function Sidebar() {
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { name: 'Leads', path: '/leads', icon: Users },
         { name: 'Beratung', path: '/beratung', icon: CalendarClock },
-        { name: 'Mitglieder', path: '/mitglieder', icon: UserRound },
+        { name: 'Mitglieder', path: '/mitglieder', icon: Users },
         { name: 'Vertragsarten', path: '/vertragsarten', icon: FileText },
         { name: 'Stunden', path: '/stunden', icon: Clock }
       ]
@@ -31,13 +40,26 @@ export default function Sidebar() {
       title: 'Marketing',
       items: [
         { name: 'Kampagnen', path: '/kampagnen', icon: Megaphone },
+        {
+          name: 'Landingpages',
+          path: '/landingpages',
+          icon: Globe,
+          subItems: [
+            { name: 'Landingpage Builder', path: '/landingpages', icon: Globe },
+            { name: 'Testimonials', path: '/landingpages/testimonials', icon: MessageSquare },
+            { name: 'Seitenvorlagen', path: '/landingpages/templates', icon: FileText },
+            { name: 'Formulare', path: '/landingpages/forms', icon: FormInput },
+            { name: 'Design System', path: '/landingpages/design', icon: Palette },
+            { name: 'Einstellungen', path: '/landingpages/settings', icon: Settings },
+          ]
+        }
       ]
     },
     {
       title: 'Verwaltung',
       items: [
         { name: 'Passwortverwaltung', path: '/passwoerter', icon: ShieldCheck },
-        { name: 'Mitarbeiter', path: '/mitarbeiter', icon: UserRound },
+        { name: 'Mitarbeiter', path: '/mitarbeiter', icon: Users },
       ]
     }
   ];
@@ -56,17 +78,55 @@ export default function Sidebar() {
             <ul>
               {group.items.map((item) => (
                 <li key={item.path} className="mb-1">
-                  <Link 
-                    href={item.path}
-                    className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-                      isActive(item.path)
-                        ? 'bg-blue-50 text-blue-500'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <item.icon className="mr-3 h-5 w-5" />
-                    <span>{item.name}</span>
-                  </Link>
+                  {item.subItems ? (
+                    <>
+                      <button
+                        type="button"
+                        className={`flex items-center w-full px-3 py-2 rounded-md text-sm font-medium focus:outline-none ${
+                          isActive(item.path)
+                            ? 'bg-blue-50 text-blue-500'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                        onClick={() => setLandingpagesOpen((open) => !open)}
+                        aria-expanded={landingpagesOpen}
+                      >
+                        <item.icon className="mr-3 h-5 w-5" />
+                        <span>{item.name}</span>
+                        <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${landingpagesOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {landingpagesOpen && (
+                        <ul className="ml-7 mt-1 space-y-1">
+                          {item.subItems.map((sub) => (
+                            <li key={sub.path}>
+                              <Link
+                                href={sub.path}
+                                className={`flex items-center px-2 py-1 rounded text-sm font-normal ${
+                                  isActive(sub.path)
+                                    ? 'bg-blue-100 text-blue-600'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                              >
+                                <sub.icon className="mr-2 h-4 w-4" />
+                                <span>{sub.name}</span>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  ) : (
+                    <Link
+                      href={item.path}
+                      className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
+                        isActive(item.path)
+                          ? 'bg-blue-50 text-blue-500'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <item.icon className="mr-3 h-5 w-5" />
+                      <span>{item.name}</span>
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

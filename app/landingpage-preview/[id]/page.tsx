@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Smartphone, Tablet, Monitor, ExternalLink, Edit, Settings } from 'lucide-react';
-import supabase from '../../../../lib/supabaseClient';
+import { ArrowLeft, Smartphone, Tablet, Monitor } from 'lucide-react';
+import supabase from '../../lib/supabaseClient';
 
 interface LandingPage {
   id: string;
