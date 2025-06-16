@@ -523,6 +523,11 @@ export interface ModuleFilters {
   search?: string;
 }
 
+export interface DocumentFilters {
+  is_active?: boolean;
+  search?: string;
+}
+
 // Import/Export Types
 export interface ContractExport {
   contract: Contract;

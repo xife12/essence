@@ -1,51 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, 
-  Search, 
-  FileText, 
-  Package, 
-  Building2,
-  Settings,
-  Eye,
-  Edit,
-  Copy,
-  History,
-  Filter,
-  ChevronDown
-} from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import ContractsV2API from '@/lib/api/contracts-v2';
-import type { Contract, ContractModule, ContractDocument, ModuleCategory } from '@/lib/types/contracts-v2';
+import { Plus, Settings, Search, Filter, BarChart3, FileText, Package, Calendar } from 'lucide-react';
+import { ContractsV2API } from '@/app/lib/api/contracts-v2';
+import type { ContractWithDetails, ContractModule, ContractDocument } from '@/app/lib/types/contracts-v2';
 
 export default function VertragsartenV2Page() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState('contracts');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Daten-States
-  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [activeTab, setActiveTab] = useState<'contracts' | 'modules' | 'documents'>('contracts');
+  const [contracts, setContracts] = useState<ContractWithDetails[]>([]);
   const [modules, setModules] = useState<ContractModule[]>([]);
   const [documents, setDocuments] = useState<ContractDocument[]>([]);
-  const [categories, setCategories] = useState<ModuleCategory[]>([]);
-
-  // Filter-States
-  const [contractFilters, setContractFilters] = useState({
-    showCampaigns: false,
-    showInactive: false
-  });
-  const [moduleFilters, setModuleFilters] = useState({
-    categoryId: '',
-    showInactive: false
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
 
   useEffect(() => {
     loadData();
@@ -54,24 +22,15 @@ export default function VertragsartenV2Page() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [contractsData, modulesData, documentsData, categoriesData] = await Promise.all([
-        ContractsV2API.contracts.getAll({
-          is_campaign_version: contractFilters.showCampaigns ? undefined : false,
-          search: searchTerm || undefined
-        }),
-        ContractsV2API.modules.getAll({
-          is_active: moduleFilters.showInactive ? undefined : true,
-          category_id: moduleFilters.categoryId || undefined,
-          search: searchTerm || undefined
-        }),
-        ContractsV2API.documents.getAll(),
-        ContractsV2API.categories.getAll()
+      const [contractsData, modulesData, documentsData] = await Promise.all([
+        ContractsV2API.getAll(),
+        ContractsV2API.getModules(),
+        ContractsV2API.getDocuments()
       ]);
       
       setContracts(contractsData);
       setModules(modulesData);
       setDocuments(documentsData);
-      setCategories(categoriesData);
     } catch (error) {
       console.error('Fehler beim Laden der Daten:', error);
     } finally {
@@ -79,451 +38,458 @@ export default function VertragsartenV2Page() {
     }
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    // Debounced search würde hier implementiert werden
+  const filteredContracts = contracts.filter(contract => {
+    const matchesSearch = contract.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterStatus === 'all' || 
+      (filterStatus === 'active' && contract.is_active) ||
+      (filterStatus === 'inactive' && !contract.is_active);
+    return matchesSearch && matchesFilter;
+  });
+
+  const filteredModules = modules.filter(module =>
+    module.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredDocuments = documents.filter(doc =>
+    doc.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const stats = {
+    totalContracts: contracts.length,
+    activeContracts: contracts.filter(c => c.is_active).length,
+    totalModules: modules.length,
+    totalDocuments: documents.length
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(price);
-  };
-
-  const getVersionBadge = (contract: Contract) => {
-    if (contract.is_campaign_version) {
-      return <Badge variant="secondary" className="ml-2">Kampagne</Badge>;
-    }
-    return <Badge variant="outline" className="ml-2">v{contract.version_number}</Badge>;
-  };
-
-  const getModuleCategoryIcon = (categoryName: string) => {
-    const icons: Record<string, any> = {
-      'Training & Kurse': Package,
-      'Wellness & Regeneration': Building2,
-      'Digital & App-Funktionen': Settings,
-      default: Package
-    };
-    return icons[categoryName] || icons.default;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-lg">Laden...</div>
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Vertragsarten V2</h1>
+          <p className="text-gray-600 mt-1">
+            Moderne Vertragsverwaltung mit Versionierung, Modulen und Dokumenten
+          </p>
         </div>
+        
+        <div className="flex gap-3">
+          <Link
+            href="/vertragsarten"
+            className="px-4 py-2 text-gray-600 hover:text-gray-900 border rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Alte Version
+          </Link>
+          <button className="px-4 py-2 text-gray-600 hover:text-gray-900 border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Einstellungen
+          </button>
+        </div>
+      </div>
+
+      {/* Statistiken */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Verträge gesamt</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalContracts}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <BarChart3 className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Aktive Verträge</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.activeContracts}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Package className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Module</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalModules}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Calendar className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Dokumente</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalDocuments}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white rounded-lg border shadow-sm">
+        <div className="border-b border-gray-200">
+          <nav className="flex">
+            <button
+              onClick={() => setActiveTab('contracts')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 ${
+                activeTab === 'contracts'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Verträge ({contracts.length})
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('modules')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 ${
+                activeTab === 'modules'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Module ({modules.length})
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('documents')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 ${
+                activeTab === 'documents'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Dokumente ({documents.length})
+              </div>
+            </button>
+          </nav>
+        </div>
+
+        <div className="p-6">
+          {/* Suche und Filter */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Suchen..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            {activeTab === 'contracts' && (
+              <div className="relative">
+                <Filter className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as any)}
+                  className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">Alle Status</option>
+                  <option value="active">Nur Aktive</option>
+                  <option value="inactive">Nur Inaktive</option>
+                </select>
+              </div>
+            )}
+            
+            <Link
+              href={`/vertragsarten-v2/${activeTab}/neu`}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              {activeTab === 'contracts' && 'Neuer Vertrag'}
+              {activeTab === 'modules' && 'Neues Modul'}
+              {activeTab === 'documents' && 'Neues Dokument'}
+            </Link>
+          </div>
+
+          {/* Content basierend auf aktivem Tab */}
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div>
+              {activeTab === 'contracts' && (
+                <ContractsTable contracts={filteredContracts} onRefresh={loadData} />
+              )}
+              {activeTab === 'modules' && (
+                <ModulesTable modules={filteredModules} onRefresh={loadData} />
+              )}
+              {activeTab === 'documents' && (
+                <DocumentsTable documents={filteredDocuments} onRefresh={loadData} />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Verträge Tabelle
+function ContractsTable({ contracts, onRefresh }: { contracts: ContractWithDetails[], onRefresh: () => void }) {
+  if (contracts.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Keine Verträge gefunden</h3>
+        <p className="text-gray-600 mb-4">Erstelle deinen ersten Vertrag um zu beginnen.</p>
+        <Link
+          href="/vertragsarten-v2/contracts/neu"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Ersten Vertrag erstellen
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Vertragsarten V2</h1>
-          <p className="text-muted-foreground mt-1">
-            Moderne Vertragsverwaltung mit Modulen, Versionierung und Dokumenten
-          </p>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button onClick={() => router.push('/vertragsarten-v2/contracts/neu')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Neuer Vertrag
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => router.push('/vertragsarten-v2/modules/neu')}
-          >
-            <Package className="h-4 w-4 mr-2" />
-            Neues Modul
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => router.push('/vertragsarten-v2/documents/neu')}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Neues Dokument
-          </Button>
-        </div>
-      </div>
-
-      {/* Suchleiste */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Verträge, Module oder Dokumente durchsuchen..."
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="contracts" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Verträge ({contracts.length})
-          </TabsTrigger>
-          <TabsTrigger value="modules" className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Module ({modules.length})
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Dokumente ({documents.length})
-          </TabsTrigger>
-        </TabsList>
-
-        {/* CONTRACTS TAB */}
-        <TabsContent value="contracts" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Verträge</h2>
-            <div className="flex gap-2">
-              <Button 
-                variant={contractFilters.showCampaigns ? "default" : "outline"}
-                size="sm"
-                onClick={() => setContractFilters(prev => ({ 
-                  ...prev, 
-                  showCampaigns: !prev.showCampaigns 
-                }))}
-              >
-                Kampagnen zeigen
-              </Button>
-              <Button 
-                variant={contractFilters.showInactive ? "default" : "outline"}
-                size="sm"
-                onClick={() => setContractFilters(prev => ({ 
-                  ...prev, 
-                  showInactive: !prev.showInactive 
-                }))}
-              >
-                Inaktive zeigen
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {contracts.map((contract) => (
-              <Card key={contract.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg flex items-center">
-                      {contract.name}
-                      {getVersionBadge(contract)}
-                    </CardTitle>
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => router.push(`/vertragsarten-v2/contracts/${contract.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => router.push(`/vertragsarten-v2/contracts/${contract.id}/edit`)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-b border-gray-200">
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Name</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Version</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Laufzeiten</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Module</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Status</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Erstellt</th>
+            <th className="text-right py-3 px-4 font-semibold text-gray-900">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {contracts.map((contract) => (
+            <tr key={contract.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="py-3 px-4">
+                <div>
+                  <div className="font-semibold text-gray-900">{contract.name}</div>
                   {contract.description && (
-                    <p className="text-sm text-muted-foreground">
-                      {contract.description}
-                    </p>
+                    <div className="text-sm text-gray-600">{contract.description}</div>
                   )}
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* Terms Preview */}
-                  {contract.terms && contract.terms.length > 0 && (
-                    <div>
-                      <div className="text-sm font-medium mb-1">Laufzeiten</div>
-                      <div className="flex flex-wrap gap-1">
-                        {contract.terms.slice(0, 3).map((term) => (
-                          <Badge key={term.id} variant="outline" className="text-xs">
-                            {term.duration_months}M - {formatPrice(term.base_price)}
-                          </Badge>
-                        ))}
-                        {contract.terms.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{contract.terms.length - 3} weitere
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
+                  {contract.is_campaign_version && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800 mt-1">
+                      Kampagne
+                    </span>
                   )}
+                </div>
+              </td>
+              <td className="py-3 px-4">
+                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                  v{contract.version_number}
+                </span>
+              </td>
+              <td className="py-3 px-4">
+                <div className="text-sm">
+                  {contract.terms?.length || 0} Laufzeit{(contract.terms?.length || 0) !== 1 ? 'en' : ''}
+                </div>
+              </td>
+              <td className="py-3 px-4">
+                <div className="text-sm">
+                  <span className="text-green-600">{contract.modules_included_count || 0} inkl.</span>
+                  {(contract.modules_optional_count || 0) > 0 && (
+                    <span className="text-blue-600 ml-2">{contract.modules_optional_count} opt.</span>
+                  )}
+                </div>
+              </td>
+              <td className="py-3 px-4">
+                <span
+                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                    contract.is_active
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {contract.is_active ? 'Aktiv' : 'Inaktiv'}
+                </span>
+              </td>
+              <td className="py-3 px-4 text-sm text-gray-600">
+                {new Date(contract.created_at).toLocaleDateString('de-DE')}
+              </td>
+              <td className="py-3 px-4 text-right">
+                <div className="flex justify-end gap-2">
+                  <Link
+                    href={`/vertragsarten-v2/contracts/${contract.id}`}
+                    className="text-blue-600 hover:text-blue-700 text-sm"
+                  >
+                    Bearbeiten
+                  </Link>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
-                  {/* Module Count */}
-                  {contract.modules && contract.modules.length > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Module:</span>
-                      <span>{contract.modules.length} zugeordnet</span>
-                    </div>
-                  )}
+// Module Tabelle
+function ModulesTable({ modules, onRefresh }: { modules: ContractModule[], onRefresh: () => void }) {
+  if (modules.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Keine Module gefunden</h3>
+        <p className="text-gray-600 mb-4">Erstelle dein erstes Modul um zu beginnen.</p>
+        <Link
+          href="/vertragsarten-v2/modules/neu"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Erstes Modul erstellen
+        </Link>
+      </div>
+    );
+  }
 
-                  {/* Status & Campaign Info */}
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Status:</span>
-                    <Badge variant={contract.is_active ? "default" : "secondary"}>
-                      {contract.is_active ? "Aktiv" : "Inaktiv"}
-                    </Badge>
-                  </div>
-
-                  {contract.campaign && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Kampagne:</span>
-                      <span className="font-medium">{contract.campaign.name}</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {modules.map((module) => (
+        <div key={module.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {module.icon_name && (
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Package className="w-5 h-5 text-blue-600" />
+                </div>
+              )}
+              <div>
+                <h3 className="font-semibold text-gray-900">{module.name}</h3>
+                {module.description && (
+                  <p className="text-sm text-gray-600 mt-1">{module.description}</p>
+                )}
+              </div>
+            </div>
+            <span
+              className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                module.is_active
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              {module.is_active ? 'Aktiv' : 'Inaktiv'}
+            </span>
           </div>
 
-          {contracts.length === 0 && (
-            <Card>
-              <CardContent className="py-8">
-                <div className="text-center text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Noch keine Verträge vorhanden</p>
-                  <Button 
-                    className="mt-4"
-                    onClick={() => router.push('/vertragsarten-v2/contracts/neu')}
-                  >
-                    Ersten Vertrag erstellen
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* MODULES TAB */}
-        <TabsContent value="modules" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Module</h2>
-            <div className="flex gap-2">
-              <select 
-                className="px-3 py-1 border rounded-md text-sm"
-                value={moduleFilters.categoryId}
-                onChange={(e) => setModuleFilters(prev => ({ 
-                  ...prev, 
-                  categoryId: e.target.value 
-                }))}
-              >
-                <option value="">Alle Kategorien</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-              <Button 
-                variant={moduleFilters.showInactive ? "default" : "outline"}
-                size="sm"
-                onClick={() => setModuleFilters(prev => ({ 
-                  ...prev, 
-                  showInactive: !prev.showInactive 
-                }))}
-              >
-                Inaktive zeigen
-              </Button>
+          <div className="space-y-2 mb-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Preis/Monat:</span>
+              <span className="font-semibold">€{module.price_per_month.toFixed(2)}</span>
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {modules.map((module) => {
-              const IconComponent = getModuleCategoryIcon(module.category?.name || '');
-              
-              return (
-                <Card key={module.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <IconComponent className="h-5 w-5" />
-                        {module.name}
-                      </CardTitle>
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => router.push(`/vertragsarten-v2/modules/${module.id}`)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => router.push(`/vertragsarten-v2/modules/${module.id}/edit`)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    {module.description && (
-                      <p className="text-sm text-muted-foreground">
-                        {module.description}
-                      </p>
-                    )}
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Preis/Monat:</span>
-                      <span className="font-semibold">{formatPrice(module.price_per_month)}</span>
-                    </div>
-
-                    {module.category && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Kategorie:</span>
-                        <Badge variant="outline">{module.category.name}</Badge>
-                      </div>
-                    )}
-
-                    {module.assignment_stats && (
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Zuordnungen:</span>
-                          <span>{module.assignment_stats.total_contracts} Verträge</span>
-                        </div>
-                        <div className="flex gap-2 text-xs">
-                          <Badge variant="default" className="text-xs">
-                            {module.assignment_stats.included} inkludiert
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            {module.assignment_stats.optional} optional
-                          </Badge>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Status:</span>
-                      <Badge variant={module.is_active ? "default" : "secondary"}>
-                        {module.is_active ? "Aktiv" : "Inaktiv"}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <div className="flex justify-end">
+            <Link
+              href={`/vertragsarten-v2/modules/${module.id}`}
+              className="text-blue-600 hover:text-blue-700 text-sm"
+            >
+              Bearbeiten
+            </Link>
           </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-          {modules.length === 0 && (
-            <Card>
-              <CardContent className="py-8">
-                <div className="text-center text-muted-foreground">
-                  <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Noch keine Module vorhanden</p>
-                  <Button 
-                    className="mt-4"
-                    onClick={() => router.push('/vertragsarten-v2/modules/neu')}
-                  >
-                    Erstes Modul erstellen
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+// Dokumente Tabelle
+function DocumentsTable({ documents, onRefresh }: { documents: ContractDocument[], onRefresh: () => void }) {
+  if (documents.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Keine Dokumente gefunden</h3>
+        <p className="text-gray-600 mb-4">Erstelle dein erstes Dokument um zu beginnen.</p>
+        <Link
+          href="/vertragsarten-v2/documents/neu"
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Erstes Dokument erstellen
+        </Link>
+      </div>
+    );
+  }
 
-        {/* DOCUMENTS TAB */}
-        <TabsContent value="documents" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Vertragsdokumente</h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {documents.map((document) => (
-              <Card key={document.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{document.name}</CardTitle>
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => router.push(`/vertragsarten-v2/documents/${document.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => router.push(`/vertragsarten-v2/documents/${document.id}/edit`)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-b border-gray-200">
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Name</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Version</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Status</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-900">Erstellt</th>
+            <th className="text-right py-3 px-4 font-semibold text-gray-900">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {documents.map((document) => (
+            <tr key={document.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="py-3 px-4">
+                <div>
+                  <div className="font-semibold text-gray-900">{document.name}</div>
                   {document.description && (
-                    <p className="text-sm text-muted-foreground">
-                      {document.description}
-                    </p>
+                    <div className="text-sm text-gray-600">{document.description}</div>
                   )}
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Version:</span>
-                    <Badge variant="outline">v{document.version_number}</Badge>
-                  </div>
-
-                  {document.sections && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Abschnitte:</span>
-                      <span>{document.sections.length}</span>
-                    </div>
-                  )}
-
-                  {document.contract_assignments && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Verträge:</span>
-                      <span>{document.contract_assignments.length} zugeordnet</span>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Status:</span>
-                    <Badge variant={document.is_active ? "default" : "secondary"}>
-                      {document.is_active ? "Aktiv" : "Inaktiv"}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {documents.length === 0 && (
-            <Card>
-              <CardContent className="py-8">
-                <div className="text-center text-muted-foreground">
-                  <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Noch keine Dokumente vorhanden</p>
-                  <Button 
-                    className="mt-4"
-                    onClick={() => router.push('/vertragsarten-v2/documents/neu')}
-                  >
-                    Erstes Dokument erstellen
-                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+              </td>
+              <td className="py-3 px-4">
+                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                  v{document.version_number}
+                </span>
+              </td>
+              <td className="py-3 px-4">
+                <span
+                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                    document.is_active
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {document.is_active ? 'Aktiv' : 'Inaktiv'}
+                </span>
+              </td>
+              <td className="py-3 px-4 text-sm text-gray-600">
+                {new Date(document.created_at).toLocaleDateString('de-DE')}
+              </td>
+              <td className="py-3 px-4 text-right">
+                <div className="flex justify-end gap-2">
+                  <Link
+                    href={`/vertragsarten-v2/documents/${document.id}`}
+                    className="text-blue-600 hover:text-blue-700 text-sm"
+                  >
+                    Bearbeiten
+                  </Link>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

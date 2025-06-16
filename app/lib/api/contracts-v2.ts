@@ -388,6 +388,277 @@ export const ContractsV2API = {
       isValid: errors.length === 0,
       errors
     };
+  },
+
+  // MODULE METHODS
+  async getModules(filters?: ModuleFilters): Promise<ContractModule[]> {
+    try {
+      let query = supabase
+        .from('contract_modules')
+        .select(`
+          *,
+          category:module_categories(*)
+        `);
+
+      if (filters?.is_active !== undefined) {
+        query = query.eq('is_active', filters.is_active);
+      }
+
+      if (filters?.category_id) {
+        query = query.eq('category_id', filters.category_id);
+      }
+
+      if (filters?.search) {
+        query = query.ilike('name', `%${filters.search}%`);
+      }
+
+      query = query.order('name');
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(`Fehler beim Laden der Module: ${error.message}`);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Fehler beim Laden der Module:', error);
+      throw error;
+    }
+  },
+
+  async getModuleById(id: string): Promise<ContractModule> {
+    try {
+      const { data, error } = await supabase
+        .from('contract_modules')
+        .select(`
+          *,
+          category:module_categories(*),
+          assignments:contract_module_assignments(
+            id,
+            contract_id,
+            assignment_type,
+            custom_price,
+            contract:contracts(name, is_active)
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        throw new Error(`Fehler beim Laden des Moduls: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Modul nicht gefunden');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Fehler beim Laden des Moduls:', error);
+      throw error;
+    }
+  },
+
+  async createModule(moduleData: Omit<ContractModule, 'id' | 'created_at' | 'updated_at'>): Promise<ContractModule> {
+    try {
+      const { data, error } = await supabase
+        .from('contract_modules')
+        .insert([moduleData])
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Fehler beim Erstellen des Moduls: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Fehler beim Erstellen des Moduls:', error);
+      throw error;
+    }
+  },
+
+  async updateModule(id: string, moduleData: Partial<ContractModule>): Promise<ContractModule> {
+    try {
+      const { data, error } = await supabase
+        .from('contract_modules')
+        .update(moduleData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Fehler beim Aktualisieren des Moduls: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Fehler beim Aktualisieren des Moduls:', error);
+      throw error;
+    }
+  },
+
+  async deleteModule(id: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('contract_modules')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(`Fehler beim Löschen des Moduls: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Fehler beim Löschen des Moduls:', error);
+      throw error;
+    }
+  },
+
+  // MODULE CATEGORIES
+  async getModuleCategories(): Promise<ModuleCategory[]> {
+    try {
+      const { data, error } = await supabase
+        .from('module_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
+
+      if (error) {
+        throw new Error(`Fehler beim Laden der Kategorien: ${error.message}`);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Fehler beim Laden der Kategorien:', error);
+      throw error;
+    }
+  },
+
+  // DOCUMENT METHODS
+  async getDocuments(filters?: DocumentFilters): Promise<ContractDocument[]> {
+    try {
+      let query = supabase
+        .from('contract_documents')
+        .select(`
+          *,
+          sections:contract_document_sections(
+            id,
+            title,
+            sort_order,
+            is_mandatory,
+            requires_signature
+          )
+        `);
+
+      if (filters?.is_active !== undefined) {
+        query = query.eq('is_active', filters.is_active);
+      }
+
+      if (filters?.search) {
+        query = query.ilike('name', `%${filters.search}%`);
+      }
+
+      query = query.order('name');
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(`Fehler beim Laden der Dokumente: ${error.message}`);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Fehler beim Laden der Dokumente:', error);
+      throw error;
+    }
+  },
+
+  async getDocumentById(id: string): Promise<ContractDocument> {
+    try {
+      const { data, error } = await supabase
+        .from('contract_documents')
+        .select(`
+          *,
+          sections:contract_document_sections(*),
+          assignments:contract_document_assignments(
+            id,
+            contract_id,
+            override_settings,
+            contract:contracts(name, is_active)
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        throw new Error(`Fehler beim Laden des Dokuments: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Dokument nicht gefunden');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Fehler beim Laden des Dokuments:', error);
+      throw error;
+    }
+  },
+
+  async createDocument(documentData: Omit<ContractDocument, 'id' | 'created_at' | 'updated_at'>): Promise<ContractDocument> {
+    try {
+      const { data, error } = await supabase
+        .from('contract_documents')
+        .insert([documentData])
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Fehler beim Erstellen des Dokuments: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Fehler beim Erstellen des Dokuments:', error);
+      throw error;
+    }
+  },
+
+  async updateDocument(id: string, documentData: Partial<ContractDocument>): Promise<ContractDocument> {
+    try {
+      const { data, error } = await supabase
+        .from('contract_documents')
+        .update(documentData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Fehler beim Aktualisieren des Dokuments: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Fehler beim Aktualisieren des Dokuments:', error);
+      throw error;
+    }
+  },
+
+  async deleteDocument(id: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('contract_documents')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(`Fehler beim Löschen des Dokuments: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Fehler beim Löschen des Dokuments:', error);
+      throw error;
+    }
   }
 };
 
