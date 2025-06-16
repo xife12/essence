@@ -1,0 +1,473 @@
+# 🔄 VERSIONIERUNGS-SYSTEM V2
+
+## 🎯 GRUNDPRINZIPIEN
+
+### **Parallele Versionen**
+- Jede Vertragsart hat eine `contract_group_id` 
+- Versionen werden durchnummeriert: 1.0, 1.1, 2.0, etc.
+- **Nur eine Version pro Gruppe ist aktiv** für neue Abschlüsse
+- **Alle Versionen bleiben verfügbar** für bestehende Mitgliedschaften
+
+### **Automatische Versionierung** 
+- Bei jeder Änderung wird **automatisch neue Version** erstellt
+- Alte Version bleibt unverändert für Bestandsschutz
+- **Änderungsnotizen** werden automatisch generiert + manuell ergänzbar
+
+### **Kampagnenverträge**
+- Spezielle Versionen mit `is_campaign_version = true`
+- Temporäre Aktivierung während Kampagnenlaufzeit  
+- Automatische Rückschaltung nach Kampagnenende
+
+---
+
+## ⚙️ VERSIONIERUNGS-LOGIK
+
+### **Auto-Versionierung bei Änderungen**
+```typescript
+interface VersioningConfig {
+  autoVersion: boolean; // true = automatisch, false = manuell
+  generateChangeNotes: boolean; // Automatische Änderungsnotizen
+  notifyUsers: boolean; // Benachrichtigung bei neuer Version
+}
+
+const createNewVersion = async (
+  contractId: string, 
+  changes: Partial<Contract>,
+  manualNote?: string
+): Promise<Contract> => {
+  const oldContract = await getContract(contractId);
+  const newVersionNumber = await getNextVersionNumber(oldContract.contract_group_id);
+  
+  // Automatische Änderungsnotiz generieren
+  const autoNote = generateAutoChangeNote(oldContract, changes);
+  const combinedNote = [autoNote, manualNote].filter(Boolean).join(' | ');
+  
+  // Neue Version erstellen
+  const newContract = {
+    ...oldContract,
+    ...changes,
+    id: generateUUID(),
+    version_number: newVersionNumber,
+    version_note: combinedNote,
+    is_active: true, // Neue Version wird aktiviert
+    created_from_version_id: contractId,
+    created_at: new Date()
+  };
+  
+  // Alte Version deaktivieren
+  await updateContract(contractId, { is_active: false });
+  
+  // Neue Version speichern
+  return await createContract(newContract);
+};
+```
+
+### **Automatische Änderungsnotizen**
+```typescript
+const generateAutoChangeNote = (
+  oldContract: Contract, 
+  newData: Partial<Contract>
+): string => {
+  const changes: string[] = [];
+  
+  // Name geändert
+  if (newData.name && newData.name !== oldContract.name) {
+    changes.push(`Name: "${oldContract.name}" → "${newData.name}"`);
+  }
+  
+  // Preise verglichen (komplexer da contract_terms Tabelle)
+  if (newData.terms) {
+    const oldPrices = oldContract.terms.map(t => `${t.duration}M: €${t.price}`);
+    const newPrices = newData.terms.map(t => `${t.duration}M: €${t.price}`);
+    if (JSON.stringify(oldPrices) !== JSON.stringify(newPrices)) {
+      changes.push(`Preise angepasst`);
+    }
+  }
+  
+  // Rabatte geändert
+  if (newData.group_discount_enabled !== oldContract.group_discount_enabled) {
+    changes.push(`Gruppenrabatt ${newData.group_discount_enabled ? 'aktiviert' : 'deaktiviert'}`);
+  }
+  
+  // Module geändert (contract_module_assignments)
+  if (newData.modules) {
+    changes.push(`Module aktualisiert`);
+  }
+  
+  // Startpakete/Pauschalen
+  if (newData.starter_packages || newData.flat_rates) {
+    changes.push(`Zusatzleistungen geändert`);
+  }
+  
+  return changes.length > 0 
+    ? `AUTO: ${changes.join(', ')}` 
+    : 'AUTO: Konfiguration aktualisiert';
+};
+```
+
+---
+
+## 🎪 KAMPAGNENVERTRÄGE
+
+### **Kampagnenvertrag erstellen**
+```typescript
+const createCampaignContract = async (
+  baseContractId: string,
+  campaignId: string,
+  modifications: Partial<Contract>
+): Promise<Contract> => {
+  const baseContract = await getContract(baseContractId);
+  
+  const campaignContract = {
+    ...baseContract,
+    ...modifications,
+    id: generateUUID(),
+    contract_group_id: baseContract.contract_group_id,
+    version_number: await getNextVersionNumber(baseContract.contract_group_id),
+    version_note: `KAMPAGNE: Kampagnenversion erstellt`,
+    is_campaign_version: true,
+    campaign_id: campaignId,
+    base_version_id: baseContractId,
+    auto_reactivate_version_id: baseContractId, // Nach Kampagne aktivieren
+    is_active: false, // Wird zeitgesteuert aktiviert
+    created_from_version_id: baseContractId
+  };
+  
+  return await createContract(campaignContract);
+};
+```
+
+### **Zeitgesteuerte Aktivierung**
+```typescript
+// Cron Job oder Trigger-basiert
+const activateCampaignContracts = async () => {
+  const today = new Date();
+  
+  // Kampagnen starten
+  const startingCampaigns = await supabase
+    .from('campaigns')
+    .select('id')
+    .eq('status', 'active')
+    .lte('start_date', today.toISOString())
+    .gte('end_date', today.toISOString());
+  
+  for (const campaign of startingCampaigns) {
+    // Kampagnenverträge aktivieren
+    await supabase
+      .from('contracts')
+      .update({ is_active: true })
+      .eq('campaign_id', campaign.id)
+      .eq('is_campaign_version', true);
+    
+    // Basis-Verträge deaktivieren
+    const campaignContracts = await supabase
+      .from('contracts')
+      .select('auto_reactivate_version_id')
+      .eq('campaign_id', campaign.id);
+    
+    for (const cc of campaignContracts) {
+      if (cc.auto_reactivate_version_id) {
+        await supabase
+          .from('contracts')
+          .update({ is_active: false })
+          .eq('id', cc.auto_reactivate_version_id);
+      }
+    }
+  }
+  
+  // Kampagnen beenden
+  const endingCampaigns = await supabase
+    .from('campaigns')
+    .select('id')
+    .gt('end_date', today.toISOString())
+    .eq('status', 'active');
+  
+  for (const campaign of endingCampaigns) {
+    // Kampagnenverträge deaktivieren
+    const campaignContracts = await supabase
+      .from('contracts')
+      .select('auto_reactivate_version_id')
+      .eq('campaign_id', campaign.id)
+      .eq('is_campaign_version', true);
+    
+    await supabase
+      .from('contracts')
+      .update({ is_active: false })
+      .eq('campaign_id', campaign.id);
+    
+    // Original-Verträge reaktivieren
+    for (const cc of campaignContracts) {
+      if (cc.auto_reactivate_version_id) {
+        await supabase
+          .from('contracts')
+          .update({ is_active: true })
+          .eq('id', cc.auto_reactivate_version_id);
+      }
+    }
+  }
+};
+```
+
+### **Kampagnenverlängerung**
+```typescript
+const extendCampaignContract = async (
+  campaignContractId: string,
+  extensionDate: Date
+): Promise<Contract> => {
+  const campaignContract = await getContract(campaignContractId);
+  
+  // Neue Verlängerungsversion erstellen
+  const extendedContract = {
+    ...campaignContract,
+    id: generateUUID(),
+    version_number: await getNextVersionNumber(campaignContract.contract_group_id),
+    version_note: `KAMPAGNE VERLÄNGERT: Bis ${extensionDate.toLocaleDateString()}`,
+    campaign_extension_date: extensionDate,
+    is_active: true,
+    created_from_version_id: campaignContractId
+  };
+  
+  // Alte Kampagnenversion deaktivieren
+  await updateContract(campaignContractId, { is_active: false });
+  
+  // Kampagne in campaigns Tabelle verlängern
+  await supabase
+    .from('campaigns')
+    .update({ end_date: extensionDate.toISOString() })
+    .eq('id', campaignContract.campaign_id);
+  
+  return await createContract(extendedContract);
+};
+```
+
+---
+
+## 🕒 HISTORIEN-TRACKING
+
+### **Versionshistorie anzeigen**
+```typescript
+const getContractVersionHistory = async (contractGroupId: string) => {
+  const versions = await supabase
+    .from('contracts')
+    .select(`
+      id,
+      version_number,
+      version_note,
+      is_active,
+      is_campaign_version,
+      campaign_id,
+      created_at,
+      created_by,
+      campaigns(name)
+    `)
+    .eq('contract_group_id', contractGroupId)
+    .order('version_number', { ascending: false });
+  
+  return versions.data?.map(v => ({
+    ...v,
+    version_display: `v${v.version_number}`,
+    is_current: v.is_active,
+    type: v.is_campaign_version ? 'Kampagne' : 'Standard',
+    campaign_name: v.campaigns?.name || null
+  }));
+};
+```
+
+### **Änderungsvergleich**
+```typescript
+const compareVersions = async (
+  version1Id: string, 
+  version2Id: string
+): Promise<VersionComparison> => {
+  const [v1, v2] = await Promise.all([
+    getContractWithDetails(version1Id),
+    getContractWithDetails(version2Id)
+  ]);
+  
+  const differences = {
+    basic_info: compareBasicInfo(v1, v2),
+    pricing: comparePricing(v1.terms, v2.terms),
+    modules: compareModules(v1.modules, v2.modules),
+    conditions: compareConditions(v1, v2)
+  };
+  
+  return {
+    version1: v1,
+    version2: v2,
+    differences,
+    change_summary: generateChangeSummary(differences)
+  };
+};
+```
+
+---
+
+## 🎨 UI-KOMPONENTEN
+
+### **Versionierungs-Modal**
+```tsx
+interface VersioningModalProps {
+  contractGroupId: string;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const VersioningModal: React.FC<VersioningModalProps> = ({
+  contractGroupId,
+  isOpen,
+  onClose
+}) => {
+  const [versions, setVersions] = useState<ContractVersion[]>([]);
+  const [selectedVersions, setSelectedVersions] = useState<[string, string] | null>(null);
+  
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <div className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Versionsverlauf</h3>
+        
+        {/* Versionshistorie */}
+        <div className="space-y-3 mb-6">
+          {versions.map(version => (
+            <div key={version.id} className={`
+              p-4 border rounded-lg 
+              ${version.is_current ? 'border-green-300 bg-green-50' : 'border-gray-200'}
+            `}>
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">v{version.version_number}</span>
+                    {version.is_current && (
+                      <Badge variant="green" size="sm">Aktiv</Badge>
+                    )}
+                    {version.is_campaign_version && (
+                      <Badge variant="blue" size="sm">Kampagne</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {version.version_note}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(version.created_at).toLocaleDateString()} - 
+                    {version.created_by?.name || 'System'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline">
+                    Anzeigen
+                  </Button>
+                  {!version.is_current && (
+                    <Button size="sm" variant="primary">
+                      Aktivieren
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Vergleichsfunktion */}
+        <div className="border-t pt-4">
+          <h4 className="font-medium mb-2">Versionen vergleichen</h4>
+          <div className="flex gap-4">
+            <Select placeholder="Version 1 wählen" />
+            <Select placeholder="Version 2 wählen" />
+            <Button variant="outline">Vergleichen</Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+```
+
+### **Versionsauswahl in Formularen**
+```tsx
+const ContractVersionSelector: React.FC<{
+  contractGroupId: string;
+  onVersionSelect: (versionId: string) => void;
+}> = ({ contractGroupId, onVersionSelect }) => {
+  const [versions, setVersions] = useState<ContractVersion[]>([]);
+  const [showAllVersions, setShowAllVersions] = useState(false);
+  
+  const visibleVersions = showAllVersions 
+    ? versions 
+    : versions.filter(v => v.is_active || v.is_campaign_version);
+  
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium">
+        Vertragsversion wählen
+      </label>
+      
+      <Select
+        options={visibleVersions.map(v => ({
+          value: v.id,
+          label: `v${v.version_number} ${v.is_campaign_version ? '(Kampagne)' : ''}`,
+          description: v.version_note
+        }))}
+        onChange={onVersionSelect}
+      />
+      
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={showAllVersions}
+          onChange={(e) => setShowAllVersions(e.target.checked)}
+        />
+        <label className="text-sm text-gray-600">
+          Alle Versionen anzeigen (inkl. inaktive)
+        </label>
+      </div>
+    </div>
+  );
+};
+```
+
+---
+
+## ⚠️ EDGE CASES & VALIDIERUNG
+
+### **Versionierungs-Regeln**
+1. **Nur eine aktive Version** pro `contract_group_id` außer Kampagnenversionen
+2. **Kampagnenversionen** können parallel zu Standard-Version aktiv sein
+3. **Bestandsschutz:** Bestehende Mitgliedschaften behalten ihre Vertragsversion
+4. **Verlängerungen:** Neue Mitgliedschaften bekommen immer die aktive Version
+
+### **Fehlerbehandlung**
+```typescript
+const validateVersioning = (contract: Contract): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  
+  // Prüfen ob bereits aktive Version existiert
+  const activeVersions = await getActiveVersions(contract.contract_group_id);
+  if (activeVersions.length > 1) {
+    errors.push({
+      field: 'version',
+      message: 'Es kann nur eine aktive Standard-Version geben'
+    });
+  }
+  
+  // Kampagnenversion ohne Kampagne
+  if (contract.is_campaign_version && !contract.campaign_id) {
+    errors.push({
+      field: 'campaign_id',
+      message: 'Kampagnenversion benötigt gültige Kampagne'
+    });
+  }
+  
+  return errors;
+};
+```
+
+---
+
+## 🚀 IMPLEMENTIERUNG PRIORITY
+
+1. **Basis-Versionierung** (Tabellen + grundlegende API)
+2. **Auto-Änderungsnotizen** (Text-Generation)
+3. **Kampagnenlogik** (zeitgesteuerte Aktivierung)
+4. **UI-Komponenten** (Versionierungs-Modal)
+5. **Erweiterte Features** (Vergleich, Export)
+
+**Geschätzte Zeit:** 4-5 Tage für vollständige Implementierung

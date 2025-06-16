@@ -1,0 +1,839 @@
+# 📄 VERTRAGSDOKUMENTE-SYSTEM V2
+
+## 🎯 KONZEPT & ZIELSETZUNG
+
+### **WYSIWYG-Editor Integration**
+- **Vollbild-Editor** für optimale Bearbeitung
+- **Live PDF-Vorschau** im Split-Screen-Layout  
+- **Modulare Abschnitte** für strukturierte Dokumente
+- **Bedingte Inhalte** basierend auf Vertragstyp
+
+### **Dokumentverknüpfung**
+- **Mehrfachzuordnung** zu verschiedenen Verträgen
+- **Überschreibungslogik** für vertragsspezifische Anpassungen
+- **Versionierung** parallel zu Verträgen
+- **Template-System** für wiederkehrende Strukturen
+
+### **PDF-Generation**
+- **Dynamische Inhalte** (Stammdaten, Zahlungskalender)
+- **Corporate Design** Integration
+- **Unterschriftsfelder** und Checkboxen
+- **Responsive Layouts** für verschiedene Ausgabeformate
+
+---
+
+## 🏗️ DOKUMENTSTRUKTUR
+
+### **Dokument-Hierarchie**
+```typescript
+interface ContractDocument {
+  id: string;
+  document_group_id: string; // Versionierung
+  version_number: number;
+  version_note?: string;
+  is_active: boolean;
+  
+  // Basis-Info
+  name: string;
+  description?: string;
+  
+  // Anzeige-Optionen
+  show_payment_calendar: boolean;
+  show_service_content: boolean;
+  show_member_data: boolean;
+  
+  // Template-Einstellungen
+  header_template?: string;
+  footer_template?: string;
+  css_styles?: string;
+  
+  // Beziehungen
+  sections: DocumentSection[];
+  contract_assignments: ContractDocumentAssignment[];
+}
+
+interface DocumentSection {
+  id: string;
+  document_id: string;
+  title: string;
+  content: string; // HTML vom WYSIWYG
+  sort_order: number;
+  
+  // Eigenschaften
+  is_mandatory: boolean;
+  requires_signature: boolean;
+  display_as_checkbox: boolean;
+  
+  // Bedingte Anzeige
+  show_condition?: {
+    field: string;
+    operator: 'equals' | 'not_equals' | 'contains';
+    value: any;
+  };
+}
+```
+
+### **Vertragsverknüpfung**
+```typescript
+interface ContractDocumentAssignment {
+  id: string;
+  contract_id: string;
+  document_id: string;
+  
+  // Überschreibungen pro Vertrag
+  override_settings?: {
+    show_payment_calendar?: boolean;
+    show_service_content?: boolean;
+    show_member_data?: boolean;
+    custom_header?: string;
+    custom_footer?: string;
+  };
+}
+```
+
+---
+
+## ✏️ WYSIWYG-EDITOR INTEGRATION
+
+### **Editor-Konfiguration (TinyMCE)**
+```typescript
+const TINYMCE_CONFIG = {
+  height: 600,
+  menubar: false,
+  plugins: [
+    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'print', 'preview',
+    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+    'insertdatetime', 'media', 'table', 'paste', 'code', 'help', 'wordcount'
+  ],
+  toolbar: [
+    'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify',
+    'bullist numlist outdent indent | removeformat | help | custom_variables | signatures'
+  ],
+  content_style: `
+    body { 
+      font-family: Arial, sans-serif; 
+      font-size: 12pt; 
+      line-height: 1.4;
+      margin: 20px;
+    }
+    .signature-field { 
+      border-bottom: 1px solid #000; 
+      min-height: 40px; 
+      display: inline-block; 
+      min-width: 200px; 
+      margin: 10px 5px;
+    }
+    .checkbox-field {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 1px solid #000;
+      margin-right: 8px;
+    }
+  `,
+  
+  // Custom Toolbar Buttons
+  setup: (editor: any) => {
+    // Variables Button
+    editor.ui.registry.addMenuButton('custom_variables', {
+      text: 'Variablen',
+      fetch: (callback: any) => {
+        const variables = [
+          { type: 'menuitem', text: 'Mitgliedsdaten', 
+            onAction: () => editor.insertContent('[MEMBER_DATA]') },
+          { type: 'menuitem', text: 'Vertragsdetails', 
+            onAction: () => editor.insertContent('[CONTRACT_DETAILS]') },
+          { type: 'menuitem', text: 'Zahlungskalender', 
+            onAction: () => editor.insertContent('[PAYMENT_CALENDAR]') },
+          { type: 'menuitem', text: 'Leistungsinhalt', 
+            onAction: () => editor.insertContent('[SERVICE_CONTENT]') },
+          { type: 'menuitem', text: 'Aktuelles Datum', 
+            onAction: () => editor.insertContent('[CURRENT_DATE]') },
+        ];
+        callback(variables);
+      }
+    });
+    
+    // Signatures Button
+    editor.ui.registry.addButton('signatures', {
+      text: 'Unterschrift',
+      onAction: () => {
+        editor.insertContent(`
+          <div class="signature-section">
+            <p>Datum, Ort: ________________</p>
+            <br/>
+            <div class="signature-field"></div>
+            <p>Unterschrift Mitglied</p>
+          </div>
+        `);
+      }
+    });
+  }
+};
+```
+
+### **Variable-System für dynamische Inhalte**
+```typescript
+const DOCUMENT_VARIABLES = {
+  '[MEMBER_DATA]': (member: Member) => `
+    <div class="member-data">
+      <h3>Mitgliedsdaten</h3>
+      <p><strong>Name:</strong> ${member.firstname} ${member.lastname}</p>
+      <p><strong>Adresse:</strong> ${member.address}</p>
+      <p><strong>E-Mail:</strong> ${member.email}</p>
+      <p><strong>Telefon:</strong> ${member.phone}</p>
+      <p><strong>Geburtsdatum:</strong> ${member.birthdate}</p>
+    </div>
+  `,
+  
+  '[CONTRACT_DETAILS]': (contract: Contract, membership: Membership) => `
+    <div class="contract-details">
+      <h3>Vertragsdetails</h3>
+      <p><strong>Vertragsart:</strong> ${contract.name}</p>
+      <p><strong>Laufzeit:</strong> ${membership.term} Monate</p>
+      <p><strong>Monatlicher Beitrag:</strong> €${membership.monthly_price}</p>
+      <p><strong>Vertragsbeginn:</strong> ${membership.start_date}</p>
+      <p><strong>Vertragsende:</strong> ${membership.end_date}</p>
+    </div>
+  `,
+  
+  '[PAYMENT_CALENDAR]': (membership: Membership) => `
+    <div class="payment-calendar">
+      <h3>Zahlungskalender</h3>
+      <table border="1" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th>Monat</th>
+            <th>Betrag</th>
+            <th>Fälligkeitsdatum</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${generatePaymentCalendarRows(membership)}
+        </tbody>
+      </table>
+    </div>
+  `,
+  
+  '[SERVICE_CONTENT]': (contract: Contract) => `
+    <div class="service-content">
+      <h3>Leistungsinhalt</h3>
+      <ul>
+        ${contract.modules_included.map(module => 
+          `<li>${module.name} - ${module.description}</li>`
+        ).join('')}
+      </ul>
+      
+      ${contract.modules_optional.length > 0 ? `
+        <h4>Zubuchbare Leistungen</h4>
+        <ul>
+          ${contract.modules_optional.map(module => 
+            `<li>${module.name} - €${module.price}/Monat</li>`
+          ).join('')}
+        </ul>
+      ` : ''}
+    </div>
+  `,
+  
+  '[CURRENT_DATE]': () => new Date().toLocaleDateString('de-DE')
+};
+
+const processDocumentVariables = (
+  content: string, 
+  context: {
+    member?: Member;
+    contract?: Contract;
+    membership?: Membership;
+  }
+): string => {
+  let processedContent = content;
+  
+  Object.entries(DOCUMENT_VARIABLES).forEach(([variable, generator]) => {
+    if (content.includes(variable)) {
+      const replacement = generator(context);
+      processedContent = processedContent.replace(
+        new RegExp(variable, 'g'), 
+        replacement
+      );
+    }
+  });
+  
+  return processedContent;
+};
+```
+
+---
+
+## 🖥️ VOLLBILD-EDITOR UI
+
+### **Split-Screen Layout**
+```tsx
+interface DocumentEditorProps {
+  documentId?: string;
+  isNewDocument?: boolean;
+  onSave: (document: ContractDocument) => void;
+  onClose: () => void;
+}
+
+const DocumentEditor: React.FC<DocumentEditorProps> = ({
+  documentId,
+  isNewDocument = false,
+  onSave,
+  onClose
+}) => {
+  const [document, setDocument] = useState<ContractDocument | null>(null);
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<PreviewContext | null>(null);
+  const [showPreview, setShowPreview] = useState(true);
+  
+  return (
+    <div className="fixed inset-0 bg-white z-50">
+      {/* Header */}
+      <div className="h-16 border-b flex items-center justify-between px-6 bg-gray-50">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={onClose}>
+            <ArrowLeft size={16} />
+            Zurück
+          </Button>
+          <div>
+            <h1 className="text-lg font-semibold">
+              {isNewDocument ? 'Neues Vertragsdokument' : document?.name}
+            </h1>
+            <p className="text-sm text-gray-600">
+              {document?.description}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowPreview(!showPreview)}
+          >
+            <Eye size={16} />
+            {showPreview ? 'Vorschau ausblenden' : 'Vorschau anzeigen'}
+          </Button>
+          
+          <Button variant="primary" onClick={handleSave}>
+            <Save size={16} />
+            Speichern
+          </Button>
+        </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className="h-[calc(100vh-4rem)] flex">
+        {/* Left Panel - Editor */}
+        <div className={`${showPreview ? 'w-1/2' : 'w-full'} flex flex-col border-r`}>
+          {/* Document Settings */}
+          <div className="h-48 border-b bg-gray-50 p-4 overflow-y-auto">
+            <DocumentSettings 
+              document={document}
+              onChange={setDocument}
+            />
+          </div>
+          
+          {/* Sections Management */}
+          <div className="h-32 border-b bg-gray-50 p-4">
+            <SectionManager
+              sections={document?.sections || []}
+              selectedSection={selectedSection}
+              onSectionSelect={setSelectedSection}
+              onSectionAdd={handleAddSection}
+              onSectionReorder={handleReorderSections}
+            />
+          </div>
+          
+          {/* WYSIWYG Editor */}
+          <div className="flex-1 p-4">
+            {selectedSection ? (
+              <TinyMCEEditor
+                key={selectedSection}
+                initialValue={getSelectedSectionContent()}
+                config={TINYMCE_CONFIG}
+                onChange={handleSectionContentChange}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-500">
+                <div className="text-center">
+                  <FileText size={48} className="mx-auto mb-4" />
+                  <p>Wählen Sie einen Abschnitt zum Bearbeiten</p>
+                  <p className="text-sm">oder erstellen Sie einen neuen Abschnitt</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Right Panel - PDF Preview */}
+        {showPreview && (
+          <div className="w-1/2 flex flex-col bg-gray-100">
+            <div className="h-16 border-b flex items-center justify-between px-4 bg-white">
+              <h3 className="font-medium">Live-Vorschau</h3>
+              
+              <div className="flex items-center gap-2">
+                <Select
+                  value={previewData?.member?.id || ''}
+                  onChange={handlePreviewMemberChange}
+                  placeholder="Mitglied für Vorschau wählen"
+                  size="sm"
+                />
+                
+                <Button size="sm" variant="outline" onClick={generatePDF}>
+                  <Download size={14} />
+                  PDF
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex-1 p-4">
+              <div className="bg-white shadow-lg rounded-lg overflow-hidden h-full">
+                <PDFPreview
+                  document={document}
+                  previewData={previewData}
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+```
+
+### **Abschnitts-Manager**
+```tsx
+interface SectionManagerProps {
+  sections: DocumentSection[];
+  selectedSection: string | null;
+  onSectionSelect: (sectionId: string) => void;
+  onSectionAdd: () => void;
+  onSectionReorder: (sections: DocumentSection[]) => void;
+}
+
+const SectionManager: React.FC<SectionManagerProps> = ({
+  sections,
+  selectedSection,
+  onSectionSelect,
+  onSectionAdd,
+  onSectionReorder
+}) => {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium">Dokumentabschnitte</h4>
+        <Button size="sm" onClick={onSectionAdd}>
+          <Plus size={14} />
+          Abschnitt hinzufügen
+        </Button>
+      </div>
+      
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {sections.map((section, index) => (
+          <button
+            key={section.id}
+            onClick={() => onSectionSelect(section.id)}
+            className={`
+              px-3 py-2 rounded-lg whitespace-nowrap text-sm flex items-center gap-2
+              ${selectedSection === section.id 
+                ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                : 'bg-white border border-gray-200 hover:bg-gray-50'
+              }
+            `}
+          >
+            <span className="text-xs bg-gray-200 px-1.5 py-0.5 rounded">
+              {index + 1}
+            </span>
+            {section.title || 'Unbenannter Abschnitt'}
+            
+            {section.is_mandatory && (
+              <Star size={12} className="text-red-500" />
+            )}
+            {section.requires_signature && (
+              <PenTool size={12} className="text-blue-500" />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+
+---
+
+## 📋 PDF-GENERATION
+
+### **PDF-Export mit Puppeteer**
+```typescript
+import puppeteer from 'puppeteer';
+
+interface PDFGenerationOptions {
+  document: ContractDocument;
+  member?: Member;
+  contract?: Contract;
+  membership?: Membership;
+  outputPath?: string;
+}
+
+const generateContractPDF = async (options: PDFGenerationOptions): Promise<Buffer> => {
+  const {
+    document,
+    member,
+    contract,
+    membership,
+    outputPath
+  } = options;
+  
+  // HTML Template zusammenbauen
+  const htmlContent = buildHTMLTemplate(document, {
+    member,
+    contract,
+    membership
+  });
+  
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+  
+  try {
+    const page = await browser.newPage();
+    
+    // HTML Content setzen
+    await page.setContent(htmlContent, {
+      waitUntil: 'networkidle0'
+    });
+    
+    // PDF generieren
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      margin: {
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm'
+      },
+      printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: document.header_template || '',
+      footerTemplate: document.footer_template || `
+        <div style="font-size: 10px; text-align: center; width: 100%;">
+          Seite <span class="pageNumber"></span> von <span class="totalPages"></span>
+        </div>
+      `
+    });
+    
+    if (outputPath) {
+      await writeFile(outputPath, pdfBuffer);
+    }
+    
+    return pdfBuffer;
+    
+  } finally {
+    await browser.close();
+  }
+};
+
+const buildHTMLTemplate = (
+  document: ContractDocument,
+  context: PreviewContext
+): string => {
+  let html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${document.name}</title>
+      <style>
+        ${document.css_styles || DEFAULT_PDF_STYLES}
+      </style>
+    </head>
+    <body>
+  `;
+  
+  // Abschnitte in richtiger Reihenfolge
+  const sortedSections = [...document.sections]
+    .sort((a, b) => a.sort_order - b.sort_order);
+  
+  for (const section of sortedSections) {
+    // Bedingte Anzeige prüfen
+    if (section.show_condition && !evaluateShowCondition(section.show_condition, context)) {
+      continue;
+    }
+    
+    html += `
+      <div class="document-section">
+        <h2>${section.title}</h2>
+        <div class="section-content">
+          ${processDocumentVariables(section.content, context)}
+        </div>
+      </div>
+    `;
+    
+    // Unterschriftsfeld hinzufügen
+    if (section.requires_signature) {
+      html += `
+        <div class="signature-section">
+          <div class="signature-line"></div>
+          <p class="signature-label">Unterschrift - ${section.title}</p>
+        </div>
+      `;
+    }
+  }
+  
+  html += `
+    </body>
+    </html>
+  `;
+  
+  return html;
+};
+
+const DEFAULT_PDF_STYLES = `
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 12pt;
+    line-height: 1.4;
+    color: #000;
+  }
+  
+  .document-section {
+    margin-bottom: 30px;
+    page-break-inside: avoid;
+  }
+  
+  .document-section h2 {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 5px;
+  }
+  
+  .signature-section {
+    margin-top: 40px;
+    page-break-inside: avoid;
+  }
+  
+  .signature-line {
+    border-bottom: 1px solid #000;
+    width: 300px;
+    height: 40px;
+    margin-bottom: 5px;
+  }
+  
+  .signature-label {
+    font-size: 10pt;
+    color: #666;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+  }
+`;
+```
+
+### **Live-Vorschau Component**
+```tsx
+interface PDFPreviewProps {
+  document: ContractDocument | null;
+  previewData: PreviewContext | null;
+  className?: string;
+}
+
+const PDFPreview: React.FC<PDFPreviewProps> = ({
+  document,
+  previewData,
+  className = ''
+}) => {
+  const [previewHtml, setPreviewHtml] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    if (document && previewData) {
+      generatePreviewHTML();
+    }
+  }, [document, previewData]);
+  
+  const generatePreviewHTML = async () => {
+    if (!document || !previewData) return;
+    
+    setIsLoading(true);
+    try {
+      const html = buildHTMLTemplate(document, previewData);
+      setPreviewHtml(html);
+    } catch (error) {
+      console.error('Error generating preview:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className={`flex items-center justify-center ${className}`}>
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+  
+  if (!previewHtml) {
+    return (
+      <div className={`flex items-center justify-center text-gray-500 ${className}`}>
+        <div className="text-center">
+          <FileX size={48} className="mx-auto mb-4" />
+          <p>Keine Vorschau verfügbar</p>
+          <p className="text-sm">Wählen Sie ein Mitglied für die Vorschau</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <iframe
+      srcDoc={previewHtml}
+      className={`border-0 ${className}`}
+      style={{ zoom: 0.8 }}
+      title="PDF Vorschau"
+    />
+  );
+};
+```
+
+---
+
+## 🔗 VERTRAGSVERKNÜPFUNG
+
+### **Dokument zu Verträgen zuordnen**
+```tsx
+const DocumentAssignmentModal: React.FC<{
+  documentId: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (assignments: ContractDocumentAssignment[]) => void;
+}> = ({ documentId, isOpen, onClose, onSave }) => {
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [assignments, setAssignments] = useState<ContractDocumentAssignment[]>([]);
+  
+  const handleToggleAssignment = (contractId: string) => {
+    const existingIndex = assignments.findIndex(a => a.contract_id === contractId);
+    
+    if (existingIndex >= 0) {
+      // Remove assignment
+      setAssignments(prev => prev.filter((_, i) => i !== existingIndex));
+    } else {
+      // Add assignment
+      setAssignments(prev => [...prev, {
+        id: generateUUID(),
+        contract_id: contractId,
+        document_id: documentId,
+        override_settings: {}
+      }]);
+    }
+  };
+  
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <div className="p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          Dokument zu Verträgen zuordnen
+        </h3>
+        
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {contracts.map(contract => {
+            const isAssigned = assignments.some(a => a.contract_id === contract.id);
+            
+            return (
+              <div key={contract.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <div className="font-medium">{contract.name}</div>
+                  <div className="text-sm text-gray-600">{contract.description}</div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  {isAssigned && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openOverrideSettings(contract.id)}
+                    >
+                      <Settings size={14} />
+                      Anpassen
+                    </Button>
+                  )}
+                  
+                  <input
+                    type="checkbox"
+                    checked={isAssigned}
+                    onChange={() => handleToggleAssignment(contract.id)}
+                    className="h-4 w-4 text-blue-600"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className="flex justify-end gap-3 mt-6">
+          <Button variant="outline" onClick={onClose}>
+            Abbrechen
+          </Button>
+          <Button onClick={() => onSave(assignments)}>
+            Zuordnungen speichern
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+```
+
+---
+
+## 🚀 IMPLEMENTIERUNG PRIORITY
+
+1. **Basis-Dokumentenverwaltung** (CRUD + Tabellen)
+2. **WYSIWYG-Editor Integration** (TinyMCE + Variables)
+3. **Abschnitts-System** (Sortierung + Eigenschaften)
+4. **PDF-Generation** (Puppeteer + Templates)
+5. **Live-Vorschau** (Split-Screen + Context)
+6. **Vertragsverknüpfung** (Assignment + Überschreibungen)
+
+**Geschätzte Zeit:** 4-5 Tage für vollständige Implementierung
+
+---
+
+## 📝 DEPENDENCIES
+
+### **Required NPM Packages**
+```json
+{
+  "dependencies": {
+    "@tinymce/tinymce-react": "^4.3.0",
+    "puppeteer": "^21.0.0",
+    "html-pdf": "^3.0.1",
+    "react-pdf": "^7.3.0"
+  }
+}
+```
+
+### **TinyMCE License**
+- Für kommerzielle Nutzung TinyMCE-Lizenz erforderlich
+- Alternative: QuillJS oder TipTap (Open Source)
+- Eval-Version für Entwicklung/Testing verfügbar

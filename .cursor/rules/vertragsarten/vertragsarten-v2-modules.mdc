@@ -1,0 +1,794 @@
+# 🧩 MODUL-SYSTEM V2
+
+## 🎯 KONZEPT & ZIELSETZUNG
+
+### **Kategorisierte Organisation**
+- **9 Standard-Kategorien** für systematische Ordnung
+- **Icon-basierte Darstellung** für bessere Usability
+- **Flexible Preisgestaltung** mit Überschreibungsmöglichkeit
+
+### **Schnellzuordnung**
+- **Bulk-Assignment** zu mehreren Verträgen gleichzeitig
+- **Matrix-View** zeigt Zuordnungen übersichtlich
+- **Automatische Updates** aller betroffenen Verträge
+
+### **Vertragsintegration**
+- **Enthalten vs. Zubuchbar** Unterscheidung
+- **Custom Pricing** pro Vertrag möglich
+- **Sortierbare Darstellung** in Vertragsauswahl
+
+---
+
+## 📂 KATEGORIEN-SYSTEM
+
+### **Standard-Kategorien**
+```typescript
+const MODULE_CATEGORIES = [
+  {
+    name: 'Training & Kurse',
+    description: 'Gruppenkurse, Personaltraining, Workshops',
+    icon: 'Dumbbell',
+    color: 'blue',
+    sort_order: 1
+  },
+  {
+    name: 'Wellness & Regeneration', 
+    description: 'Sauna, Massage, Entspannungsangebote',
+    icon: 'Waves',
+    color: 'teal',
+    sort_order: 2
+  },
+  {
+    name: 'Gesundheit & Diagnostik',
+    description: 'Gesundheitschecks, Körperanalyse',
+    icon: 'Heart',
+    color: 'red',
+    sort_order: 3
+  },
+  {
+    name: 'Premium & Komfort',
+    description: 'VIP-Bereiche, bevorzugte Behandlung',
+    icon: 'Crown',
+    color: 'yellow',
+    sort_order: 4
+  },
+  {
+    name: 'Familie & Kinder',
+    description: 'Kinderbetreuung, Familienkurse',
+    icon: 'Baby',
+    color: 'pink',
+    sort_order: 5
+  },
+  {
+    name: 'Digital & App-Funktionen',
+    description: 'Apps, Online-Content, Tracking',
+    icon: 'Smartphone',
+    color: 'purple',
+    sort_order: 6
+  },
+  {
+    name: 'Community & Events',
+    description: 'Veranstaltungen, Mitglieder-Events',
+    icon: 'Users',
+    color: 'green',
+    sort_order: 7
+  },
+  {
+    name: 'Zugang & Infrastruktur',
+    description: '24/7-Zugang, Parkplatz, Duschen',
+    icon: 'Building',
+    color: 'gray',
+    sort_order: 8
+  },
+  {
+    name: 'Ernährung & Coaching',
+    description: 'Ernährungsberatung, Lifestyle-Coaching',
+    icon: 'Apple',
+    color: 'orange',
+    sort_order: 9
+  }
+];
+```
+
+### **Kategorie-Verwaltung**
+```typescript
+interface ModuleCategory {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // Lucide Icon Name
+  color: string; // Tailwind Color
+  sort_order: number;
+  is_active: boolean;
+  module_count?: number; // Computed
+}
+
+const CategoryManager = {
+  // Neue Kategorie erstellen
+  create: async (category: Omit<ModuleCategory, 'id'>) => {
+    return await supabase
+      .from('module_categories')
+      .insert(category)
+      .select()
+      .single();
+  },
+  
+  // Kategorien mit Modulanzahl laden
+  getWithCounts: async () => {
+    return await supabase
+      .from('module_categories')
+      .select(`
+        *,
+        contract_modules(count)
+      `)
+      .eq('is_active', true)
+      .order('sort_order');
+  },
+  
+  // Kategorie-Sortierung aktualisieren
+  updateOrder: async (categoryIds: string[]) => {
+    const updates = categoryIds.map((id, index) => ({
+      id,
+      sort_order: index + 1
+    }));
+    
+    for (const update of updates) {
+      await supabase
+        .from('module_categories')
+        .update({ sort_order: update.sort_order })
+        .eq('id', update.id);
+    }
+  }
+};
+```
+
+---
+
+## 🎨 ICON-SYSTEM
+
+### **Icon-Auswahl Integration**
+```tsx
+interface IconPickerProps {
+  value?: string;
+  onChange: (iconName: string) => void;
+  showCustomUpload?: boolean;
+}
+
+const IconPicker: React.FC<IconPickerProps> = ({
+  value,
+  onChange,
+  showCustomUpload = true
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [customIcon, setCustomIcon] = useState<string | null>(null);
+  
+  // Lucide Icons für Module
+  const moduleIcons = [
+    'Dumbbell', 'Heart', 'Waves', 'Crown', 'Users', 'Smartphone', 
+    'Building', 'Apple', 'Baby', 'Zap', 'Target', 'Trophy',
+    'Calendar', 'Clock', 'Star', 'Shield', 'Headphones'
+  ];
+  
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-2 border rounded-lg hover:bg-gray-50"
+      >
+        {value ? (
+          <LucideIcon name={value} size={20} />
+        ) : (
+          <div className="w-5 h-5 bg-gray-200 rounded" />
+        )}
+        <span className="text-sm">{value || 'Icon wählen'}</span>
+        <ChevronDown size={16} />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 p-4 bg-white border rounded-lg shadow-lg z-50 w-80">
+          <div className="grid grid-cols-6 gap-2 mb-4">
+            {moduleIcons.map(iconName => (
+              <button
+                key={iconName}
+                type="button"
+                onClick={() => {
+                  onChange(iconName);
+                  setIsOpen(false);
+                }}
+                className={`
+                  p-2 rounded hover:bg-gray-100 flex items-center justify-center
+                  ${value === iconName ? 'bg-blue-100 ring-2 ring-blue-500' : ''}
+                `}
+              >
+                <LucideIcon name={iconName} size={20} />
+              </button>
+            ))}
+          </div>
+          
+          {showCustomUpload && (
+            <div className="border-t pt-4">
+              <FileUpload
+                accept="image/*"
+                onUpload={(fileUrl) => {
+                  setCustomIcon(fileUrl);
+                  onChange(`custom:${fileUrl}`);
+                  setIsOpen(false);
+                }}
+                maxSize={1024 * 1024} // 1MB
+              >
+                <div className="text-center py-4 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-gray-400">
+                  <Upload size={24} className="mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-600">Eigenes Icon hochladen</p>
+                </div>
+              </FileUpload>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+### **Icon-Rendering Component**
+```tsx
+interface ModuleIconProps {
+  iconName?: string;
+  iconAssetId?: string;
+  size?: number;
+  className?: string;
+}
+
+const ModuleIcon: React.FC<ModuleIconProps> = ({
+  iconName,
+  iconAssetId,
+  size = 20,
+  className = ''
+}) => {
+  // Custom uploaded icon
+  if (iconAssetId) {
+    return (
+      <img
+        src={`/api/files/${iconAssetId}`}
+        alt="Module Icon"
+        width={size}
+        height={size}
+        className={`rounded ${className}`}
+      />
+    );
+  }
+  
+  // Lucide icon
+  if (iconName && iconName.startsWith('custom:')) {
+    const url = iconName.replace('custom:', '');
+    return (
+      <img
+        src={url}
+        alt="Module Icon"
+        width={size}
+        height={size}
+        className={`rounded ${className}`}
+      />
+    );
+  }
+  
+  // Standard Lucide icon
+  if (iconName) {
+    return <LucideIcon name={iconName} size={size} className={className} />;
+  }
+  
+  // Fallback
+  return (
+    <div 
+      className={`bg-gray-200 rounded ${className}`}
+      style={{ width: size, height: size }}
+    />
+  );
+};
+```
+
+---
+
+## ⚡ SCHNELLZUORDNUNG-SYSTEM
+
+### **Bulk-Assignment Modal**
+```tsx
+interface QuickAssignmentModalProps {
+  moduleId: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (assignments: ModuleAssignment[]) => void;
+}
+
+interface ModuleAssignment {
+  contractId: string;
+  contractName: string;
+  currentType: 'none' | 'included' | 'optional';
+  newType: 'none' | 'included' | 'optional';
+  customPrice?: number;
+}
+
+const QuickAssignmentModal: React.FC<QuickAssignmentModalProps> = ({
+  moduleId,
+  isOpen,
+  onClose,
+  onSave
+}) => {
+  const [assignments, setAssignments] = useState<ModuleAssignment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    if (isOpen && moduleId) {
+      loadCurrentAssignments();
+    }
+  }, [isOpen, moduleId]);
+  
+  const loadCurrentAssignments = async () => {
+    setIsLoading(true);
+    try {
+      // Alle aktiven Verträge laden
+      const { data: contracts } = await supabase
+        .from('contracts')
+        .select('id, name, contract_group_id')
+        .eq('is_active', true)
+        .eq('is_campaign_version', false);
+      
+      // Bestehende Zuordnungen für dieses Modul laden
+      const { data: existingAssignments } = await supabase
+        .from('contract_module_assignments')
+        .select('contract_id, assignment_type, custom_price')
+        .eq('module_id', moduleId);
+      
+      const assignmentMap = new Map(
+        existingAssignments?.map(a => [a.contract_id, a]) || []
+      );
+      
+      const assignmentData = contracts?.map(contract => ({
+        contractId: contract.id,
+        contractName: contract.name,
+        currentType: assignmentMap.get(contract.id)?.assignment_type || 'none',
+        newType: assignmentMap.get(contract.id)?.assignment_type || 'none',
+        customPrice: assignmentMap.get(contract.id)?.custom_price
+      })) || [];
+      
+      setAssignments(assignmentData);
+    } catch (error) {
+      console.error('Error loading assignments:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const updateAssignment = (contractId: string, newType: 'none' | 'included' | 'optional') => {
+    setAssignments(prev => prev.map(a => 
+      a.contractId === contractId ? { ...a, newType } : a
+    ));
+  };
+  
+  const handleSave = async () => {
+    const changedAssignments = assignments.filter(a => a.currentType !== a.newType);
+    onSave(changedAssignments);
+    onClose();
+  };
+  
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <div className="p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          Modul schnell zuordnen
+        </h3>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
+          </div>
+        ) : (
+          <>
+            {/* Header mit Bulk-Aktionen */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => assignments.forEach(a => updateAssignment(a.contractId, 'included'))}
+              >
+                Alle: Enthalten
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => assignments.forEach(a => updateAssignment(a.contractId, 'optional'))}
+              >
+                Alle: Zubuchbar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => assignments.forEach(a => updateAssignment(a.contractId, 'none'))}
+              >
+                Alle: Nicht zugeordnet
+              </Button>
+            </div>
+            
+            {/* Assignment-Matrix */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b grid grid-cols-4 gap-4 font-medium text-sm">
+                <div>Vertrag</div>
+                <div className="text-center">Enthalten</div>
+                <div className="text-center">Zubuchbar</div>
+                <div className="text-center">Nicht zugeordnet</div>
+              </div>
+              
+              <div className="max-h-96 overflow-y-auto">
+                {assignments.map(assignment => (
+                  <div key={assignment.contractId} className="px-4 py-3 border-b grid grid-cols-4 gap-4 items-center hover:bg-gray-50">
+                    <div className="font-medium">
+                      {assignment.contractName}
+                      {assignment.currentType !== 'none' && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          (aktuell: {assignment.currentType === 'included' ? 'enthalten' : 'zubuchbar'})
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="text-center">
+                      <input
+                        type="radio"
+                        name={`assignment-${assignment.contractId}`}
+                        checked={assignment.newType === 'included'}
+                        onChange={() => updateAssignment(assignment.contractId, 'included')}
+                        className="h-4 w-4 text-green-600"
+                      />
+                    </div>
+                    
+                    <div className="text-center">
+                      <input
+                        type="radio"
+                        name={`assignment-${assignment.contractId}`}
+                        checked={assignment.newType === 'optional'}
+                        onChange={() => updateAssignment(assignment.contractId, 'optional')}
+                        className="h-4 w-4 text-blue-600"
+                      />
+                    </div>
+                    
+                    <div className="text-center">
+                      <input
+                        type="radio"
+                        name={`assignment-${assignment.contractId}`}
+                        checked={assignment.newType === 'none'}
+                        onChange={() => updateAssignment(assignment.contractId, 'none')}
+                        className="h-4 w-4 text-gray-600"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="flex justify-between items-center mt-6">
+              <div className="text-sm text-gray-600">
+                {assignments.filter(a => a.currentType !== a.newType).length} Änderungen
+              </div>
+              
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={onClose}>
+                  Abbrechen
+                </Button>
+                <Button onClick={handleSave}>
+                  Speichern
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+};
+```
+
+### **Bulk-Update API**
+```typescript
+const ModulesAPI = {
+  // Schnellzuordnung speichern
+  updateBulkAssignments: async (
+    moduleId: string, 
+    assignments: ModuleAssignment[]
+  ) => {
+    const { data, error } = await supabase.rpc('update_module_assignments', {
+      module_id: moduleId,
+      assignments: assignments.map(a => ({
+        contract_id: a.contractId,
+        assignment_type: a.newType === 'none' ? null : a.newType,
+        custom_price: a.customPrice
+      }))
+    });
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  // Module mit Zuordnungsstatistik laden
+  getModulesWithStats: async () => {
+    return await supabase
+      .from('contract_modules')
+      .select(`
+        *,
+        module_categories(name, icon, color),
+        contract_module_assignments(
+          assignment_type,
+          contracts(name)
+        )
+      `)
+      .eq('is_active', true)
+      .order('name');
+  }
+};
+
+// Stored Procedure für performante Bulk-Updates
+const createBulkUpdateFunction = `
+CREATE OR REPLACE FUNCTION update_module_assignments(
+  module_id uuid,
+  assignments jsonb
+) RETURNS void AS $$
+DECLARE
+  assignment jsonb;
+BEGIN
+  -- Alle bestehenden Zuordnungen für dieses Modul löschen
+  DELETE FROM contract_module_assignments 
+  WHERE module_id = update_module_assignments.module_id;
+  
+  -- Neue Zuordnungen einfügen
+  FOR assignment IN SELECT * FROM jsonb_array_elements(assignments)
+  LOOP
+    IF (assignment->>'assignment_type') IS NOT NULL THEN
+      INSERT INTO contract_module_assignments (
+        module_id,
+        contract_id,
+        assignment_type,
+        custom_price
+      ) VALUES (
+        update_module_assignments.module_id,
+        (assignment->>'contract_id')::uuid,
+        assignment->>'assignment_type',
+        CASE 
+          WHEN assignment->>'custom_price' IS NOT NULL 
+          THEN (assignment->>'custom_price')::decimal(10,2)
+          ELSE NULL
+        END
+      );
+    END IF;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+`;
+```
+
+---
+
+## 🎛️ MODUL-VERWALTUNG UI
+
+### **Kategorisierte Modulübersicht**
+```tsx
+const ModulesOverview: React.FC = () => {
+  const [modules, setModules] = useState<ContractModule[]>([]);
+  const [categories, setCategories] = useState<ModuleCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isQuickAssignOpen, setIsQuickAssignOpen] = useState(false);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+  
+  const filteredModules = selectedCategory
+    ? modules.filter(m => m.category_id === selectedCategory)
+    : modules;
+  
+  return (
+    <div className="space-y-6">
+      {/* Kategorie-Filter */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={`px-4 py-2 rounded-lg whitespace-nowrap ${
+            !selectedCategory ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 hover:bg-gray-200'
+          }`}
+        >
+          Alle Module ({modules.length})
+        </button>
+        {categories.map(category => (
+          <button
+            key={category.id}
+            onClick={() => setSelectedCategory(category.id)}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap flex items-center gap-2 ${
+              selectedCategory === category.id 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-gray-100 hover:bg-gray-200'
+            }`}
+          >
+            <LucideIcon name={category.icon} size={16} />
+            {category.name} ({category.module_count || 0})
+          </button>
+        ))}
+      </div>
+      
+      {/* Module Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredModules.map(module => (
+          <Card key={module.id} className="p-4">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <ModuleIcon
+                  iconName={module.icon_name}
+                  iconAssetId={module.icon_file_asset_id}
+                  size={24}
+                />
+                <div>
+                  <h3 className="font-medium">{module.name}</h3>
+                  <p className="text-sm text-gray-600">{module.description}</p>
+                </div>
+              </div>
+              
+              <Badge variant={module.is_active ? 'green' : 'gray'}>
+                {module.is_active ? 'Aktiv' : 'Inaktiv'}
+              </Badge>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-lg font-semibold">
+                  {formatPrice(module.price_per_month)}/Monat
+                </p>
+                <p className="text-xs text-gray-500">
+                  {module.assignment_stats?.included || 0} enthalten, {' '}
+                  {module.assignment_stats?.optional || 0} zubuchbar
+                </p>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedModuleId(module.id);
+                    setIsQuickAssignOpen(true);
+                  }}
+                >
+                  <Zap size={14} />
+                  Schnellzuordnung
+                </Button>
+                
+                <DropdownMenu>
+                  <DropdownMenu.Trigger asChild>
+                    <Button size="sm" variant="outline">
+                      <MoreVertical size={14} />
+                    </Button>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content>
+                    <DropdownMenu.Item onClick={() => editModule(module.id)}>
+                      <Edit size={14} />
+                      Bearbeiten
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item onClick={() => duplicateModule(module.id)}>
+                      <Copy size={14} />
+                      Duplizieren
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item onClick={() => deleteModule(module.id)}>
+                      <Trash size={14} />
+                      Löschen
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+      
+      {/* Schnellzuordnung Modal */}
+      <QuickAssignmentModal
+        moduleId={selectedModuleId || ''}
+        isOpen={isQuickAssignOpen}
+        onClose={() => setIsQuickAssignOpen(false)}
+        onSave={handleBulkAssignment}
+      />
+    </div>
+  );
+};
+```
+
+---
+
+## 🔄 PREISÜBERSCHREIBUNG
+
+### **Custom Pricing pro Vertrag**
+```typescript
+interface ModuleCustomPricing {
+  moduleId: string;
+  contractId: string;
+  customPrice?: number; // null = Standard-Modulpreis verwenden
+  priceNote?: string; // Begründung für Abweichung
+}
+
+const PriceOverrideModal: React.FC<{
+  assignment: ModuleAssignment;
+  isOpen: boolean;
+  onSave: (customPrice?: number, note?: string) => void;
+  onClose: () => void;
+}> = ({ assignment, isOpen, onSave, onClose }) => {
+  const [useCustomPrice, setUseCustomPrice] = useState(false);
+  const [customPrice, setCustomPrice] = useState<number>(0);
+  const [note, setNote] = useState('');
+  
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          Preis anpassen für "{assignment.contractName}"
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">Standard-Modulpreis</p>
+            <p className="text-xl font-semibold">
+              {formatPrice(assignment.standardPrice)}/Monat
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useCustomPrice}
+              onChange={(e) => setUseCustomPrice(e.target.checked)}
+            />
+            <label>Individuellen Preis festlegen</label>
+          </div>
+          
+          {useCustomPrice && (
+            <div className="space-y-3">
+              <FormField
+                label="Custom Preis (€/Monat)"
+                type="number"
+                step="0.01"
+                value={customPrice}
+                onChange={(e) => setCustomPrice(parseFloat(e.target.value))}
+              />
+              
+              <FormField
+                label="Begründung (optional)"
+                type="textarea"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="z.B. Sonderkonditionen, Partnerrabatt..."
+              />
+            </div>
+          )}
+        </div>
+        
+        <div className="flex justify-end gap-3 mt-6">
+          <Button variant="outline" onClick={onClose}>
+            Abbrechen
+          </Button>
+          <Button onClick={() => onSave(
+            useCustomPrice ? customPrice : undefined,
+            note || undefined
+          )}>
+            Speichern
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+```
+
+---
+
+## 🚀 IMPLEMENTIERUNG PRIORITY
+
+1. **Kategorien-System** (Tabellen + Standard-Daten)
+2. **Icon-Integration** (Picker + Rendering) 
+3. **Basis-Modulverwaltung** (CRUD + UI)
+4. **Schnellzuordnung** (Bulk-Modal + API)
+5. **Preisüberschreibung** (Custom Pricing)
+6. **Erweiterte Features** (Statistiken, Export)
+
+**Geschätzte Zeit:** 3-4 Tage für vollständige Implementierung
