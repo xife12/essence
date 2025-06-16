@@ -1,582 +1,320 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import Link from 'next/link';
 import { 
-  Plus, 
+  ArrowLeft, 
   Save, 
-  ArrowLeft,
-  Package,
-  Settings,
-  Users,
-  AlertTriangle,
-  Upload,
-  Search,
-  Dumbbell,
-  Waves,
-  Heart,
-  Crown,
-  Baby,
-  Smartphone,
-  Building,
-  Apple,
-  Target,
-  Calendar,
-  Star,
-  Shield,
   Zap,
-  Coffee,
-  Home,
+  Package,
+  DollarSign,
+  AlertCircle,
   CheckCircle
 } from 'lucide-react';
-import ContractsV2API from '@/lib/api/contracts-v2';
+import ContractsV2API from '../../../lib/api/contracts-v2';
 import type { 
-  ModuleFormData, 
+  ModuleFormData,
   ModuleCategory,
-  Contract,
-  ModuleAssignment,
   ValidationResult 
-} from '@/lib/types/contracts-v2';
+} from '../../../lib/types/contracts-v2';
 
-// Icon mapping for module categories
-const LUCIDE_ICONS = [
-  { name: 'Dumbbell', icon: Dumbbell, category: 'Training & Kurse' },
-  { name: 'Waves', icon: Waves, category: 'Wellness & Regeneration' },
-  { name: 'Heart', icon: Heart, category: 'Gesundheit & Diagnostik' },
-  { name: 'Crown', icon: Crown, category: 'Premium & Komfort' },
-  { name: 'Baby', icon: Baby, category: 'Familie & Kinder' },
-  { name: 'Smartphone', icon: Smartphone, category: 'Digital & App-Funktionen' },
-  { name: 'Users', icon: Users, category: 'Community & Events' },
-  { name: 'Building', icon: Building, category: 'Zugang & Infrastruktur' },
-  { name: 'Apple', icon: Apple, category: 'Ernährung & Coaching' },
-  { name: 'Target', icon: Target, category: 'Training & Kurse' },
-  { name: 'Calendar', icon: Calendar, category: 'Community & Events' },
-  { name: 'Star', icon: Star, category: 'Premium & Komfort' },
-  { name: 'Shield', icon: Shield, category: 'Premium & Komfort' },
-  { name: 'Zap', icon: Zap, category: 'Digital & App-Funktionen' },
-  { name: 'Coffee', icon: Coffee, category: 'Wellness & Regeneration' },
-  { name: 'Home', icon: Home, category: 'Zugang & Infrastruktur' },
-  { name: 'Package', icon: Package, category: 'default' }
-];
-
-export default function NewModulePage() {
+export default function NeuesModulPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('basic');
-  
-  // Available data
+  const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<ModuleCategory[]>([]);
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  
-  // Validation
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  
-  // Icon selection
-  const [showIconPicker, setShowIconPicker] = useState(false);
-  const [iconSearch, setIconSearch] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
+  const [success, setSuccess] = useState(false);
 
-  // Bulk assignment for contracts
-  const [moduleAssignments, setModuleAssignments] = useState<ModuleAssignment[]>([]);
-  const [assignmentSearch, setAssignmentSearch] = useState('');
-
-  // Form data
+  // Form State
   const [formData, setFormData] = useState<ModuleFormData>({
     name: '',
     description: '',
     price_per_month: 0,
     category_id: '',
-    icon_name: 'Package',
-    icon_file_asset_id: '',
+    icon_name: '',
     is_active: true
   });
 
   useEffect(() => {
-    loadAvailableData();
+    loadCategories();
   }, []);
 
-  const loadAvailableData = async () => {
-    setIsLoading(true);
+  const loadCategories = async () => {
     try {
-      const [categoriesData, contractsData] = await Promise.all([
-        ContractsV2API.categories.getAll(),
-        ContractsV2API.contracts.getActive()
-      ]);
-      setCategories(categoriesData);
-      setContracts(contractsData);
-      
-      // Initialize assignments
-      const assignments: ModuleAssignment[] = contractsData.map(contract => ({
-        contractId: contract.id,
-        contractName: contract.name,
-        currentType: 'none',
-        newType: 'none',
-        customPrice: undefined,
-        standardPrice: formData.price_per_month
-      }));
-      setModuleAssignments(assignments);
-      
-    } catch (error) {
-      console.error('Fehler beim Laden der Daten:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleInputChange = (field: keyof ModuleFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Update standard price in assignments when price changes
-    if (field === 'price_per_month') {
-      setModuleAssignments(prev => prev.map(assignment => ({
-        ...assignment,
-        standardPrice: value
-      })));
-    }
-    
-    // Clear validation errors when user starts typing
-    if (validationErrors.length > 0) {
-      setValidationErrors([]);
-    }
-  };
-
-  const handleIconSelect = (iconName: string) => {
-    handleInputChange('icon_name', iconName);
-    setShowIconPicker(false);
-  };
-
-  const handleAssignmentChange = (contractId: string, type: 'none' | 'included' | 'optional', customPrice?: number) => {
-    setModuleAssignments(prev => prev.map(assignment => 
-      assignment.contractId === contractId 
-        ? { ...assignment, newType: type, customPrice }
-        : assignment
-    ));
-  };
-
-  const validateForm = (): boolean => {
-    const validation = ContractsV2API.modules.validate(formData);
-    if (!validation.isValid) {
-      setValidationErrors(validation.errors.map(e => e.message));
-      return false;
-    }
-    setValidationErrors([]);
-    return true;
-  };
-
-  const handleSave = async () => {
-    if (!validateForm()) {
-      setActiveTab('basic'); // Switch to first tab if validation fails
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      // Create module first
-      const module = await ContractsV2API.modules.create(formData);
-      
-      // Then handle bulk assignments if any
-      const assignmentsToCreate = moduleAssignments.filter(a => a.newType !== 'none');
-      if (assignmentsToCreate.length > 0) {
-        await ContractsV2API.modules.updateBulkAssignments(module.id, assignmentsToCreate);
+      const response = await ContractsV2API.getModuleCategories();
+      if (response.data) {
+        setCategories(response.data);
       }
-      
-      router.push(`/vertragsarten-v2/modules/${module.id}`);
     } catch (error) {
-      console.error('Fehler beim Speichern:', error);
-      setValidationErrors(['Fehler beim Speichern des Moduls']);
-    } finally {
-      setIsSaving(false);
+      console.error('Error loading categories:', error);
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(price);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrors([]);
+
+    try {
+      // Validierung
+      const validation = ContractsV2API.validateModule(formData);
+      if (!validation.isValid) {
+        setErrors(validation.errors);
+        setLoading(false);
+        return;
+      }
+
+      // Modul erstellen
+      const response = await ContractsV2API.createModule(formData);
+      
+      if (response.error) {
+        setErrors([response.error]);
+      } else {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/vertragsarten-v2');
+        }, 1500);
+      }
+    } catch (error) {
+      setErrors(['Ein unerwarteter Fehler ist aufgetreten']);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getSelectedIcon = () => {
-    const selectedIcon = LUCIDE_ICONS.find(icon => icon.name === formData.icon_name);
-    return selectedIcon ? selectedIcon.icon : Package;
-  };
-
-  const getFilteredIcons = () => {
-    if (!iconSearch) return LUCIDE_ICONS;
-    return LUCIDE_ICONS.filter(icon => 
-      icon.name.toLowerCase().includes(iconSearch.toLowerCase()) ||
-      icon.category.toLowerCase().includes(iconSearch.toLowerCase())
-    );
-  };
-
-  const getFilteredAssignments = () => {
-    if (!assignmentSearch) return moduleAssignments;
-    return moduleAssignments.filter(assignment =>
-      assignment.contractName.toLowerCase().includes(assignmentSearch.toLowerCase())
-    );
-  };
-
-  const getAssignmentCounts = () => {
-    const included = moduleAssignments.filter(a => a.newType === 'included').length;
-    const optional = moduleAssignments.filter(a => a.newType === 'optional').length;
-    return { included, optional, total: included + optional };
-  };
-
-  if (isLoading) {
+  if (success) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-lg">Laden...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Modul erstellt!</h2>
+          <p className="text-gray-600">Sie werden automatisch weitergeleitet...</p>
         </div>
       </div>
     );
   }
 
-  const SelectedIcon = getSelectedIcon();
-  const counts = getAssignmentCounts();
-
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.back()}
-            className="p-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Neues Modul</h1>
-            <p className="text-muted-foreground">
-              Erstellen Sie ein neues Modul für Vertragsarten
-            </p>
+    <div className="min-h-screen bg-gray-50 py-6">
+      <div className="max-w-2xl mx-auto px-4">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <Link 
+              href="/vertragsarten-v2"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Neues Modul</h1>
+              <p className="text-gray-600">Erstellen Sie ein neues Vertragsmodul</p>
+            </div>
           </div>
         </div>
-        
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.back()}>
-            Abbrechen
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <>Speichern...</>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Speichern
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
 
-      {/* Validation Errors */}
-      {validationErrors.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-4">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
-              <div>
-                <h3 className="font-medium text-red-800">Validierungsfehler</h3>
-                <ul className="mt-1 text-sm text-red-700 space-y-1">
-                  {validationErrors.map((error, index) => (
-                    <li key={index}>• {error}</li>
-                  ))}
-                </ul>
-              </div>
+        {/* Error Messages */}
+        {errors.length > 0 && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="text-red-600" size={20} />
+              <h3 className="font-medium text-red-800">Fehler beim Speichern</h3>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <ul className="text-red-700 text-sm space-y-1">
+              {errors.map((error, index) => (
+                <li key={index}>• {error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      {/* Form Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="basic">Grunddaten</TabsTrigger>
-          <TabsTrigger value="assignments">
-            Vertrags-Zuordnungen
-            {counts.total > 0 && (
-              <Badge variant="secondary" className="ml-2">{counts.total}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="settings">Einstellungen</TabsTrigger>
-        </TabsList>
-
-        {/* BASIC INFO TAB */}
-        <TabsContent value="basic" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <SelectedIcon className="h-5 w-5" />
-                Modul-Grunddaten
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Modulname *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="z.B. Gruppenkurse, Sauna-Zugang"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="price">Preis pro Monat (€) *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.price_per_month}
-                    onChange={(e) => handleInputChange('price_per_month', parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                  />
-                </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Basis-Informationen */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Zap size={20} />
+              Modul-Informationen
+            </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="z.B. Sauna-Zugang"
+                  required
+                />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Beschreibung</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description || ''}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Beschreibung des Moduls und der enthaltenen Leistungen..."
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Beschreibung
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Beschreibung des Moduls..."
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Kategorie</Label>
-                  <select 
-                    className="w-full px-3 py-2 border rounded-md"
-                    value={formData.category_id || ''}
-                    onChange={(e) => handleInputChange('category_id', e.target.value)}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Preis pro Monat (€) *
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.price_per_month}
+                      onChange={(e) => setFormData(prev => ({ ...prev, price_per_month: parseFloat(e.target.value) || 0 }))}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Kategorie
+                  </label>
+                  <select
+                    value={formData.category_id}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">Kategorie auswählen...</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option value="">Keine Kategorie</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
                     ))}
                   </select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Icon</Label>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowIconPicker(true)}
-                      className="flex items-center gap-2"
-                    >
-                      <SelectedIcon className="h-4 w-4" />
-                      {formData.icon_name}
-                    </Button>
-                    <Button variant="outline" size="icon">
-                      <Upload className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
               </div>
 
-              {/* Preview */}
-              <Card className="bg-muted/50">
-                <CardContent className="pt-4">
-                  <h3 className="font-medium mb-2">Vorschau</h3>
-                  <div className="flex items-center justify-between p-3 border rounded-lg bg-white">
-                    <div className="flex items-center gap-3">
-                      <SelectedIcon className="h-6 w-6 text-primary" />
-                      <div>
-                        <h4 className="font-medium">{formData.name || 'Modulname'}</h4>
-                        {formData.description && (
-                          <p className="text-sm text-muted-foreground">
-                            {formData.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold">{formatPrice(formData.price_per_month)}</div>
-                      <div className="text-sm text-muted-foreground">pro Monat</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </CardContent>
-          </Card>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Icon-Name (Lucide Icon)
+                </label>
+                <input
+                  type="text"
+                  value={formData.icon_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, icon_name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="z.B. Waves, Dumbbell, Heart"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Optional: Name eines Lucide Icons für die Anzeige
+                </p>
+              </div>
 
-          {/* Icon Picker Dialog */}
-          <Dialog open={showIconPicker} onOpenChange={setShowIconPicker}>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Icon auswählen</DialogTitle>
-              </DialogHeader>
-              
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Icons durchsuchen..."
-                    value={iconSearch}
-                    onChange={(e) => setIconSearch(e.target.value)}
-                    className="pl-10"
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
+                  <span className="text-sm font-medium text-gray-700">Modul aktiv</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Inaktive Module können nicht neuen Verträgen zugeordnet werden
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Vorschau */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Vorschau</h2>
+            
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Zap size={20} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      {formData.name || 'Modulname'}
+                    </h3>
+                    {formData.category_id && (
+                      <span className="text-sm text-gray-500">
+                        {categories.find(c => c.id === formData.category_id)?.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
-                <div className="grid grid-cols-6 gap-2">
-                  {getFilteredIcons().map(({ name, icon: IconComponent, category }) => (
-                    <Button
-                      key={name}
-                      variant={formData.icon_name === name ? "default" : "outline"}
-                      className="h-16 flex-col gap-1"
-                      onClick={() => handleIconSelect(name)}
-                    >
-                      <IconComponent className="h-6 w-6" />
-                      <span className="text-xs">{name}</span>
-                    </Button>
-                  ))}
-                </div>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  formData.is_active 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {formData.is_active ? 'Aktiv' : 'Inaktiv'}
+                </span>
               </div>
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-
-        {/* ASSIGNMENTS TAB */}
-        <TabsContent value="assignments" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Vertrags-Zuordnungen
-                </CardTitle>
-                <div className="flex gap-2 text-sm">
-                  <Badge variant="default">{counts.included} inkludiert</Badge>
-                  <Badge variant="secondary">{counts.optional} optional</Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Verträge durchsuchen..."
-                  value={assignmentSearch}
-                  onChange={(e) => setAssignmentSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              <div className="space-y-3">
-                {getFilteredAssignments().map(assignment => (
-                  <div key={assignment.contractId} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium">{assignment.contractName}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-muted-foreground">
-                          Standardpreis: {formatPrice(assignment.standardPrice)}
-                        </span>
-                        {assignment.customPrice && assignment.customPrice !== assignment.standardPrice && (
-                          <span className="text-sm font-medium text-primary">
-                            → {formatPrice(assignment.customPrice)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={assignment.newType === 'included' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleAssignmentChange(assignment.contractId, 'included')}
-                      >
-                        Inkludiert
-                      </Button>
-                      <Button
-                        variant={assignment.newType === 'optional' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleAssignmentChange(assignment.contractId, 'optional')}
-                      >
-                        Optional
-                      </Button>
-                      <Button
-                        variant={assignment.newType === 'none' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleAssignmentChange(assignment.contractId, 'none')}
-                      >
-                        Nicht zugeordnet
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {moduleAssignments.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Keine aktiven Verträge vorhanden</p>
-                </div>
+              
+              {formData.description && (
+                <p className="text-gray-600 text-sm mb-3">{formData.description}</p>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* SETTINGS TAB */}
-        <TabsContent value="settings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Modul-Einstellungen
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+              
               <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base">Modul aktivieren</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aktive Module können neuen Verträgen zugeordnet werden
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => handleInputChange('is_active', checked)}
-                />
+                <span className="text-lg font-semibold text-gray-900">
+                  {new Intl.NumberFormat('de-DE', {
+                    style: 'currency',
+                    currency: 'EUR'
+                  }).format(formData.price_per_month)}
+                </span>
+                <span className="text-sm text-gray-500">pro Monat</span>
               </div>
+            </div>
+          </div>
 
-              {/* Advanced Settings Preview */}
-              <div className="border rounded-lg p-4 bg-muted/50">
-                <h3 className="font-medium mb-2">Erweiterte Einstellungen</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Nach dem Erstellen verfügbar:
-                </p>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Preisanpassungen pro Vertrag</li>
-                  <li>• Zeitgesteuerte Verfügbarkeit</li>
-                  <li>• Verknüpfung mit Kampagnen</li>
-                  <li>• Rabattregeln definieren</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          {/* Submit */}
+          <div className="flex items-center justify-between bg-white rounded-lg shadow p-6">
+            <Link
+              href="/vertragsarten-v2"
+              className="text-gray-600 hover:text-gray-800"
+            >
+              Abbrechen
+            </Link>
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Speichern...
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  Modul erstellen
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
