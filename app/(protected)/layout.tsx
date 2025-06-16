@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Users, UserPlus, CalendarClock, Activity, 
-  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe, Palette, Settings, FileText
+  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe, Palette, Settings, FileText, Package
 } from 'lucide-react';
 import supabase from '../lib/supabaseClient';
 
@@ -28,16 +28,26 @@ export default function ProtectedLayout({
     }
   };
 
-  const NavItem = ({ href, icon: Icon, label }: { 
+  const NavItem = ({ href, icon: Icon, label, badge }: { 
     href: string, 
     icon: any, 
-    label: string
+    label: string,
+    badge?: string
   }) => {
-    const isActive = pathname === href;
+    const isActive = pathname === href || pathname.startsWith(href + '/');
     return (
       <Link href={href} className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${isActive ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}>
         <Icon size={20} className={isActive ? 'text-blue-600' : 'text-gray-600'} />
-        {sidebarOpen && <span className={isActive ? 'font-medium' : ''}>{label}</span>}
+        {sidebarOpen && (
+          <div className="flex items-center justify-between flex-1">
+            <span className={isActive ? 'font-medium' : ''}>{label}</span>
+            {badge && (
+              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                {badge}
+              </span>
+            )}
+          </div>
+        )}
       </Link>
     );
   };
@@ -88,7 +98,8 @@ export default function ProtectedLayout({
                 <NavItem href="/dateimanager" icon={FolderOpen} label="Dateimanager" />
                 <NavItem href="/passwoerter" icon={KeyRound} label="Passwörter" />
                 <NavItem href="/mitarbeiter" icon={UserCog} label="Mitarbeiter" />
-                <NavItem href="/vertragsarten" icon={File} label="Vertragsarten" />
+                <NavItem href="/vertragsarten" icon={File} label="Vertragsarten (Legacy)" />
+                <NavItem href="/vertragsarten-v2" icon={Package} label="Vertragsarten V2" badge="NEU" />
               </nav>
             </div>
           </div>
