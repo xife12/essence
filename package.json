@@ -6,7 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup:dependencies": "bash scripts/install_dependencies.sh",
+    "setup:vertragsarten-v2": "bash scripts/setup_vertragsarten_v2.sh",
+    "setup:supabase": "bash scripts/setup_supabase_v2.sh",
+    "db:migrate": "supabase db push",
+    "db:reset": "supabase db reset",
+    "db:seed": "supabase db exec --file supabase/migrations/20241201_vertragsarten_v2_data.sql",
+    "db:status": "supabase status",
+    "v2:install": "npm run setup:dependencies && npm run setup:supabase && echo '🎉 Vertragsarten V2 System erfolgreich installiert!'",
+    "v2:dev": "npm run db:status && npm run dev",
+    "v2:test": "supabase db exec \"SELECT COUNT(*) FROM contracts; SELECT COUNT(*) FROM module_categories; SELECT COUNT(*) FROM contract_modules;\""
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.0",

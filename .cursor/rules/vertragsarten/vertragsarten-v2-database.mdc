@@ -1,0 +1,423 @@
+# 🗄️ DATENBANKSTRUKTUR VERTRAGSARTEN V2
+
+## 🔄 MIGRATIONSSTRATEGIE
+
+### **Phase 1: Neue Strukturen erstellen**
+```sql
+-- Migration: create_contracts_v2_schema.sql
+-- Erstellt alle neuen Tabellen parallel zu bestehenden contract_types
+```
+
+### **Phase 2: Daten migrieren**
+```sql
+-- Migration: migrate_contract_types_to_v2.sql  
+-- Überführt bestehende contract_types als Version 1.0
+-- Erstellt contract_group_id für jede bestehende Vertragsart
+```
+
+### **Phase 3: Beziehungen aktualisieren**
+```sql
+-- Migration: update_memberships_to_contracts_v2.sql
+-- Aktualisiert memberships.contracttype_id → contract_id
+-- Behält Rückwärtskompatibilität durch Views
+```
+
+---
+
+## 🏗️ HAUPTTABELLEN
+
+### **1. contracts (Haupt-Verträge mit Versionierung)**
+```sql
+CREATE TABLE public.contracts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Versionierungs-System
+    contract_group_id UUID NOT NULL, -- Gruppiert alle Versionen
+    version_number INTEGER NOT NULL DEFAULT 1,
+    version_note TEXT, -- Änderungsnotiz (auto + manuell)
+    is_active BOOLEAN DEFAULT false, -- Nur eine Version pro Gruppe aktiv
+    created_from_version_id UUID REFERENCES contracts(id),
+    
+    -- Basis-Informationen
+    name TEXT NOT NULL,
+    description TEXT,
+    
+    -- Kampagnen-System
+    is_campaign_version BOOLEAN DEFAULT false,
+    campaign_id UUID REFERENCES campaigns(id),
+    campaign_extension_date DATE, -- Bei Verlängerung
+    base_version_id UUID REFERENCES contracts(id), -- Referenz auf Original
+    auto_reactivate_version_id UUID REFERENCES contracts(id), -- Nach Kampagne
+    
+    -- Vertragsbedingungen
+    auto_renew BOOLEAN DEFAULT false,
+    renewal_term_months INTEGER,
+    cancellation_period INTEGER DEFAULT 30,
+    cancellation_unit TEXT DEFAULT 'days', -- 'days', 'months'
+    
+    -- Rabatte
+    group_discount_enabled BOOLEAN DEFAULT false,
+    group_discount_type TEXT, -- 'percent', 'fixed'
+    group_discount_value DECIMAL(10,2),
+    
+    -- Zahlungseinstellungen
+    payment_runs TEXT, -- Dropdown (später definiert)
+    payment_methods TEXT[], -- ['lastschrift', 'überweisung']
+    
+    -- Metadaten
+    created_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now(),
+    
+    -- Constraints
+    UNIQUE(contract_group_id, version_number),
+    CHECK (version_number > 0),
+    CHECK (cancellation_period > 0)
+);
+
+-- Indizes für Performance
+CREATE INDEX idx_contracts_group_active ON contracts(contract_group_id, is_active);
+CREATE INDEX idx_contracts_campaign ON contracts(campaign_id) WHERE campaign_id IS NOT NULL;
+CREATE INDEX idx_contracts_version ON contracts(contract_group_id, version_number);
+```
+
+### **2. contract_terms (Laufzeiten pro Vertrag)**
+```sql
+CREATE TABLE public.contract_terms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    
+    duration_months INTEGER NOT NULL,
+    base_price DECIMAL(10,2) NOT NULL,
+    sort_order INTEGER DEFAULT 0,
+    
+    created_at TIMESTAMP DEFAULT now(),
+    
+    -- Constraints
+    UNIQUE(contract_id, duration_months),
+    CHECK (duration_months > 0),
+    CHECK (base_price >= 0)
+);
+```
+
+### **3. contract_pricing (Preisdynamiken)**
+```sql
+CREATE TABLE public.contract_pricing (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    
+    name TEXT NOT NULL, -- Bezeichnung der Preisanpassung
+    pricing_type TEXT NOT NULL, -- 'einmalig', 'stichtag', 'wiederholend'
+    
+    -- Für Stichtag-Preise
+    trigger_type TEXT, -- 'monthly_first', 'manual_date'
+    trigger_date DATE, -- Bei manual_date
+    trigger_day INTEGER, -- Tag im Monat (1-31)
+    
+    -- Für wiederholende Preise  
+    repeat_interval TEXT, -- 'monthly', 'yearly'
+    repeat_after_months INTEGER, -- Nach X Monaten starten
+    
+    -- Preisanpassung
+    adjustment_type TEXT NOT NULL, -- 'fixed_amount', 'percentage'
+    adjustment_value DECIMAL(10,2) NOT NULL,
+    
+    -- Gültigkeit
+    valid_from DATE,
+    valid_until DATE,
+    is_active BOOLEAN DEFAULT true,
+    
+    created_at TIMESTAMP DEFAULT now(),
+    
+    -- Constraints
+    CHECK (pricing_type IN ('einmalig', 'stichtag', 'wiederholend')),
+    CHECK (adjustment_type IN ('fixed_amount', 'percentage')),
+    CHECK (trigger_day IS NULL OR (trigger_day >= 1 AND trigger_day <= 31))
+);
+```
+
+### **4. contract_starter_packages (Startpakete)**
+```sql
+CREATE TABLE public.contract_starter_packages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    
+    name TEXT NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    is_mandatory BOOLEAN DEFAULT false,
+    sort_order INTEGER DEFAULT 0,
+    
+    created_at TIMESTAMP DEFAULT now(),
+    
+    CHECK (price >= 0)
+);
+```
+
+### **5. contract_flat_rates (Pauschalen)**
+```sql
+CREATE TABLE public.contract_flat_rates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    
+    name TEXT NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    billing_type TEXT DEFAULT 'monthly', -- 'monthly', 'yearly', 'once'
+    is_mandatory BOOLEAN DEFAULT false,
+    sort_order INTEGER DEFAULT 0,
+    
+    created_at TIMESTAMP DEFAULT now(),
+    
+    CHECK (price >= 0),
+    CHECK (billing_type IN ('monthly', 'yearly', 'once'))
+);
+```
+
+---
+
+## 🧩 MODUL-SYSTEM
+
+### **6. contract_modules (Module mit Kategorien)**
+```sql
+CREATE TABLE public.contract_modules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    name TEXT NOT NULL,
+    description TEXT,
+    price_per_month DECIMAL(10,2) NOT NULL DEFAULT 0,
+    
+    -- Kategorisierung
+    category_id UUID REFERENCES module_categories(id),
+    icon_name TEXT, -- Lucide Icon Name
+    icon_file_asset_id UUID REFERENCES file_asset(id), -- Eigenes Icon
+    
+    -- Status
+    is_active BOOLEAN DEFAULT true,
+    
+    -- Metadaten
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now(),
+    
+    CHECK (price_per_month >= 0)
+);
+
+CREATE INDEX idx_contract_modules_category ON contract_modules(category_id);
+CREATE INDEX idx_contract_modules_active ON contract_modules(is_active);
+```
+
+### **7. module_categories (Modul-Kategorien)**
+```sql
+CREATE TABLE public.module_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    
+    created_at TIMESTAMP DEFAULT now()
+);
+
+-- Standard-Kategorien
+INSERT INTO module_categories (name, description, sort_order) VALUES
+('Training & Kurse', 'Gruppenkurse, Personaltraining, Workshops', 1),
+('Wellness & Regeneration', 'Sauna, Massage, Entspannungsangebote', 2),
+('Gesundheit & Diagnostik', 'Gesundheitschecks, Körperanalyse', 3),
+('Premium & Komfort', 'VIP-Bereiche, bevorzugte Behandlung', 4),
+('Familie & Kinder', 'Kinderbetreuung, Familienkurse', 5),
+('Digital & App-Funktionen', 'Apps, Online-Content, Tracking', 6),
+('Community & Events', 'Veranstaltungen, Mitglieder-Events', 7),
+('Zugang & Infrastruktur', '24/7-Zugang, Parkplatz, Duschen', 8),
+('Ernährung & Coaching', 'Ernährungsberatung, Lifestyle-Coaching', 9);
+```
+
+### **8. contract_module_assignments (Modul ↔ Vertrag)**
+```sql
+CREATE TABLE public.contract_module_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    module_id UUID REFERENCES contract_modules(id) ON DELETE CASCADE,
+    
+    assignment_type TEXT NOT NULL, -- 'included', 'optional'
+    custom_price DECIMAL(10,2), -- Überschreibt Modulpreis
+    sort_order INTEGER DEFAULT 0,
+    
+    created_at TIMESTAMP DEFAULT now(),
+    
+    UNIQUE(contract_id, module_id),
+    CHECK (assignment_type IN ('included', 'optional')),
+    CHECK (custom_price IS NULL OR custom_price >= 0)
+);
+```
+
+---
+
+## 📄 VERTRAGSDOKUMENTE
+
+### **9. contract_documents (WYSIWYG-Dokumente)**
+```sql
+CREATE TABLE public.contract_documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Dokument-Info
+    name TEXT NOT NULL,
+    description TEXT,
+    
+    -- Versionierung (ähnlich wie contracts)
+    document_group_id UUID NOT NULL,
+    version_number INTEGER DEFAULT 1,
+    version_note TEXT,
+    is_active BOOLEAN DEFAULT false,
+    created_from_version_id UUID REFERENCES contract_documents(id),
+    
+    -- Anzeige-Optionen
+    show_payment_calendar BOOLEAN DEFAULT false,
+    show_service_content BOOLEAN DEFAULT false, -- Leistungsinhalt
+    show_member_data BOOLEAN DEFAULT true, -- Stammdaten
+    
+    -- Template-Einstellungen
+    header_template TEXT, -- HTML für Kopfzeile
+    footer_template TEXT, -- HTML für Fußzeile
+    css_styles TEXT, -- Custom CSS für PDF
+    
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now(),
+    
+    UNIQUE(document_group_id, version_number)
+);
+```
+
+### **10. contract_document_sections (Dokumentabschnitte)**
+```sql
+CREATE TABLE public.contract_document_sections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    document_id UUID REFERENCES contract_documents(id) ON DELETE CASCADE,
+    
+    title TEXT NOT NULL,
+    content TEXT NOT NULL, -- HTML vom WYSIWYG-Editor
+    sort_order INTEGER DEFAULT 0,
+    
+    -- Abschnitts-Eigenschaften
+    is_mandatory BOOLEAN DEFAULT false,
+    requires_signature BOOLEAN DEFAULT false,
+    display_as_checkbox BOOLEAN DEFAULT false,
+    
+    -- Bedingte Anzeige
+    show_condition JSONB, -- {field: 'campaign', operator: 'equals', value: true}
+    
+    created_at TIMESTAMP DEFAULT now()
+);
+```
+
+### **11. contract_document_assignments (Dokument ↔ Vertrag)**
+```sql
+CREATE TABLE public.contract_document_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
+    document_id UUID REFERENCES contract_documents(id) ON DELETE CASCADE,
+    
+    -- Überschreibungen pro Vertrag
+    override_settings JSONB, -- {show_payment_calendar: true, custom_header: "..."}
+    
+    created_at TIMESTAMP DEFAULT now(),
+    
+    UNIQUE(contract_id, document_id)
+);
+```
+
+---
+
+## 🔗 BEZIEHUNGS-VIEWS
+
+### **Rückwärtskompatibilität für bestehende Abfragen**
+```sql
+-- View für alte contract_types Abfragen
+CREATE VIEW contract_types AS
+SELECT 
+    c.id,
+    c.name,
+    c.description,
+    ct.duration_months as term,
+    ct.base_price as price_per_month,
+    c.group_discount_enabled as has_group_discount,
+    c.group_discount_value as group_discount_rate,
+    c.auto_renew,
+    c.renewal_term_months as renewal_term,
+    c.is_active as active,
+    c.created_at,
+    c.updated_at
+FROM contracts c
+LEFT JOIN contract_terms ct ON c.id = ct.contract_id
+WHERE c.is_active = true;
+```
+
+---
+
+## 📊 PERFORMANCE-OPTIMIERUNGEN
+
+### **Weitere Indizes**
+```sql
+-- Häufige Abfragen optimieren
+CREATE INDEX idx_contracts_active_versions ON contracts(contract_group_id) WHERE is_active = true;
+CREATE INDEX idx_module_assignments_type ON contract_module_assignments(assignment_type);
+CREATE INDEX idx_document_sections_order ON contract_document_sections(document_id, sort_order);
+
+-- Volltext-Suche
+CREATE INDEX idx_contracts_search ON contracts USING gin(to_tsvector('german', name || ' ' || COALESCE(description, '')));
+CREATE INDEX idx_modules_search ON contract_modules USING gin(to_tsvector('german', name || ' ' || COALESCE(description, '')));
+```
+
+### **Triggers für automatische Updates**
+```sql
+-- Auto-Update für updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_contracts_updated_at BEFORE UPDATE ON contracts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_modules_updated_at BEFORE UPDATE ON contract_modules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+```
+
+---
+
+## 🔒 RLS-POLICIES
+
+```sql
+-- Row Level Security für Verträge
+ALTER TABLE contracts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contract_modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contract_documents ENABLE ROW LEVEL SECURITY;
+
+-- Nur eingeloggte Benutzer können lesen
+CREATE POLICY "contracts_select" ON contracts FOR SELECT TO authenticated USING (true);
+CREATE POLICY "modules_select" ON contract_modules FOR SELECT TO authenticated USING (true);
+
+-- Nur Admins und Studioleiter können schreiben
+CREATE POLICY "contracts_modify" ON contracts FOR ALL TO authenticated 
+USING (auth.jwt() ->> 'role' IN ('admin', 'studioleiter'));
+
+CREATE POLICY "modules_modify" ON contract_modules FOR ALL TO authenticated 
+USING (auth.jwt() ->> 'role' IN ('admin', 'studioleiter'));
+```
+
+---
+
+## 🚀 MIGRATION-REIHENFOLGE
+
+1. **Tabellen erstellen** (contracts, contract_modules, etc.)
+2. **Kategorien einfügen** (module_categories mit Standards)  
+3. **Bestehende Daten migrieren** (contract_types → contracts v1.0)
+4. **Beziehungen aktualisieren** (memberships, campaigns)
+5. **Views erstellen** (Rückwärtskompatibilität)
+6. **RLS-Policies aktivieren**
+7. **Indizes optimieren**
+
+**Rollback-Plan:** Views ermöglichen nahtlosen Rückfall auf alte Struktur
