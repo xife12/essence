@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Landingpage-Blöcke – Layouts, Einstellungen & Design-Presets
 
@@ -19,22 +19,24 @@ alwaysApply: false
 
 ### 3. Bild-/Galerie-Block
 * **Layouts:** Grid, Karussell, Fullwidth, Lightbox
-* **Einstellungen:** Bild(er), Bildtitel, Beschreibung, Link, Reihenfolge
+* **Einstellungen:** Bild(er), Bildtitel, Beschreibung, Link, Reihenfolge, Upload
 * **Presets:** Lightbox Grid, Scroll Carousel, Wide Banner, Hover Zoom, Split Image/Text
+* **Abhängigkeit:** Dateimanager 
 
 ### 4. Video-Block
 * **Layouts:** Zentriert, Fullwidth, Split
 * **Einstellungen:** URL, Thumbnail, Autoplay, Beschreibung
 * **Presets:** Clean Video, Framed, Side-by-Side, Overlay Start, YouTube/Card
+* **Abhängigkeit:** Dateimanager
 
 ### 5. Button-Block
 * **Layouts:** Einzeln, 2 Buttons, Floating, Sticky
-* **Einstellungen:** Text, Ziel, Stil, Icon
+* **Einstellungen:** Text, Ziel, Stil, Icon, Verknüpfung mit Abschnitt oder Formular
 * **Presets:** Flat, Rounded, Ghost, Shadowed, Icon + Text
 
 ### 6. Icon-Block
 * **Layouts:** Grid, Row, Highlight-Boxen
-* **Einstellungen:** Icons, Titel, Beschreibung, Spalten, CI-Farbe
+* **Einstellungen:** Icons, Titel, Beschreibung, Spalten pro Icon
 * **Presets:** Icon Grid Clean, Icon Row, Badge Icons, Shadow Box, Transparent Icons
 
 ---
@@ -45,36 +47,43 @@ alwaysApply: false
 * **Layouts:** 1–3 Spalten, Karussell
 * **Einstellungen:** Name, Bild, Text, Sterne, Alter, Filter
 * **Presets:** Card Wide, Quote Overlay, Grid Cards, Carousel, Mini-Review
+* **Abhängigkeit:** Modul Testimonials
 
 ### 8. Pricing-Block
 * **Layouts:** 1–3 Spalten, Vergleich
-* **Einstellungen:** Tarife, Laufzeiten, USPs, Rabatte, Startpaket
+* **Einstellungen:** Tarife, Laufzeiten, USPs, Rabatte, Startpaket (Checkboxen)
 * **Presets:** Highlight Center, Rabatt-Badge, Mirror Compare, Flat Grid, Floating Tile
+* **Abhängigkeit:** Vertragsarten
 
 ### 9. Feature-Block
 * **Layouts:** 1–3 Spalten, Grid, Kachel
 * **Einstellungen:** Vorteil, Icon, Beschreibung, Highlight
 * **Presets:** Flat Grid, Badge Style, Icon Facts, Circle Icons, Hover Box
+* **Abhängigkeit:** Vertragsarten Einstellungen
 
 ### 10. Countdown-Block
 * **Layouts:** Zentriert, Inline, Balken
 * **Einstellungen:** Zeitvorgabe, Text, Stil
 * **Presets:** Classic Timer, Inline Text, Balken mit Restzeit, Box mit Icon, Animated
+* **Abhängigkeit:** Kampagnen
 
 ### 11. Formular-Block
 * **Layouts:** Inline, Popup, Sticky-Button
 * **Einstellungen:** Formular, Felder, Kontext, Trigger
 * **Presets:** Modern Clean, Highlight Box, Side-Panel, Floating Modal, Fullwidth Inline
+* **Abhängigkeit:** Formbuilder 
 
 ### 12. Dienstleistungs-Block
 * **Layouts:** 1–3 Spalten, Icon+Text, Grid
-* **Einstellungen:** Daten aus Vertrag, Gruppierung, Icons
+* **Einstellungen:** Daten aus Vertrag, Gruppierung, Icons - Auswahl
 * **Presets:** Icon Tiles, Rounded Cards, Inline Icons, Split View, Badge Grid
+* **Abhängigkeit:** Vertragsarten
 
 ### 13. Kursplan-Block
 * **Layouts:** Spaltenraster, Zeitstrahl, Kompakt
 * **Einstellungen:** Tage, Filter, Räume, Layout
 * **Presets:** Weekly Grid, Category Filter, Nächster Kurs, Compact Cards, Tabbed View
+* **Abhängigkeit:** Modul Kursplan
 
 ### 14. Gamification-Block
 * **Layouts:** Popup, Inline, Bereich
@@ -90,11 +99,13 @@ alwaysApply: false
 * **Layouts:** 2-Spaltig, Map integriert, Kompakt
 * **Einstellungen:** Adresse, Öffnungszeiten, Map, Formular, Socials
 * **Presets:** Split Map, Compact Info, Overlay Map, Card Contact, Highlight Block
+* **Abhängigkeit:**
 
 ### 17. Team-/Mitarbeiter-Block
 * **Layouts:** Grid, Karussell, 1–3 Spalten
 * **Einstellungen:** Name, Rolle, Bild, Beschreibung
 * **Presets:** Team Grid, Slide Carousel, Circle Cards, Spotlight, Clean Row
+* **Abhängigkeit:**
 
 ### 18. Trust-Logos-Block
 * **Layouts:** Grid, Strip, Slider
@@ -103,10 +114,8 @@ alwaysApply: false
 
 ### 19. Erfolgszahlen-/Statistikblock
 * **Layouts:** 1–3 Spalten, Icon+Zahl
-* **Einstellungen:** Zahl, Text, Icon, Animation
+* **Einstellungen:** Zahl, Text, Icon, Animation, Art der Zahlen, + für mehrere mit Darstellung hinzufügen
 * **Presets:** Animated Counter, Highlight Box, Icon + Fact, Number Badge, Compact Row
+* **Abhängigkeit:**
 
-### 20. Blog-/Content-Preview-Block
-* **Layouts:** List, Card Grid, Featured+List
-* **Einstellungen:** Quelle, Anzahl, Kategorie, Teaser
-* **Presets:** Blog Card, Clean List, Highlighted Article, Image Tile, Featured Hero
+

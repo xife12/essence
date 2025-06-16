@@ -1,7 +1,7 @@
 ---
-description:
-globs:
-alwaysApply: false
+description: 
+globs: 
+alwaysApply: true
 ---
 # Landingpage-System – Logiken & Verknüpfungen
 
@@ -53,4 +53,6 @@ alwaysApply: false
 * Vorschau als PNG/SVG
 * QR-Code für Canva
 * JSON-Export für Cursor/API
+
+
 

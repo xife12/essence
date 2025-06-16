@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Users, UserPlus, CalendarClock, Activity, 
-  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe, Palette, Settings, FileText, ChevronDown, MessageSquare
+  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe, Palette, Settings, FileText, ChevronDown, MessageSquare, Calendar
 } from 'lucide-react';
 import supabase from '../lib/supabaseClient';
 
@@ -76,6 +76,7 @@ export default function ProtectedLayout({
                 <NavItem href="/dashboard" icon={BarChart3} label="Dashboard" />
                 <NavItem href="/leads" icon={UserPlus} label="Leads" />
                 <NavItem href="/mitglieder" icon={Users} label="Mitglieder" />
+                <NavItem href="/kursplan" icon={Calendar} label="Kursplan" />
                 <NavItem href="/stunden" icon={CalendarClock} label="Stunden" />
               </nav>
             </div>
