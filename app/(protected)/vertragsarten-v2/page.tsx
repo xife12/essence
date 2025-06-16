@@ -105,19 +105,31 @@ export default function VertragsartenV2Page() {
       switch (activeTab) {
         case 'contracts':
           const contractsResponse = await ContractsV2API.getContracts({ ...contractFilters, ...filters });
-          setContracts(contractsResponse.data);
+          setContracts(contractsResponse.data || []);
           break;
         case 'modules':
           const modulesResponse = await ContractsV2API.getModules({ ...moduleFilters, ...filters });
-          setModules(modulesResponse.data);
+          setModules(modulesResponse.data || []);
           break;
         case 'documents':
           const documentsResponse = await ContractsV2API.getDocuments({ ...documentFilters, ...filters });
-          setDocuments(documentsResponse.data);
+          setDocuments(documentsResponse.data || []);
           break;
       }
     } catch (error) {
       console.error(`Error loading ${activeTab} data:`, error);
+      // Fallback zu leeren Arrays bei Fehlern
+      switch (activeTab) {
+        case 'contracts':
+          setContracts([]);
+          break;
+        case 'modules':
+          setModules([]);
+          break;
+        case 'documents':
+          setDocuments([]);
+          break;
+      }
     }
   };
 

@@ -12,12 +12,10 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
-import ContractsV2API from '../../../lib/api/contracts-v2';
-import type { 
-  ModuleFormData,
-  ModuleCategory,
-  ValidationResult 
-} from '../../../lib/types/contracts-v2';
+import ContractsV2API, {
+  type ModuleFormData,
+  type ModuleCategory
+} from '../../../../lib/api/contracts-v2';
 
 export default function NeuesModulPage() {
   const router = useRouter();
