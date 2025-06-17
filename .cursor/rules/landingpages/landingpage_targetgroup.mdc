@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
 
 # Modul: Landingpage Scoring & Zielgruppen
 ## Zweck
@@ -130,3 +135,4 @@ Skala: **0–10 Punkte**, wobei 10 für „kritisch wichtig, vollständig erford
 - **Integration in den Landingpage-Builder** inkl. UI-Hinweisen für Einsteiger
 - **Erweiterung um Gewichtung für neue Blöcke** (z. B. Kursplan, Countdown, Feature-Modul)
 - **Gamification-Logik** optional für Motivation der Ersteller (Badges, Scores etc.)
+

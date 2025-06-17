@@ -69,6 +69,57 @@ alwaysApply: false
 
 ---
 
+### DeviceBar / Ansicht-Umschalter & Vorschau-Toggle (Formbuilder & Landingpage-Builder)
+
+#### Ansicht-Umschalter (Desktop/Mobile)
+
+```tsx
+<div className="flex items-center bg-gray-100 rounded-lg p-1 shadow-sm">
+  <button
+    className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${isDesktop ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+  >
+    <Monitor size={16} /> Desktop
+  </button>
+  <button
+    className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${isMobile ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+  >
+    <Smartphone size={16} /> Mobile
+  </button>
+</div>
+```
+
+* Button-Group, rechtsbündig
+* Aktiver Button: `bg-white text-gray-900 shadow-sm`
+* Inaktiv: `text-gray-600 hover:text-gray-900`
+* Größe: `px-2 py-1`, `text-xs`, Icon + Label
+* Fokus: Outline sichtbar, Hover: Text dunkler
+
+#### Vorschau-Toggle
+
+```tsx
+<button
+  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${isPreview ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+>
+  {isPreview ? <EyeOff size={18} /> : <Eye size={18} />}
+  {isPreview ? 'Bearbeiten' : 'Vorschau'}
+</button>
+```
+
+* Rechts neben DeviceBar
+* Aktiv (Vorschau): `bg-green-100 text-green-800 hover:bg-green-200`, Icon: EyeOff, Text: „Bearbeiten“
+* Inaktiv: `bg-gray-100 text-gray-700 hover:bg-gray-200`, Icon: Eye, Text: „Vorschau“
+* Button toggelt Modus, Icon/Text/Farbe wechseln
+* Größe: `px-3 py-1.5`, `rounded-lg`, `text-sm`
+* Fokus: Outline sichtbar, Hover: Hintergrund dunkler
+
+---
+
+**Konsistenz:**
+- Diese UI-Elemente werden identisch im Formbuilder und Landingpage-Builder verwendet.
+- Sie folgen dem Design-System (Button-States, Farben, Abstände, Fokus/Hover) und sorgen für einheitliche UX.
+
+---
+
 ## Feedback & Interaktion
 
 * Toaster (oben rechts, auto-hide: 3s) für Erfolg/Fehler

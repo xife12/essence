@@ -14,6 +14,17 @@ export type MembershipData = {
   end_date: string;
   status: 'active' | 'cancelled' | 'completed' | 'suspended' | 'planned';
   predecessor_id?: string;
+  starter_package_total?: number; // Einmalige Startpaket-Gebühr
+  starter_package_items?: string[]; // Welche Startpaket-Komponenten enthalten sind
+};
+
+// Startpaket-Typ hinzufügen
+type StarterPackage = {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  is_mandatory: boolean;
 };
 
 type ContractType = {
@@ -28,6 +39,7 @@ type ContractType = {
     price?: number;
   }>;
   campaigns?: string[];
+  starter_packages?: StarterPackage[]; // Verfügbare Startpakete
 };
 
 type MembershipFormProps = {
@@ -66,6 +78,8 @@ export default function MembershipForm({
   const [hasGroupDiscount, setHasGroupDiscount] = useState<boolean>(false);
   const [selectedExtras, setSelectedExtras] = useState<Array<{id: string, name: string, price?: number, included: boolean}>>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<string>('');
+  const [selectedStarterPackages, setSelectedStarterPackages] = useState<string[]>([]);
+  const [starterPackageTotal, setStarterPackageTotal] = useState<number>(0);
 
   // Funktion zum Formatieren von Datumsangaben für Eingabefelder
   function formatDateForInput(date: Date): string {
@@ -151,6 +165,30 @@ export default function MembershipForm({
       setEndDate('');
     }
   }, [formData.start_date, formData.term]);
+
+  // Effekt für automatische Auswahl von Pflicht-Startpaketen
+  useEffect(() => {
+    if (selectedContractType?.starter_packages && !formData.predecessor_id) {
+      const mandatoryPackages = selectedContractType.starter_packages
+        .filter(pkg => pkg.is_mandatory)
+        .map(pkg => pkg.id);
+      
+      if (mandatoryPackages.length > 0) {
+        setSelectedStarterPackages(prev => {
+          const combined = Array.from(new Set([...prev, ...mandatoryPackages]));
+          
+          // Berechne Gesamtpreis neu
+          const total = combined.reduce((sum, id) => {
+            const pkg = selectedContractType.starter_packages?.find(p => p.id === id);
+            return sum + (pkg?.price || 0);
+          }, 0);
+          setStarterPackageTotal(total);
+          
+          return combined;
+        });
+      }
+    }
+  }, [selectedContractType, formData.predecessor_id]);
   
   // Effekt zum Aktualisieren der ausgewählten Extras, wenn der Vertragstyp sich ändert
   useEffect(() => {
@@ -165,6 +203,35 @@ export default function MembershipForm({
       setSelectedExtras([]);
     }
   }, [selectedContractType]);
+
+  // Lade Startpakete für den ausgewählten Vertragstyp
+  useEffect(() => {
+    if (selectedContractType?.id && !formData.predecessor_id) {
+      // Hier würden wir in der echten Implementation die Startpakete für den spezifischen Vertrag laden
+      // Für Demo-Zwecke verwenden wir Mock-Daten
+      const mockStarterPackages: StarterPackage[] = [
+        {
+          id: 'starter-1',
+          name: 'Grundausstattung',
+          price: 49.90,
+          description: 'Handtuch, Schließfach-Chip, Begrüßungspaket',
+          is_mandatory: true
+        },
+        {
+          id: 'starter-2',
+          name: 'Premium-Set',
+          price: 89.90,
+          description: 'Trinkflasche, Handtuch, Trainingsplan, Körperanalyse',
+          is_mandatory: false
+        }
+      ];
+      
+      // Temporär: setze Mock-Daten in contractType
+      if (selectedContractType) {
+        selectedContractType.starter_packages = mockStarterPackages;
+      }
+    }
+  }, [selectedContractType?.id, formData.predecessor_id]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -235,6 +302,24 @@ export default function MembershipForm({
     );
   };
 
+  // Startpaket-Handling
+  const handleStarterPackageChange = (packageId: string, checked: boolean) => {
+    setSelectedStarterPackages(prev => {
+      const updated = checked 
+        ? [...prev, packageId]
+        : prev.filter(id => id !== packageId);
+      
+      // Berechne Gesamtpreis neu
+      const total = updated.reduce((sum, id) => {
+        const pkg = selectedContractType?.starter_packages?.find(p => p.id === id);
+        return sum + (pkg?.price || 0);
+      }, 0);
+      setStarterPackageTotal(total);
+      
+      return updated;
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -256,6 +341,8 @@ export default function MembershipForm({
       has_group_discount: hasGroupDiscount,
       extras: includedExtras.length > 0 ? includedExtras : undefined,
       campaign_name: selectedCampaign || undefined,
+      starter_package_total: starterPackageTotal > 0 ? starterPackageTotal : undefined,
+      starter_package_items: selectedStarterPackages.length > 0 ? selectedStarterPackages : undefined,
       ...(formData.id && { id: formData.id }),
       ...(formData.predecessor_id && { predecessor_id: formData.predecessor_id }),
     };
@@ -403,6 +490,65 @@ export default function MembershipForm({
         </div>
       )}
       
+      {/* Startpakete, wenn verfügbar (nur bei Neuanmeldung) */}
+      {!formData.predecessor_id && selectedContractType?.starter_packages && selectedContractType.starter_packages.length > 0 && (
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Startpakete (einmalige Berechnung bei Neuanmeldung)
+          </label>
+          <div className="space-y-3 border p-4 rounded-md bg-blue-50">
+            {selectedContractType.starter_packages.map(pkg => (
+              <div key={pkg.id} className="flex items-center justify-between">
+                <div className="flex items-center flex-1">
+                  <input
+                    id={`starter-${pkg.id}`}
+                    name={`starter-${pkg.id}`}
+                    type="checkbox"
+                    checked={selectedStarterPackages.includes(pkg.id)}
+                    onChange={(e) => handleStarterPackageChange(pkg.id, e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={isLoading || pkg.is_mandatory}
+                  />
+                  <div className="ml-3 flex-1">
+                    <label htmlFor={`starter-${pkg.id}`} className="block text-sm font-medium text-gray-900">
+                      {pkg.name}
+                      {pkg.is_mandatory && (
+                        <span className="text-red-600 ml-1">(Pflicht)</span>
+                      )}
+                    </label>
+                    {pkg.description && (
+                      <p className="text-xs text-gray-600 mt-1">{pkg.description}</p>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm font-medium text-green-600">
+                  {new Intl.NumberFormat('de-DE', {
+                    style: 'currency',
+                    currency: 'EUR'
+                  }).format(pkg.price)}
+                </span>
+              </div>
+            ))}
+            {starterPackageTotal > 0 && (
+              <div className="border-t pt-3 mt-3">
+                <div className="flex items-center justify-between font-semibold">
+                  <span className="text-gray-900">Startpaket Gesamt:</span>
+                  <span className="text-lg text-green-600">
+                    {new Intl.NumberFormat('de-DE', {
+                      style: 'currency',
+                      currency: 'EUR'
+                    }).format(starterPackageTotal)}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  Wird einmalig bei Vertragsbeginn berechnet
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Zusatzleistungen, wenn verfügbar */}
       {selectedContractType?.extras && selectedContractType.extras.length > 0 && (
         <div className="mt-4">

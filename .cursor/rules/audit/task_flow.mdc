@@ -1,0 +1,185 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+alias: "@task-flow"
+description: Erstellt überprüft automatisch ob Task Module erstellt wurden 
+globs:
+  - "modules/*/*.mdc"
+---
+
+# 🧩 Task-Flow nach Taskmaster-Prinzipien
+
+## Ziel
+Implementiert Taskmaster AI-Prinzipien für strukturiertes Task-Management:
+- PRD-basierte Task-Generierung
+- Abhängigkeits-Tracking
+- Memory Bank Integration
+- Automated Task Updates
+
+---
+
+## 🔍 Schritt 1: Memory Bank Sync
+
+Vor jedem Task-Flow:
+- ✅ Lese `memory-bank/activeContext.md` für aktuellen Status
+- ✅ Prüfe `memory-bank/progress.md` für Modul-Fortschritt
+- ✅ Update Memory Bank wenn neue Tasks generiert werden
+
+---
+
+## 📁 Schritt 2: Task-Datei nach Taskmaster-Format
+
+Für jedes Modul in `.cursor/rules/<modulename>/`:
+
+- 🔄 Wenn `tasks/<modulename>.md` **nicht existiert**:
+  → Erzeuge aus `.cursor/rules/Templates/module_task.md`  
+  → Füge Taskmaster-Prinzipien hinzu:
+    - Komplexitäts-Scoring (1-10)
+    - Abhängigkeits-Matrix
+    - Research-backed Subtasks
+    - Progress-Tracking
+
+- 🔄 Wenn bereits vorhanden:
+  → Sync mit Memory Bank Status
+  → Update Dependencies basierend auf aktueller Modulstruktur
+  → Ergänze fehlende Taskmaster-Elemente
+
+---
+
+## 🧪 Schritt 3: Taskmaster-Integration
+
+### Task-Struktur erweitern:
+```md
+# Task für {{modulename}}
+
+## 📋 PRD Reference
+- Link zu relevanten PRD-Abschnitten
+- Business-Anforderungen
+
+## 🎯 Akzeptanzkriterien  
+- [ ] Funktionale Anforderungen erfüllt
+- [ ] Tests implementiert
+- [ ] Documentation vollständig
+
+## 🔗 Abhängigkeits-Matrix
+- **Blocking**: Module die vorgezogen werden müssen
+- **Blocked**: Module die auf dieses warten
+- **Parallel**: Module die parallel entwickelt werden können
+
+## 📊 Komplexität & Aufwand
+- Komplexität: {{1-10}}
+- Geschätzter Aufwand: {{hours/days}}
+- Risiko-Level: {{low/medium/high}}
+
+## 🧠 Research-Backed Subtasks
+(Von Taskmaster AI generiert basierend auf aktuellen Best Practices)
+
+## 📈 Progress Tracking
+- [ ] Design Phase
+- [ ] Implementation Phase  
+- [ ] Testing Phase
+- [ ] Documentation Phase
+- [ ] Integration Phase
+```
+
+---
+
+## 🔗 Regel: Memory Bank Auto-Update
+
+Bei Task-Änderungen:
+→ Update `memory-bank/activeContext.md` automatisch
+→ Sync `memory-bank/progress.md` mit Task-Status  
+→ Benachrichtige über kritische Abhängigkeiten
+
+---
+
+## 🎯 Integration mit @taskmaster-ai
+
+Wenn Taskmaster AI verfügbar:
+- Nutze PRD aus `.taskmaster/docs/prd.txt`
+- Generiere research-backed Subtasks
+- Sync mit `.taskmaster/tasks.json`
+- Verwende AI für Komplexitäts-Bewertung
+
+---
+
+## 🧩 Initialer Modulscan & Strukturabgleich
+
+## Ziel
+Stelle sicher, dass für jedes Modul:
+- eine Task-Datei existiert und auf dem aktuellen Stand ist
+- eine Audit-Datei existiert und gepflegt wird
+- Abhängigkeiten dokumentiert und überprüft werden
+- die Ordnerstruktur vollständig ist
+
+---
+
+## 🔍 Schritt 1: Modulstruktur überprüfen
+
+Für jede Datei `modules/<modulename>/<modulename>.mdc`:
+
+- ✅ Existenz von `tasks/` und `audits/` innerhalb des Modulordners sicherstellen  
+  → Wenn nicht vorhanden: anlegen
+
+---
+
+## 📁 Schritt 2: Task-Datei generieren oder aktualisieren
+
+- 🔄 Wenn `modules/<modulename>/tasks/<modulename>.md` **nicht existiert**:
+  → Erzeuge Datei aus `rules/templates/module_task.md`  
+  → Ersetze `{{modulename}}` in Platzhaltern
+
+- 🔄 Wenn `modules/<modulename>/tasks/<modulename>.md` **bereits existiert**:
+  → Lese alle Checkbox-Zeilen:
+    - `- [x]` → als erledigt markieren
+    - `- [ ]` → offen lassen
+  → Prüfe anhand des Modulinhalts, ob neue To-dos notwendig sind (z. B. neue API, neue Relationen)
+  → Ergänze ggf. fehlende Punkte
+
+---
+
+## 🧪 Schritt 3: Audit-Datei erzeugen oder aktualisieren
+
+- 📄 Wenn `modules/<modulename>/audits/<modulename>.mdc` **nicht existiert**:
+  → Erstelle mit Grundstruktur:
+
+```md
+---
+alias: "@audit-{{modulename}}"
+description: Statusprüfung für {{modulename}}
+---
+
+# 🔎 Audit: {{modulename}}
+
+## Taskstatus
+- Task-Datei: neu erstellt / ergänzt / vollständig
+
+## Erledigte Aufgaben
+- x / n erledigt
+
+## Verknüpfte Module
+- OK / Fehlend: <liste>
+
+## Letzter Check: {{datum}}
+
+## 🔗 Regel: Modulabhängigkeiten prüfen
+
+Für jede Datei `modules/<modulename>/<modulename>.mdc`:
+
+→ Suche nach `dependencies:`-Block  
+→ Extrahiere Einträge (z. B. `loginmodul`, `userprofile`)
+
+Für jeden Eintrag:
+
+- ✅ Wenn `modules/<dependency>/` existiert:
+  - Keine Aktion
+
+- ❌ Wenn **nicht vorhanden**:
+  - Ergänze To-do in `tasks/<modulename>.md`:
+    - `- [ ] Modul {{dependency}} erstellen oder verlinken`
+  - Ergänze Audit-Eintrag:
+    - `❗ Fehlende Abhängigkeit: {{dependency}}`
+

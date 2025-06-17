@@ -20,7 +20,18 @@ Jede Rule erhält:
 - korrektes `globs:` mit Modulpfad
 - sprechenden Namen
 - Einleitung mit Beschreibung, Zweck und Strukturhinweisen
+- Dependencies als verlinkung
+
+# Modul-Erstellung
+
+Wenn `modules/<modulename>.mdc` neu erstellt wird:
+→ Erzeuge `<modulname>/tasks/<task_modulename>.md`
+→ Inhalt:
+  - To-dos: Datenstruktur, API, UI/UX, Verknüpfungen prüfen
+  - Link zur `.mdc`-Datei
+→ Logge in `audits/create.log.md`
 
 > Beispiel:
 > `globs: ["modules/email/.**"]`  
 > `description: "UI-Komponenten und Layoutvorgaben für Modul Email-Postfach"`
+> `Dependencies: "- Leads - Dateimanager"`

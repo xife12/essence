@@ -9,7 +9,7 @@
 ##Teil 1:
 
 ### 🔧 Fehlerhafte Funktionen
-[] Button bei HEader wird nicht angezeigt- Mehr einstellungen
+
 
 ### ❗️Regel-Umsetzung stimmt nicht
 [] Stil Vorlagen sollen direkt eine konkretes Design zeigen und nicht nur eine Auswahl die man anklicken kann
@@ -28,3 +28,5 @@
 []Wurden die Einstellungen bereits vollständig implementiert oder sind die Einstellungen noch im Rohformat?
 
 
+##Zukünfitge Todos
+[] Vollbildmodus

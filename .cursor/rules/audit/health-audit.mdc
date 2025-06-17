@@ -51,6 +51,14 @@ Dieses Audit beschreibt einen umfassenden Prüfprozess für das gesamte Projekt 
 - Was ist im Code, aber in keiner Regel?
 - Was ist abgeschlossen, aber in Regel nicht finalisiert?
 
+# Modul-Verknüpfungsprüfung
+
+Für jedes Modul `modules/*.mdc`:
+→ Extrahiere `dependencies` (andere Module)
+→ Prüfe Existenz und Konsistenz der referenzierten Module
+→ Logge Fehler in `audits/dependencies.log.md`
+→ Erzeuge Task-Ergänzung in `tasks/<modulename>.md` bei Fehler
+
 ## 📝 Beispielreport
 
 ```markdown speichern in .cursor/rules/audit/Health-audit/TT_MM_health-audit-report.md
@@ -94,3 +102,15 @@ Dieses Audit beschreibt einen umfassenden Prüfprozess für das gesamte Projekt 
 ## 🔄 Regel-Implementierungs-Diskrepanz
 - `formular-mitgliedschaft-ui.mdc` beschreibt 5 Felder – Komponente hat nur 2
 - `PremiumBanner.tsx` ist im Code, aber ohne `.mdc`-Definition
+
+Beispiel-Dateienstruktur nach Umsetzung:
+
+/modules/*Modulname*/
+  vertragsmodul.mdc
+  *modulname*/tasks/
+    task_vertragsmodul.md
+  audits/
+    vertragsmodul.mdc
+/rules/templates/
+  module_task.md
+

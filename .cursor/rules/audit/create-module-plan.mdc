@@ -20,7 +20,7 @@ Dieser Rule-Prozess steuert die automatisierte Planung und Prüfung bei der Einf
 
 ### 1. Audit ausführen
 - Starte: `@audit-rules` + `@audit-on-create`
-- Prüfe Naming, Globs, Description, Struktur und Trennschärfe der Rules
+- Prüfe Naming, Globs, dependencies, Description, Struktur und Trennschärfe der Rules
 
 ### 2. Projektkontext analysieren
 - Bestehen ähnliche Module?
@@ -42,9 +42,7 @@ Dieser Rule-Prozess steuert die automatisierte Planung und Prüfung bei der Einf
 - Müssen verknüpfte Regeln synchronisiert werden?
 
 ### 6. Modul-Fahrplan generieren
-- Vorschlag für `.mdc`-Dateien: `*-ui`, `*-db`, `*-validation`, `*-meta`
-- Liste betroffener Tabellen, Views, API-Strukturen
-- Aufwandsschätzung je Block (⚪ leicht / 🟡 mittel / 🔴 komplex)
+- 
 
 > Optional: Generiere automatisiert `modul-plan_<modulname>.md`
 
@@ -56,6 +54,7 @@ Dieser Rule-Prozess steuert die automatisierte Planung und Prüfung bei der Einf
   - `description:` muss enthalten sein
   - `globs:` passend zur Struktur (z. B. `modules/email/**`)
   - optional: `alias:` für manuelle Ausführung
+  - `dependencies:` auflistung aller dependencies 
 - **Struktur:**
   - Nur ein Thema je `.mdc` (UI, DB, Validation, Meta)
   - Klar gegliedert, keine Mehrfachinhalte

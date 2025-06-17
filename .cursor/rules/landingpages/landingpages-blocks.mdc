@@ -3,9 +3,22 @@ description:
 globs: 
 alwaysApply: true
 ---
+alias: "@landingpages_blocks_"
+description: Alle abhängigkeiten die im zusammenhang mit dem Modul Landingpages bestehen
+dependencies:
+  - Testimonials
+  - Formbuilder
+  - Ci-Styling
+  - Vertragsarten
+  - Kampagnen
+  - Kursplan
+
 # Landingpage-Blöcke – Layouts, Einstellungen & Design-Presets
 
 ## Inhalts- & Design-Blöcke
+
+* **Abhängigkeit:** CI Styling
+
 
 ### 1. Header-Block
 * **Layouts:** 1-Spaltig zentriert, Split (Bild/Text), Vollbreite BG

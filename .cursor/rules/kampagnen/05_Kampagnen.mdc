@@ -1,10 +1,7 @@
 ---
 description: "Kampagnen-Management: Erstellung, Stränge, Aktionen und KPI-Tracking"
-alias: "@kampagnen"
-globs:
-  - "app/(protected)/kampagnen/**"
-  - "components/kampagnen/**"
-  - "lib/api/campaigns.ts"
+globs: 
+alwaysApply: false
 ---
 ---
 description: 
@@ -78,7 +75,7 @@ Zentrale Steuerungseinheit für jede Marketingkampagne. Das Modul enthält Metad
 
 ### Besonderheiten
 - Automatische Fortschrittsbewertung über Leads, Maßnahmenstatus und Zeitverlauf
-- Aktivierte Trigger aus Aktionen (z. B. Erinnerungen, Aufgaben) können aggregiert angezeigt werden
+- Aktivierte Trigger aus Aktionen (z.B. Erinnerungen, Aufgaben) können aggregiert angezeigt werden
 - Heatmap-Auswertung nach Aktionstyp / Strang (Klickrate, Effektivität, Rücklauf)
 
 ---
@@ -94,7 +91,7 @@ Zentrale Steuerungseinheit für jede Marketingkampagne. Das Modul enthält Metad
 - status: 'draft', 'active', 'completed', 'archived'
 - campaign_type: 'online', 'offline', 'kombiniert'
 - strand.status: analog zu campaign
-- strand.channel: z. B. 'meta', 'google', 'print', 'mailing', 'inhouse'
+- strand.channel: z.B. 'meta', 'google', 'print', 'mailing', 'inhouse'
 
 ---
 

@@ -1,0 +1,70 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+alias: "@initial-project-scan"
+description: Führt einen vollständigen Projektcheck durch und erstellt fehlende Task- und Audit-Dateien pro Modul.
+globs:
+  - "modules/*/*.mdc"
+---
+
+# 🧩 Initialer Modulscan & Strukturabgleich
+
+## Ziel
+Stelle sicher, dass für jedes Modul:
+- eine Task-Datei existiert und auf dem aktuellen Stand ist
+- eine Audit-Datei existiert und gepflegt wird
+- Abhängigkeiten dokumentiert und überprüft werden
+- die Ordnerstruktur vollständig ist
+
+---
+
+## 🔍 Schritt 1: Modulstruktur überprüfen
+
+Für jede Datei `modules/<modulename>/<modulename>.mdc`:
+
+- ✅ Existenz von `tasks/` und `audits/` innerhalb des Modulordners sicherstellen  
+  → Wenn nicht vorhanden: anlegen
+
+---
+
+## 📁 Schritt 2: Task-Datei generieren oder aktualisieren
+
+- 🔄 Wenn `modules/<modulename>/tasks/<modulename>.md` **nicht existiert**:
+  → Erzeuge Datei aus `rules/templates/module_task.md`  
+  → Ersetze `{{modulename}}` in Platzhaltern
+
+- 🔄 Wenn `modules/<modulename>/tasks/<modulename>.md` **bereits existiert**:
+  → Lese alle Checkbox-Zeilen:
+    - `- [x]` → als erledigt markieren
+    - `- [ ]` → offen lassen
+  → Prüfe anhand des Modulinhalts, ob neue To-dos notwendig sind (z. B. neue API, neue Relationen)
+  → Ergänze ggf. fehlende Punkte
+
+---
+
+## 🧪 Schritt 3: Audit-Datei erzeugen oder aktualisieren
+
+- 📄 Wenn `modules/<modulename>/audits/<modulename>.mdc` **nicht existiert**:
+  → Erstelle mit Grundstruktur:
+
+```md
+---
+alias: "@audit-{{modulename}}"
+description: Statusprüfung für {{modulename}}
+---
+
+# 🔎 Audit: {{modulename}}
+
+## Taskstatus
+- Task-Datei: neu erstellt / ergänzt / vollständig
+
+## Erledigte Aufgaben
+- x / n erledigt
+
+## Verknüpfte Module
+- OK / Fehlend: <liste>
+
+## Letzter Check: {{datum}}

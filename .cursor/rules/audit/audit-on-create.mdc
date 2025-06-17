@@ -17,6 +17,14 @@ Wenn eine neue `.mdc`-Datei erstellt oder geändert wird, prüfe sofort:
 - Ist ein `description:` und `globs:` gesetzt?
 - Gibt es bereits eine ähnliche Rule im Projekt? (→ Warnung bei Überschneidung)
 
+# Task-Aktualisierung bei Modulbearbeitung
+
+Wenn Datei `modules/<modulename>.mdc` geändert wird:
+→ Öffne `tasks/<modulename>.md`
+→ Prüfe To-do-Status, ergänze neue To-dos bei Regeländerung
+→ Ergänze ggf. fehlende Prüfbereiche (Tests, UI, Relationen)
+
+→ Schreibe Ergebnis nach `audits/<modulename>.mdc`
 > Falls nötig:
 > - teile sie auf
 > - verschiebe sie in den richtigen Modulordner
