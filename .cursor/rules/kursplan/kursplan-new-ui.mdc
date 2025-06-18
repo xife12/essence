@@ -1,5 +1,207 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: false
 ---
+# Kursplan: Neuen Kurs erstellen
+
+## Zweck
+Das Kurs-Erstellungsmodul ermöglicht die vollständige Konfiguration neuer Kurse mit wöchentlichen Terminen, Sonderterminen, Trainer-Zuordnung und Raum-Management. Es validiert automatisch Konflikte und generiert die erforderlichen Schedule-Einträge.
+
+---
+
+## Route-Struktur
+
+### `/kursplan/neu`
+- **Funktion:** Vollständiges Kurs-Erstellungsformular
+- **Navigation:** Von Kursplan-Übersicht erreichbar
+- **Rücksprung:** Automatische Weiterleitung nach erfolgreichem Erstellen
+
+---
+
+## Form-Datenstruktur
+
+### **CreateCourseData Interface:**
+```typescript
+interface CreateCourseData {
+  name: string;                    // Kursname (required)
+  description: string;             // Kursbeschreibung
+  category_id: string;             // FK zu course_categories
+  trainer_id: string;              // FK zu staff (required)
+  room_id: string;                 // FK zu course_rooms (required)
+  max_participants: number;        // Standard: 15
+  current_participants: number;    // Standard: 0
+  schedule_plan: 'main' | 'alternative'; // Hauptplan vs. Alternativplan
+  is_public: boolean;              // Öffentlich sichtbar
+  is_special: boolean;             // Sonderkurs/Workshop
+  schedules: CreateScheduleData[]; // Termine-Array
+}
+```
+
+### **Schedule-Struktur:**
+```typescript
+interface CreateScheduleData {
+  day_of_week: number;            // 0=Sonntag, 1=Montag, etc.
+  start_time: string;             // HH:MM Format
+  end_time: string;               // HH:MM Format
+  is_special_date?: boolean;      // Sondertermin
+  specific_date?: string;         // YYYY-MM-DD für Sondertermine
+}
+```
+
+---
+
+## UI-Bereiche
+
+### **1. Basis-Informationen**
+- **Kursname:** Text-Input (required)
+- **Beschreibung:** Textarea (optional)
+- **Kategorie:** Dropdown (required, aus `course_categories`)
+- **Trainer:** Dropdown (required, Studioleiter + Mitarbeiter)
+- **Raum:** Dropdown (required, aus `course_rooms`)
+- **Max. Teilnehmer:** Number-Input (Standard: 15)
+
+### **2. Kurs-Einstellungen**
+- **Schedule-Plan:** Radio-Buttons (main/alternative)
+- **Öffentlich:** Checkbox (Standard: true)
+- **Sonderkurs:** Checkbox (für Workshops/Events)
+
+### **3. Wöchentliche Termine**
+- **7-Tage-Grid:** Montag bis Sonntag
+- **Zeitslots pro Tag:** Multiple möglich
+- **Zeitauswahl:** 15-Min-Raster (06:00-23:00)
+- **Add/Remove:** Dynamische Zeitslot-Verwaltung
+
+### **4. Sondertermine**
+- **Datum-Picker:** Spezifische Termine außerhalb des wöchentlichen Plans
+- **Zeitbereich:** Start/End-Zeit pro Sondertermin
+- **Dynamische Liste:** Add/Remove von Sonderterminen
+
+---
+
+## API-Integration
+
+### **Abhängige APIs:**
+- `CoursesAPI.create()` - Kurs-Erstellung
+- `CourseCategoriesAPI.getAll()` - Kategorien laden
+- `CourseRoomsAPI.getAll()` - Räume laden
+- `StaffAPI.getAll()` - Trainer laden (filter: studioleiter + mitarbeiter)
+
+### **Konflikt-Erkennung:**
+```typescript
+interface CourseConflict {
+  type: 'room' | 'trainer';
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  conflicting_course: string;
+}
+```
+
+---
+
+## Validierung
+
+### **Frontend-Validierung:**
+- **Required Fields:** name, category_id, trainer_id, room_id
+- **Participants:** max_participants > 0
+- **Zeitlogik:** end_time > start_time
+- **Mindestdauer:** >= 15 Minuten pro Slot
+
+### **Backend-Validierung:**
+- **Raum-Konflikte:** Überschneidende Zeiten im gleichen Raum
+- **Trainer-Konflikte:** Doppelbelegung des Trainers
+- **Kapazitäts-Check:** Raum-Kapazität vs. max_participants
+
+---
+
+## Workflow
+
+### **Erstellungsprozess:**
+1. **Formular ausfüllen** - Basis-Daten eingeben
+2. **Wöchentliche Termine** - Zeitslots definieren
+3. **Sondertermine** - Optional hinzufügen
+4. **Validierung** - Konflikte prüfen
+5. **Speichern** - Kurs + Schedules erstellen
+6. **Weiterleitung** - Zurück zur Kursplan-Übersicht
+
+### **Konfliktbehandlung:**
+- **Warnungen anzeigen** bei erkannten Konflikten
+- **Überschreibung erlauben** mit Bestätigung
+- **Alternative Zeiten vorschlagen**
+
+---
+
+## Komponenten-Struktur
+
+### **NewCoursePage (Hauptkomponente)**
+- Form-State-Management
+- API-Calls koordinieren
+- Validierung orchestrieren
+
+### **WeeklyScheduleEditor**
+- 7-Tage Grid-Layout
+- Add/Remove Zeitslots
+- Zeitauswahl-Dropdowns
+
+### **SpecialDatesManager**
+- Datum + Zeit-Picker
+- Dynamische Liste
+- Add/Remove Funktionalität
+
+### **ConflictDisplay**
+- Konflikte visuell darstellen
+- Lösungsvorschläge anbieten
+- Override-Optionen
+
+---
+
+## Integration
+
+### **Verknüpfte Module:**
+- **Kursplan-Übersicht:** Navigation und Rückkehr
+- **Trainer-Verwaltung:** Staff-Daten für Trainer-Auswahl
+- **Raum-Management:** Verfügbare Räume und Kapazitäten
+- **Kategorie-System:** Kurs-Kategorisierung
+
+### **Datenbank-Tabellen:**
+- `courses` - Haupt-Kurs-Daten
+- `course_schedules` - Wöchentliche Termine
+- `course_categories` - Kategorien
+- `course_rooms` - Räume
+- `staff` - Trainer
+
+---
+
+## Error-Handling
+
+### **Validation Errors:**
+- Inline-Validierung bei Formular-Feldern
+- Sammlung aller Fehler vor Submit
+- Visuelle Hervorhebung fehlerhafter Felder
+
+### **API Errors:**
+- Network-Fehler abfangen
+- User-freundliche Fehlermeldungen
+- Retry-Mechanismen bei temporären Fehlern
+
+### **Conflict Resolution:**
+- Konflikte als Warnungen, nicht als Blocker
+- Override-Funktionalität für Admins
+- Alternative Zeitvorschläge
+
+---
+
+## Zukünftige Features
+
+### **Geplante Erweiterungen:**
+- **Template-System:** Kurse als Vorlagen speichern
+- **Bulk-Import:** CSV-Import für mehrere Kurse
+- **Warteliste:** Automatische Wartelisten-Verwaltung
+- **Recurring Events:** Kurs-Serien und Block-Kurse
+- **Resource Management:** Equipment und Material-Zuordnung
+
+---
+
+*Letzte Aktualisierung: 17.06.2025*
+*Status: ✅ Vollständig implementiert*

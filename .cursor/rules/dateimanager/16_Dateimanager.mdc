@@ -3,12 +3,13 @@ description: "Dateimanager: Zentrale Medienverwaltung und Asset-Organisation"
 alias: "@dateimanager"
 globs:
   - "app/(protected)/dateimanager/**"
-  - "components/dateimanager/**"
-  - "lib/api/file-assets.ts"
 ---
----
-description: 
+alias: "@dateimanager"
+description: "Dateimanager: Zentrale Medienverwaltung und Asset-Organisation"
 globs: 
+  - "app/(protected)/dateimanager/**/*"
+  - "app/components/dateimanager/**/*"
+  - "app/lib/api/file-asset.ts"
 alwaysApply: true
 ---
 ## Modul: Dateimanager (file_asset)

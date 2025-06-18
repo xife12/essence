@@ -44,6 +44,26 @@
 - deleteLogo(id): Promise<void> - Logo löschen
 ```
 
+### **CI-Logos Tabelle (`public.ci_logos`)**
+```sql
+CREATE TABLE public.ci_logos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ci_template_id UUID REFERENCES ci_templates(id) ON DELETE CASCADE,
+  logo_type TEXT CHECK (logo_type IN ('primary', 'white', 'black', 'favicon', 'action_special')),
+  file_asset_id UUID REFERENCES file_asset(id) ON DELETE SET NULL,
+  is_inherited BOOLEAN DEFAULT false,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+**Logo-Typen:**
+- `primary` - Haupt-Logo (farbig)
+- `white` - Logo für dunkle Hintergründe  
+- `black` - Logo für helle Hintergründe
+- `favicon` - Icon für Browser-Tabs
+- `action_special` - Spezial-Logo für Aktionen/Events
+
 #### **Einstellungs-Management**
 ```tsx
 - getSettings(type?): Promise<CISetting[]> - System-Einstellungen

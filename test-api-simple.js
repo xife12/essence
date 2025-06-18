@@ -1,0 +1,1 @@
+const api = require('./app/lib/api/contracts-v2.ts').default; api.getContractDetails('6206ee35-1fcf-43eb-b653-efd767bdbcd8').then(r => console.log(JSON.stringify(r, null, 2))).catch(e => console.error(e));

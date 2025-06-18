@@ -37,33 +37,80 @@ export default function NeuerVertragPage() {
         const contract = response.data;
         setOriginalContract(contract);
         
-        // Map contract data to form structure
+        console.log('🔄 Lade Vertragsdaten für Edit-Mode:', {
+          contractId,
+          hasStarterPackages: !!(contract.starter_packages && contract.starter_packages.length > 0),
+          hasFlatRates: !!(contract.flat_rates && contract.flat_rates.length > 0),
+          hasPriceDynamicRules: !!(contract.price_dynamic_rules && contract.price_dynamic_rules.length > 0),
+          hasModuleAssignments: !!(contract.module_assignments && contract.module_assignments.length > 0),
+          groupDiscountEnabled: contract.group_discount_bookable
+        });
+        
+        // **VOLLSTÄNDIGES MAPPING**: Alle Felder aus der API-Antwort korrekt übernehmen
         setFormData({
           name: contract.name || '',
           description: contract.description || '',
+          
+          // **KORRIGIERT**: Alle Vertragskonditionen
           terms: contract.terms || [{ duration_months: 12, base_price: 49.99 }],
-          auto_renew: contract.auto_renew || false,
-          renewal_duration: contract.renewal_term_months || 12,
+          auto_renew: contract.auto_renew !== undefined ? contract.auto_renew : false,
+          renewal_duration: contract.renewal_duration || contract.renewal_term_months || 12,
           renewal_unit: 'months',
           renewal_monthly_price: contract.renewal_monthly_price || 0,
-          renewal_cancellation_period: 3,
-          renewal_cancellation_unit: 'months',
+          renewal_cancellation_period: contract.renewal_cancellation_period || 3,
+          renewal_cancellation_unit: contract.renewal_cancellation_unit || 'months',
           cancellation_period: contract.cancellation_period || 3,
           cancellation_unit: contract.cancellation_unit || 'months',
-          group_discount_bookable: false,
-          group_discount_type: 'percent',
-          group_discount_value: 0,
-          price_dynamic_rules: [],
-          payment_intervals: [
+          
+          // **KORRIGIERT**: Gruppenrabatt-Einstellungen vollständig übernehmen
+          group_discount_bookable: contract.group_discount_bookable !== undefined ? contract.group_discount_bookable : (contract.group_discount_enabled || false),
+          group_discount_type: contract.group_discount_type || 'percent',
+          group_discount_value: contract.group_discount_value || 0,
+          
+          // **KORRIGIERT**: Preisdynamik-Regeln
+          price_dynamic_rules: contract.price_dynamic_rules || [],
+          
+          // **KORRIGIERT**: Zahlungsintervalle vollständig laden oder Standard verwenden
+          payment_intervals: contract.payment_intervals || [
             { interval: 'monthly', enabled: true, discount_percent: 0 },
             { interval: 'semi_annual', enabled: false, discount_percent: 5 },
             { interval: 'yearly', enabled: false, discount_percent: 10 }
           ],
-          starter_packages: [],
+          
+          // **KORRIGIERT**: Startpakete vollständig übernehmen
+          starter_packages: contract.starter_packages || [],
+          
+          // **KORRIGIERT**: Module-Assignments komplett laden
           module_assignments: contract.module_assignments || [],
-          flat_rates: [],
+          
+          // **KORRIGIERT**: Pauschalen vollständig übernehmen
+          flat_rates: contract.flat_rates || [],
+          
+          // **NEU**: Weitere wichtige Einstellungen übernehmen
+          contract_group_id: contract.contract_group_id,
+          base_contract_id: contract.base_contract_id,
+          version: contract.version,
+          is_active: contract.is_active !== undefined ? contract.is_active : true,
+          
+          // **KAMPAGNEN-DATEN**: Vollständig laden
           is_campaign_version: contract.is_campaign_version || false,
-          campaign_id: contract.campaign_id
+          campaign_id: contract.campaign_id,
+          campaign_start_date: contract.campaign_start_date,
+          campaign_end_date: contract.campaign_end_date,
+          campaign_extension_date: contract.campaign_extension_date,
+          campaign_name: contract.campaign_name,
+          
+          // **NEU**: Campaign Override Flags laden
+          campaign_override_pricing: contract.campaign_override_pricing || false,
+          campaign_override_modules: contract.campaign_override_modules || false,
+          campaign_override_packages: contract.campaign_override_packages || false
+        });
+        
+        console.log('✅ FormData erfolgreich gesetzt:', {
+          starterPackagesLoaded: contract.starter_packages?.length || 0,
+          flatRatesLoaded: contract.flat_rates?.length || 0,
+          priceDynamicRulesLoaded: contract.price_dynamic_rules?.length || 0,
+          moduleAssignmentsLoaded: contract.module_assignments?.length || 0
         });
       }
     } catch (error) {
@@ -146,30 +193,24 @@ export default function NeuerVertragPage() {
     e.preventDefault();
     
     if (isEditMode) {
-      // Edit Mode: Versionierung
+      // Edit Mode: Aktualisiere bestehenden Vertrag (erstellt neue Version)
       if (!changeDescription.trim()) {
         alert('Bitte geben Sie eine Beschreibung der Änderungen an.');
         return;
       }
 
       try {
-        // 1. Alte Version archivieren
-        await contractsAPI.updateContractStatus(originalContract.id, { is_active: false });
+        console.log('Update Vertrag mit Daten:', formData);
+        console.log('Original Contract ID:', originalContract.id);
         
-        // 2. Neue Version erstellen
-        const newVersionData = {
+        // Verwende updateContract für korrekte Versionierung
+        const response = await contractsAPI.updateContract(originalContract.id, {
           ...formData,
-          // Verbinde mit der gleichen Contract Group
-          contract_group_id: originalContract.contract_group_id,
-          // Inkrementiere Version
-          version_number: (originalContract.version_number || 1) + 1,
-          // Änderungsbeschreibung speichern
-          version_notes: changeDescription
-        };
-
-        const response = await contractsAPI.createContract(newVersionData);
+          version_note: changeDescription
+        });
+        
         if (response.data) {
-          alert('Neue Version erfolgreich erstellt!');
+          alert(response.message || 'Neue Version erfolgreich erstellt!');
           window.location.href = '/vertragsarten-v2';
         } else {
           alert('Fehler: ' + (response.error || 'Unbekannter Fehler'));
@@ -1107,10 +1148,28 @@ export default function NeuerVertragPage() {
         {showCampaignModal && (
           <CampaignModal
             contractData={formData}
-            onSave={(campaignData) => {
-              console.log('Kampagnen-Vertrag erstellen:', campaignData);
-              alert('Kampagnen-Vertrag würde erstellt werden!');
-              setShowCampaignModal(false);
+            onSave={async (campaignData) => {
+              try {
+                console.log('🎯 Kampagnen-Vertrag erstellen:', campaignData);
+                
+                // API-Aufruf für Kampagnenvertrag-Erstellung
+                const response = await contractsAPI.createContract(campaignData);
+                
+                if (response.data) {
+                  alert(`✅ Kampagnen-Vertrag "${campaignData.campaign_name}" erfolgreich erstellt!`);
+                  console.log('✅ Kampagnenvertrag erstellt:', response.data);
+                  
+                  // Zur Übersichtsseite zurückkehren
+                  window.location.href = '/vertragsarten-v2';
+                } else {
+                  throw new Error(response.error || 'Unbekannter Fehler');
+                }
+              } catch (error) {
+                console.error('❌ Fehler beim Erstellen des Kampagnenvertrags:', error);
+                alert('❌ Fehler beim Erstellen des Kampagnenvertrags: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'));
+              } finally {
+                setShowCampaignModal(false);
+              }
             }}
             onClose={() => setShowCampaignModal(false)}
           />
@@ -1632,270 +1691,811 @@ function CampaignModal({
   onSave: (data: ContractFormData) => void;
   onClose: () => void;
 }) {
-  const [formData, setFormData] = useState<ContractFormData>({
-    ...contractData,
-    is_campaign_version: true,
-    name: contractData.name + ' (Kampagnen-Version)'
+  const [campaignName, setCampaignName] = useState(
+    contractData.is_campaign_version && contractData.campaign_name ? 
+      contractData.campaign_name : 
+      contractData.name + ' (Kampagnen-Version)'
+  );
+  
+  // Modular override states - prüfe auf bestehende Overrides
+  const [campaignOverrides, setCampaignOverrides] = useState({
+    pricing: { enabled: contractData.campaign_override_pricing || false, data: null },
+    modules: { enabled: contractData.campaign_override_modules || false, data: null },
+    startPackages: { enabled: contractData.campaign_override_packages || false, data: null },
+    flatRates: { enabled: false, data: null },
+    priceDynamics: { enabled: false, data: null },
+    terms: { enabled: false, data: null }
   });
+
+  const [campaignDates, setCampaignDates] = useState({
+    start_date: contractData.campaign_start_date || '',
+    end_date: contractData.campaign_end_date || ''
+  });
+
+     // Remove unused modal states - using inline editors now
+
+  const toggleSection = (section: string, enabled: boolean) => {
+    setCampaignOverrides(prev => ({
+      ...prev,
+      [section]: {
+        enabled,
+        data: enabled ? (prev[section].data || getDefaultDataForSection(section)) : null
+      }
+    }));
+  };
+
+  const getDefaultDataForSection = (section: string) => {
+    switch (section) {
+      case 'pricing':
+        // Übernehme die aktuell konfigurierten Laufzeiten und Preise
+        return [...contractData.terms];
+      case 'modules':
+        // Übernehme die aktuell konfigurierten Module-Zuordnungen
+        return [...contractData.module_assignments];
+      case 'startPackages':
+        // Übernehme die aktuell konfigurierten Startpakete
+        return [...contractData.starter_packages];
+      case 'flatRates':
+        // Übernehme die aktuell konfigurierten Pauschalen
+        return [...contractData.flat_rates];
+      case 'priceDynamics':
+        // Übernehme die aktuell konfigurierten Preisregeln
+        return [...contractData.price_dynamic_rules];
+      default:
+        return [];
+    }
+  };
+
+     const renderInlineEditor = (section: string, data: any, onChange: (data: any) => void) => {
+     switch (section) {
+       case 'pricing':
+         return <PricingEditor data={data} onChange={onChange} originalData={contractData.terms} />;
+       case 'modules':
+         return <ModulesEditor data={data} onChange={onChange} originalData={contractData.module_assignments} />;
+       case 'startPackages':
+         return <StartPackagesEditor data={data} onChange={onChange} originalData={contractData.starter_packages} />;
+       case 'flatRates':
+         return <FlatRatesEditor data={data} onChange={onChange} originalData={contractData.flat_rates} />;
+       case 'priceDynamics':
+         return <PriceDynamicsEditor data={data} onChange={onChange} originalData={contractData.price_dynamic_rules} />;
+       default:
+         return <div className="text-gray-500 text-sm">Editor für {section} wird geladen...</div>;
+     }
+   };
+
+  const handleSave = () => {
+    // Validierung
+    if (!campaignName.trim()) {
+      alert('Bitte geben Sie einen Kampagnen-Namen ein.');
+      return;
+    }
+    if (!campaignDates.start_date || !campaignDates.end_date) {
+      alert('Bitte geben Sie Start- und Enddatum der Kampagne ein.');
+      return;
+    }
+    if (new Date(campaignDates.start_date) >= new Date(campaignDates.end_date)) {
+      alert('Das Startdatum muss vor dem Enddatum liegen.');
+      return;
+    }
+
+    const finalCampaignData: ContractFormData = {
+      ...contractData,
+      name: campaignName,
+      campaign_name: campaignName,
+      is_campaign_version: true,
+      campaign_start_date: campaignDates.start_date,
+      campaign_end_date: campaignDates.end_date,
+      
+      // Apply overrides
+      ...(campaignOverrides.pricing.enabled && { 
+        campaign_override_pricing: true,
+        // Apply pricing overrides to terms
+        terms: campaignOverrides.terms.enabled ? campaignOverrides.terms.data : contractData.terms
+      }),
+      ...(campaignOverrides.modules.enabled && { 
+        campaign_override_modules: true,
+        module_assignments: campaignOverrides.modules.data 
+      }),
+      ...(campaignOverrides.startPackages.enabled && { 
+        campaign_override_packages: true,
+        starter_packages: campaignOverrides.startPackages.data 
+      }),
+      ...(campaignOverrides.flatRates.enabled && { 
+        flat_rates: campaignOverrides.flatRates.data 
+      }),
+      ...(campaignOverrides.priceDynamics.enabled && { 
+        price_dynamic_rules: campaignOverrides.priceDynamics.data 
+      })
+    };
+
+    onSave(finalCampaignData);
+  };
+
+  const sections = [
+    {
+      key: 'pricing',
+      label: 'Preise & Laufzeiten',
+      description: 'Spezielle Kampagnen-Preise',
+      icon: '💰',
+      color: 'blue'
+    },
+    {
+      key: 'modules',
+      label: 'Module anpassen',
+      description: 'Andere Inklusiv-Module',
+      icon: '⚡',
+      color: 'purple'
+    },
+    {
+      key: 'startPackages',
+      label: 'Startpakete',
+      description: 'Spezielle Starter-Angebote',
+      icon: '📦',
+      color: 'green'
+    },
+    {
+      key: 'flatRates',
+      label: 'Pauschalen',
+      description: 'Kampagnen-Pauschalen',
+      icon: '💶',
+      color: 'orange'
+    },
+    {
+      key: 'priceDynamics',
+      label: 'Preisdynamik',
+      description: 'Zeitlich begrenzte Rabatte',
+      icon: '📈',
+      color: 'red'
+    }
+  ];
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-gray-900">Kampagnen-Vertrag erstellen</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="space-y-6">
+            {/* Kampagnen-Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kampagnen-Name *
+              </label>
+              <input
+                type="text"
+                value={campaignName}
+                onChange={(e) => setCampaignName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="z.B. Sommer-Aktion 2025"
+              />
+            </div>
+
+            {/* Kampagnen-Zeitraum */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kampagnen-Start *
+                </label>
+                <input
+                  type="date"
+                  value={campaignDates.start_date}
+                  onChange={(e) => setCampaignDates(prev => ({ ...prev, start_date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Ab diesem Datum buchbar</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kampagnen-Ende *
+                </label>
+                <input
+                  type="date"
+                  value={campaignDates.end_date}
+                  onChange={(e) => setCampaignDates(prev => ({ ...prev, end_date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Letzter Buchungstag</p>
+              </div>
+            </div>
+
+            {/* Info-Box */}
+            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <h4 className="font-medium text-orange-900 mb-3 flex items-center gap-2">
+                🎯 Kampagnen-Anpassungen
+              </h4>
+              <div className="text-sm text-orange-800 space-y-2">
+                <p>✅ <strong>Vollständige Anpassungen möglich:</strong></p>
+                <ul className="ml-4 space-y-1">
+                  <li>• Laufzeiten & Monatliche Grundpreise</li>
+                  <li>• Pauschalen & Zahlungsintervalle</li>
+                  <li>• Startpakete & Preisdynamik</li>
+                  <li>• Module & Gruppenrabatte</li>
+                  <li>• Verlängerungskonditionen</li>
+                </ul>
+                <p className="mt-3"><strong>📅 Zeitlich begrenzt:</strong> Nur während Kampagnenzeitraum buchbar</p>
+              </div>
+            </div>
+
+            {/* Anpassungsbereiche */}
+            <div>
+              <h4 className="text-lg font-medium text-gray-900 mb-4">
+                Was möchten Sie für die Kampagne anpassen?
+              </h4>
+              
+              <div className="space-y-4">
+                {sections.map(section => (
+                  <div key={section.key} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={campaignOverrides[section.key].enabled}
+                          onChange={(e) => toggleSection(section.key, e.target.checked)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-medium text-gray-900">
+                            {section.icon} {section.label}
+                          </span>
+                          <p className="text-sm text-gray-600">{section.description}</p>
+                        </div>
+                      </label>
+                      
+                                           </div>
+                     
+                     {/* Direkte Bearbeitungsfelder */}
+                     {campaignOverrides[section.key].enabled && (
+                       <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                         {renderInlineEditor(section.key, campaignOverrides[section.key].data, (data) => {
+                           setCampaignOverrides(prev => ({
+                             ...prev,
+                             [section.key]: { enabled: true, data }
+                           }));
+                         })}
+                       </div>
+                     )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Kampagnen-Zeitraum */}
+            <div>
+              <h4 className="text-lg font-medium text-gray-900 mb-4">Kampagnen-Zeitraum</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Kampagnen-Start *
+                  </label>
+                  <input
+                    type="date"
+                    value={campaignDates.start_date}
+                    onChange={(e) => setCampaignDates(prev => ({ ...prev, start_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Kampagnen-Ende *
+                  </label>
+                  <input
+                    type="date"
+                    value={campaignDates.end_date}
+                    onChange={(e) => setCampaignDates(prev => ({ ...prev, end_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Kampagnen-Beispiel */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h5 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                📊 Kampagnen-Beispiel
+              </h5>
+              <div className="text-sm text-blue-800">
+                <p><strong>Sommer-Aktion 2025:</strong></p>
+                <p>• Normal: 49.99€/Monat für 12 Monate = 599.88€</p>
+                <p>• Kampagne: 39.99€/Monat für 6 Monate = 239.94€</p>
+                <p className="font-medium text-green-700">• Ersparnis: 359.94€ gegenüber normalem 6-Monats-Vertrag</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-6 border-t">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!campaignName.trim() || !campaignDates.start_date || !campaignDates.end_date}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <Settings size={16} />
+                Kampagnen-Version erstellen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+    </>
+  );
+ }
+
+// Pricing Editor Component - Identisch zum normalen Interface
+function PricingEditor({ data, onChange, originalData }: { data: any; onChange: (data: any) => void; originalData: any }) {
+  const [terms, setTerms] = useState(() => {
+    const initialData = data || originalData || [];
+    return Array.isArray(initialData) ? initialData : [];
+  });
+
+  useEffect(() => {
+    onChange(terms);
+  }, [terms, onChange]);
+
+  const updateTerm = (index: number, field: string, value: any) => {
+    setTerms(prev => prev.map((term, i) => 
+      i === index ? { ...term, [field]: value } : term
+    ));
+  };
+
+  const removeTerm = (index: number) => {
+    setTerms(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addTerm = () => {
+    setTerms(prev => [...prev, { duration_months: 6, base_price: 39.99 }]);
+  };
+
+  return (
+    <div>
+      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+        Laufzeiten & Preise
+      </h4>
+      
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600 mb-4">
+          Definieren Sie die verfügbaren Vertragslaufzeiten und Preise. Sie können mehrere Optionen anbieten.
+        </p>
+        
+        {terms.map((term, index) => (
+          <div key={index} className="p-4 border border-gray-200 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Laufzeit (Monate)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={term.duration_months}
+                  onChange={(e) => updateTerm(index, 'duration_months', parseInt(e.target.value) || 1)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="z.B. 12"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Monatlicher Grundpreis (€)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={term.base_price}
+                  onChange={(e) => updateTerm(index, 'base_price', parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="z.B. 49.99"
+                />
+              </div>
+              
+              <div className="flex items-end">
+                {terms.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeTerm(index)}
+                    className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Zusätzliche Info */}
+            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                <strong>Laufzeit:</strong> {term.duration_months} Monate | 
+                <strong> Gesamtpreis:</strong> {(term.base_price * term.duration_months).toFixed(2)}€ | 
+                <strong> Monatlich:</strong> {term.base_price}€
+              </p>
+            </div>
+          </div>
+        ))}
+        
+        {/* Neue Laufzeit hinzufügen */}
+        <button
+          type="button"
+          onClick={addTerm}
+          className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+        >
+          ➕ Weitere Laufzeit hinzufügen
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Modules Editor Component - Identisch zum normalen Interface
+function ModulesEditor({ data, onChange, originalData }: { data: any; onChange: (data: any) => void; originalData: any }) {
+  const [modules] = useState([
+    { id: '55732224-a011-4a75-a6f0-55f6c69b4c3b', name: 'Krafttraining', price_per_month: 15 },
+    { id: '22222222-3333-4444-5555-666666666666', name: 'Kurse', price_per_month: 10 },
+    { id: '33333333-4444-5555-6666-777777777777', name: 'Personal Training', price_per_month: 80 },
+    { id: '44444444-5555-6666-7777-888888888888', name: 'Sauna', price_per_month: 20 }
+  ]);
+  
+  const [assignments, setAssignments] = useState(() => {
+    const initialData = data || originalData || [];
+    return Array.isArray(initialData) ? initialData : [];
+  });
+
+  useEffect(() => {
+    onChange(assignments);
+  }, [assignments, onChange]);
+
+  const toggleModuleAssignment = (moduleId: string, assignmentType: 'included' | 'bookable') => {
+    const existingIndex = assignments.findIndex(a => a.module_id === moduleId);
+    
+    if (existingIndex >= 0) {
+      if (assignments[existingIndex].assignment_type === assignmentType) {
+        // Remove if same type
+        setAssignments(prev => prev.filter((_, i) => i !== existingIndex));
+      } else {
+        // Update type
+        setAssignments(prev => prev.map((assignment, i) => 
+          i === existingIndex ? { ...assignment, assignment_type: assignmentType } : assignment
+        ));
+      }
+    } else {
+      // Add new assignment
+      setAssignments(prev => [...prev, {
+        module_id: moduleId,
+        assignment_type: assignmentType,
+        custom_price: null
+      }]);
+    }
+  };
+
+  return (
+    <div>
+      <h4 className="text-lg font-semibold text-gray-900 mb-4">Module (inkl. vs. zubuchbar)</h4>
+      
+      {modules.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500 mb-4">Keine Module verfügbar.</p>
+        </div>
+      ) : (
+        <div>
+          {/* Module Table */}
+          <div className="overflow-hidden border border-gray-200 rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Modulname
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Inklusive
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Zubuchbar
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {modules.map((module) => {
+                  const assignment = assignments.find(ma => ma.module_id === module.id);
+                
+                  return (
+                    <tr key={module.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{module.name}</div>
+                          <div className="text-sm text-gray-500">{module.price_per_month.toFixed(2)} €/Monat</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleModuleAssignment(module.id, 'included')}
+                          className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                            assignment?.assignment_type === 'included'
+                              ? 'bg-green-500 border-green-500 text-white'
+                              : 'border-gray-300 hover:border-green-400'
+                          }`}
+                        >
+                          {assignment?.assignment_type === 'included' && '✓'}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleModuleAssignment(module.id, 'bookable')}
+                          className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                            assignment?.assignment_type === 'bookable'
+                              ? 'bg-blue-500 border-blue-500 text-white'
+                              : 'border-gray-300 hover:border-blue-400'
+                          }`}
+                        >
+                          {assignment?.assignment_type === 'bookable' && '✓'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// StartPackages Editor Component
+function StartPackagesEditor({ data, onChange, originalData }: { data: any; onChange: (data: any) => void; originalData: any }) {
+  const [packages, setPackages] = useState(() => {
+    const initialData = data || originalData || [];
+    return Array.isArray(initialData) ? initialData : [];
+  });
+
+  const [modules] = useState([
+    { id: '55732224-a011-4a75-a6f0-55f6c69b4c3b', name: 'Krafttraining', price_per_month: 15 },
+    { id: '22222222-3333-4444-5555-666666666666', name: 'Kurse', price_per_month: 10 },
+    { id: '33333333-4444-5555-6666-777777777777', name: 'Personal Training', price_per_month: 80 },
+    { id: '44444444-5555-6666-7777-888888888888', name: 'Sauna', price_per_month: 20 }
+  ]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPackage, setCurrentPackage] = useState<any>(null);
+
+  useEffect(() => {
+    onChange(packages);
+  }, [packages, onChange]);
+
+  const openModal = (pkg?: any) => {
+    setCurrentPackage(pkg || null);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = (packageData: any) => {
+    if (currentPackage) {
+      // Update existing
+      setPackages(prev => prev.map(p => p.id === currentPackage.id ? packageData : p));
+    } else {
+      // Add new
+      setPackages(prev => [...prev, { ...packageData, id: `temp-${Date.now()}` }]);
+    }
+    setIsModalOpen(false);
+    setCurrentPackage(null);
+  };
+
+  const removePackage = (id: string) => {
+    setPackages(prev => prev.filter(p => p.id !== id));
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-semibold text-gray-900">Startpakete</h4>
+        <button
+          type="button"
+          onClick={() => openModal()}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+        >
+          ➕ Startpaket hinzufügen
+        </button>
+      </div>
+      
+      {packages.length === 0 ? (
+        <p className="text-gray-500 text-sm">
+          Keine Startpakete konfiguriert. Erstellen Sie Pakete mit Ausrüstung und Services für neue Mitglieder.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {packages.map((pkg) => (
+            <div key={pkg.id} className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+              <div>
+                <div className="font-medium">{pkg.name}</div>
+                <div className="text-sm text-gray-600">{pkg.description}</div>
+                <div className="text-lg font-bold text-green-600">{pkg.price?.toFixed(2)} €</div>
+                {pkg.allow_installments && (
+                  <div className="text-xs text-gray-500">
+                    Ratenzahlung möglich (max. {pkg.max_installments} Raten)
+                  </div>
+                )}
+                {pkg.included_modules && pkg.included_modules.length > 0 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Module: {pkg.included_modules.map(id => {
+                      const module = modules.find(m => m.id === id);
+                      return module?.name;
+                    }).filter(Boolean).join(', ')}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => openModal(pkg)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                >
+                  ✏️
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removePackage(pkg.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* StartPackage Modal */}
+      {isModalOpen && (
+        <CampaignStartPackageModal
+          package={currentPackage}
+          modules={modules}
+          onSave={handleSave}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Campaign StartPackage Modal Component - Identisch zum Original
+function CampaignStartPackageModal({
+  package: pkg,
+  modules,
+  onSave,
+  onClose
+}: {
+  package: any | null;
+  modules: any[];
+  onSave: (pkg: any) => void;
+  onClose: () => void;
+}) {
+  const [formData, setFormData] = useState(
+    pkg || {
+      id: '',
+      name: '',
+      price: 0,
+      description: '',
+      allow_installments: false,
+      max_installments: 3,
+      included_modules: []
+    }
+  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4">Kampagnen-Vertrag erstellen</h3>
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <h3 className="text-lg font-semibold mb-4">
+          {pkg ? 'Startpaket bearbeiten' : 'Neues Startpaket'}
+        </h3>
         
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Kampagnen-Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="z.B. Premium Starter Set"
             />
           </div>
           
-          <div className="p-4 bg-orange-50 rounded-lg">
-            <h4 className="font-medium text-orange-900 mb-3">🎯 Kampagnen-Anpassungen</h4>
-            <div className="text-sm text-orange-800 space-y-2">
-              <p>✅ <strong>Vollständige Anpassungen möglich:</strong></p>
-              <ul className="ml-4 space-y-1">
-                <li>• Laufzeiten & Monatliche Grundpreise</li>
-                <li>• Pauschalen & Zahlungsintervalle</li>
-                <li>• Startpakete & Preisdynamik</li>
-                <li>• Module & Gruppenrabatte</li>
-                <li>• Verlängerungskonditionen</li>
-              </ul>
-              <p className="mt-3"><strong>📅 Zeitlich begrenzt:</strong> Nur während Kampagnenzeitraum buchbar</p>
-            </div>
-          </div>
-
-          {/* Kampagnen-spezifische Überschreibungen */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-gray-900 border-b border-orange-200 pb-2">
-              Was möchten Sie für die Kampagne anpassen?
-            </h4>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.campaign_override_pricing || false}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    campaign_override_pricing: e.target.checked 
-                  }))}
-                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                />
-                <div>
-                  <span className="text-sm font-medium text-gray-700">📊 Preise & Laufzeiten</span>
-                  <p className="text-xs text-gray-500">Spezielle Kampagnen-Preise</p>
-                </div>
-              </label>
-
-              <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.campaign_override_modules || false}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    campaign_override_modules: e.target.checked 
-                  }))}
-                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                />
-                <div>
-                  <span className="text-sm font-medium text-gray-700">🧩 Module anpassen</span>
-                  <p className="text-xs text-gray-500">Andere Inklusiv-Module</p>
-                </div>
-              </label>
-
-              <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.campaign_override_packages || false}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    campaign_override_packages: e.target.checked 
-                  }))}
-                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                />
-                <div>
-                  <span className="text-sm font-medium text-gray-700">📦 Startpakete</span>
-                  <p className="text-xs text-gray-500">Spezielle Starter-Angebote</p>
-                </div>
-              </label>
-
-              <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.campaign_override_terms || false}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    campaign_override_terms: e.target.checked 
-                  }))}
-                  className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                />
-                <div>
-                  <span className="text-sm font-medium text-gray-700">⚙️ Vertragsbedingungen</span>
-                  <p className="text-xs text-gray-500">Verlängerung, Kündigung</p>
-                </div>
-              </label>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Beschreibung</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              rows={2}
+              placeholder="Beschreibung des Startpakets..."
+            />
           </div>
           
-          {/* Bedingte Anpassungsblöcke */}
-          {formData.campaign_override_pricing && (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h5 className="font-medium text-green-900 mb-3">📊 Preis-Anpassungen</h5>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kampagnen-Preis (€/Monat)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.terms[0]?.base_price || 0}
-                    onChange={(e) => {
-                      const newPrice = parseFloat(e.target.value) || 0;
-                      setFormData(prev => ({
-                        ...prev,
-                        terms: prev.terms.map((term, index) => 
-                          index === 0 ? { ...term, base_price: newPrice } : term
-                        )
-                      }));
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="39.99"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kampagnen-Laufzeit (Monate)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.terms[0]?.duration_months || 12}
-                    onChange={(e) => {
-                      const newDuration = parseInt(e.target.value) || 12;
-                      setFormData(prev => ({
-                        ...prev,
-                        terms: prev.terms.map((term, index) => 
-                          index === 0 ? { ...term, duration_months: newDuration } : term
-                        )
-                      }));
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              <p className="text-sm text-green-700 mt-2">
-                💡 <strong>Tipp:</strong> Sie können hier auch mehrere Laufzeiten mit verschiedenen Preisen anbieten!
-              </p>
-            </div>
-          )}
-
-          {formData.campaign_override_modules && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h5 className="font-medium text-blue-900 mb-3">🧩 Modul-Anpassungen</h5>
-              <p className="text-sm text-blue-700 mb-3">
-                Ändern Sie, welche Module in der Kampagne inklusive sind oder als Zusatzoption angeboten werden.
-              </p>
-              <button
-                type="button"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                onClick={() => {/* openAllModulesModal() */}}
-              >
-                Module für Kampagne anpassen
-              </button>
-            </div>
-          )}
-
-          {formData.campaign_override_packages && (
-            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-              <h5 className="font-medium text-purple-900 mb-3">📦 Startpaket-Anpassungen</h5>
-              <p className="text-sm text-purple-700 mb-3">
-                Erstellen Sie spezielle Startpakete nur für diese Kampagne.
-              </p>
-              <div className="space-y-2">
-                {formData.starter_packages.map((pkg) => (
-                  <div key={pkg.id} className="text-sm bg-white p-2 rounded border">
-                    <strong>{pkg.name}</strong> - {pkg.price.toFixed(2)}€
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
-                  onClick={() => {/* openStarterPackageModal() */}}
-                >
-                  + Kampagnen-Startpaket hinzufügen
-                </button>
-              </div>
-            </div>
-          )}
-
-          {formData.campaign_override_terms && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h5 className="font-medium text-yellow-900 mb-3">⚙️ Vertragsbedingungen</h5>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kündigungsfrist (Monate)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.cancellation_period || 3}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      cancellation_period: parseInt(e.target.value) || 3 
-                    }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.auto_renew || false}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        auto_renew: e.target.checked 
-                      }))}
-                      className="rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
-                    />
-                    <span className="text-sm text-gray-700">Automatische Verlängerung</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Preis (€)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.price}
+              onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="99.99"
+            />
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Kampagnen-Start</label>
+          <div>
+            <label className="flex items-center gap-2">
               <input
-                type="date"
-                value={formData.campaign_start_date || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, campaign_start_date: e.target.value }))}
+                type="checkbox"
+                checked={formData.allow_installments}
+                onChange={(e) => setFormData(prev => ({ ...prev, allow_installments: e.target.checked }))}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Ratenzahlung erlauben</span>
+            </label>
+          </div>
+          
+          {formData.allow_installments && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Max. Anzahl Raten</label>
+              <input
+                type="number"
+                min="2"
+                max="12"
+                value={formData.max_installments}
+                onChange={(e) => setFormData(prev => ({ ...prev, max_installments: parseInt(e.target.value) || 3 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Kampagnen-Ende</label>
-              <input
-                type="date"
-                value={formData.campaign_end_date || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, campaign_end_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+          )}
           
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <h5 className="font-medium text-blue-900 mb-2">📊 Kampagnen-Beispiel</h5>
-            <div className="text-sm text-blue-800">
-              <p><strong>Sommer-Aktion 2025:</strong></p>
-              <p>• Normal: 49.99€/Monat für 12 Monate = 599.88€</p>
-              <p>• Kampagne: 39.99€/Monat für 6 Monate = 239.94€</p>
-              <p>• Ersparnis: 359.94€ gegenüber normalem 6-Monats-Vertrag</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Enthaltene Module</label>
+            <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
+              {modules.map((module) => (
+                <label key={module.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.included_modules.includes(module.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData(prev => ({
+                          ...prev,
+                          included_modules: [...prev.included_modules, module.id]
+                        }));
+                      } else {
+                        setFormData(prev => ({
+                          ...prev,
+                          included_modules: prev.included_modules.filter(id => id !== module.id)
+                        }));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm">{module.name} ({module.price_per_month}€/Monat)</span>
+                </label>
+              ))}
             </div>
           </div>
         </div>
@@ -1911,9 +2511,490 @@ function CampaignModal({
           <button
             type="button"
             onClick={() => onSave(formData)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Speichern
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// FlatRates Editor Component - Identisch zum normalen Interface
+function FlatRatesEditor({ data, onChange, originalData }: { data: any; onChange: (data: any) => void; originalData: any }) {
+  const [flatRates, setFlatRates] = useState(() => {
+    const initialData = data || originalData || [];
+    return Array.isArray(initialData) ? initialData : [];
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentFlatRate, setCurrentFlatRate] = useState<any>(null);
+
+  useEffect(() => {
+    onChange(flatRates);
+  }, [flatRates, onChange]);
+
+  const openModal = (rate?: any) => {
+    setCurrentFlatRate(rate || null);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = (rateData: any) => {
+    if (currentFlatRate) {
+      // Update existing
+      setFlatRates(prev => prev.map(r => r.id === currentFlatRate.id ? rateData : r));
+    } else {
+      // Add new
+      setFlatRates(prev => [...prev, { ...rateData, id: `temp-${Date.now()}` }]);
+    }
+    setIsModalOpen(false);
+    setCurrentFlatRate(null);
+  };
+
+  const removeRate = (id: string) => {
+    setFlatRates(prev => prev.filter(r => r.id !== id));
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-semibold text-gray-900">Pauschalen</h4>
+        <button
+          type="button"
+          onClick={() => openModal()}
+          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
+        >
+          ➕ Pauschale hinzufügen
+        </button>
+      </div>
+      
+      {flatRates.length === 0 ? (
+        <p className="text-gray-500 text-sm">
+          Keine Pauschalen konfiguriert. Erstellen Sie einmalige oder wiederkehrende Zusatzgebühren.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {flatRates.map((rate) => (
+            <div key={rate.id} className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
+              <div>
+                <div className="font-medium">{rate.name}</div>
+                <div className="text-lg font-bold text-orange-600">{rate.price?.toFixed(2)} €</div>
+                <div className="text-sm text-gray-600 capitalize">
+                  {rate.payment_interval === 'monthly' && 'Monatlich'}
+                  {rate.payment_interval === 'quarterly' && 'Quartalsweise'}
+                  {rate.payment_interval === 'yearly' && 'Jährlich'}
+                  {rate.payment_interval === 'fixed_date' && `Fester Stichtag${rate.fixed_date ? `: ${rate.fixed_date}` : ''}`}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => openModal(rate)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                >
+                  ✏️
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeRate(rate.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* FlatRate Modal */}
+      {isModalOpen && (
+        <CampaignFlatRateModal
+          flatRate={currentFlatRate}
+          onSave={handleSave}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Campaign FlatRate Modal Component - Identisch zum Original
+function CampaignFlatRateModal({
+  flatRate,
+  onSave,
+  onClose
+}: {
+  flatRate: any | null;
+  onSave: (rate: any) => void;
+  onClose: () => void;
+}) {
+  const [formData, setFormData] = useState(
+    flatRate || {
+      id: '',
+      name: '',
+      price: 0,
+      payment_interval: 'monthly'
+    }
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 className="text-lg font-semibold mb-4">
+          {flatRate ? 'Pauschale bearbeiten' : 'Neue Pauschale'}
+        </h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="z.B. Wartungsgebühr"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Preis (€)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.price}
+              onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="29.99"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Zahlungsintervall</label>
+            <select
+              value={formData.payment_interval}
+              onChange={(e) => setFormData(prev => ({ ...prev, payment_interval: e.target.value as any }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="monthly">Monatlich</option>
+              <option value="quarterly">Quartalsweise</option>
+              <option value="yearly">Jährlich</option>
+              <option value="fixed_date">Fester Stichtag</option>
+            </select>
+          </div>
+
+          {formData.payment_interval === 'fixed_date' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Stichtag</label>
+              <input
+                type="date"
+                value={formData.fixed_date || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, fixed_date: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
+        </div>
+        
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800"
+          >
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            onClick={() => onSave(formData)}
             className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
           >
-            Kampagnen-Vertrag erstellen
+            Speichern
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// PriceDynamics Editor Component
+function PriceDynamicsEditor({ data, onChange, originalData }: { data: any; onChange: (data: any) => void; originalData: any }) {
+  const [rules, setRules] = useState(() => {
+    const initialData = data || originalData || [];
+    return Array.isArray(initialData) ? initialData : [];
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentRule, setCurrentRule] = useState<any>(null);
+
+  useEffect(() => {
+    onChange(rules);
+  }, [rules, onChange]);
+
+  const openModal = (rule?: any) => {
+    setCurrentRule(rule || null);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = (ruleData: any) => {
+    if (currentRule) {
+      // Update existing
+      setRules(prev => prev.map(r => r.id === currentRule.id ? ruleData : r));
+    } else {
+      // Add new
+      setRules(prev => [...prev, { ...ruleData, id: `temp-${Date.now()}` }]);
+    }
+    setIsModalOpen(false);
+    setCurrentRule(null);
+  };
+
+  const removeRule = (id: string) => {
+    setRules(prev => prev.filter(r => r.id !== id));
+  };
+
+  const getRuleTypeLabel = (rule: any) => {
+    switch (rule.adjustment_type) {
+      case 'one_time_on_date':
+        return `Einmalig am ${rule.target_date}`;
+      case 'recurring_on_date':
+        return `Monatlich am ${rule.recurring_day}. Tag`;
+      case 'after_duration':
+        return `Nach ${rule.after_months} Monaten`;
+      case 'first_months_free':
+        return `Erste ${rule.free_months} Monate kostenlos`;
+      default:
+        return rule.adjustment_type;
+    }
+  };
+
+  const getRuleValueLabel = (rule: any) => {
+    if (rule.adjustment_type === 'first_months_free') {
+      return `${rule.free_months} kostenlose Monate`;
+    }
+    const value = rule.adjustment_value_type === 'percent' 
+      ? `${rule.adjustment_value}%` 
+      : `${rule.adjustment_value}€`;
+    return value;
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-semibold text-gray-900">Preisdynamik</h4>
+        <button
+          type="button"
+          onClick={() => openModal()}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+        >
+          ➕ Preisregel hinzufügen
+        </button>
+      </div>
+      
+      {rules.length === 0 ? (
+        <p className="text-gray-500 text-sm">
+          Keine Preisregeln konfiguriert. Erstellen Sie zeitbasierte Anpassungen, Rabatte oder kostenlose Monate.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {rules.map((rule) => (
+            <div key={rule.id} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+              <div>
+                <div className="font-medium">{rule.name}</div>
+                <div className="text-sm text-gray-600">{getRuleTypeLabel(rule)}</div>
+                <div className="text-lg font-bold text-blue-600">{getRuleValueLabel(rule)}</div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => openModal(rule)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                >
+                  ✏️
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeRule(rule.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* PriceRule Modal */}
+      {isModalOpen && (
+        <CampaignPriceRuleModal
+          rule={currentRule}
+          onSave={handleSave}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Campaign PriceRule Modal Component - Identisch zum Original mit "Kostenlosmonate"
+function CampaignPriceRuleModal({
+  rule,
+  onSave,
+  onClose
+}: {
+  rule: any | null;
+  onSave: (rule: any) => void;
+  onClose: () => void;
+}) {
+  const [formData, setFormData] = useState(
+    rule || {
+      id: '',
+      name: '',
+      adjustment_type: 'one_time_on_date',
+      adjustment_value: 0,
+      adjustment_value_type: 'percent',
+      target_date: '2025-01-01'
+    }
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 className="text-lg font-semibold mb-4">
+          {rule ? 'Preisregel bearbeiten' : 'Neue Preisregel'}
+        </h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="z.B. Preiserhöhung Januar"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Typ</label>
+            <select
+              value={formData.adjustment_type}
+              onChange={(e) => setFormData(prev => ({ ...prev, adjustment_type: e.target.value as any }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="one_time_on_date">Einmalig zu Stichtag</option>
+              <option value="recurring_on_date">Monatlich wiederkehrend</option>
+              <option value="after_duration">Nach bestimmter Dauer</option>
+              <option value="first_months_free">Erste X Monate kostenlos</option>
+            </select>
+          </div>
+          
+          {formData.adjustment_type !== 'first_months_free' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Wert</label>
+                <input
+                  type="number"
+                  value={formData.adjustment_value}
+                  onChange={(e) => setFormData(prev => ({ ...prev, adjustment_value: parseFloat(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="5"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Art</label>
+                <select
+                  value={formData.adjustment_value_type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, adjustment_value_type: e.target.value as any }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="percent">Prozent</option>
+                  <option value="fixed">Fester Betrag</option>
+                </select>
+              </div>
+            </div>
+          )}
+          
+          {formData.adjustment_type === 'one_time_on_date' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Stichtag</label>
+              <input
+                type="date"
+                value={formData.target_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, target_date: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
+          
+          {formData.adjustment_type === 'recurring_on_date' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tag im Monat</label>
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={formData.recurring_day || 1}
+                onChange={(e) => setFormData(prev => ({ ...prev, recurring_day: parseInt(e.target.value) || 1 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="15"
+              />
+            </div>
+          )}
+          
+          {formData.adjustment_type === 'after_duration' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nach Monaten</label>
+              <input
+                type="number"
+                min="1"
+                value={formData.after_months || 1}
+                onChange={(e) => setFormData(prev => ({ ...prev, after_months: parseInt(e.target.value) || 1 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="6"
+              />
+            </div>
+          )}
+          
+          {formData.adjustment_type === 'first_months_free' && (
+            <div>
+              <div className="p-3 bg-green-50 rounded-lg mb-4">
+                <p className="text-sm text-green-800">
+                  <strong>Erste Monate kostenlos:</strong> Die angegebene Anzahl von Monaten ab Vertragsbeginn sind für das Mitglied kostenfrei.
+                </p>
+              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Anzahl kostenloser Monate</label>
+              <input
+                type="number"
+                min="1"
+                max="12"
+                value={formData.free_months || 1}
+                onChange={(e) => setFormData(prev => ({ ...prev, free_months: parseInt(e.target.value) || 1 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="3"
+              />
+              <p className="text-xs text-gray-500 mt-1">Maximaler Wert: 12 Monate</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800"
+          >
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            onClick={() => onSave(formData)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Speichern
           </button>
         </div>
       </div>

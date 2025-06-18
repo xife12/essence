@@ -10,12 +10,94 @@ import {
   Package,
   DollarSign,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  ChevronDown
 } from 'lucide-react';
-import ContractsV2API, {
+import contractsAPIInstance, {
   type ModuleFormData,
   type ModuleCategory
 } from '../../../../lib/api/contracts-v2';
+
+// Icon Picker Component
+function IconPicker({ value, onChange }: { value: string; onChange: (iconName: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const iconOptions = [
+    { name: 'dumbbell', emoji: '🏋️', label: 'Krafttraining' },
+    { name: 'muscle', emoji: '💪', label: 'Muskelaufbau' },
+    { name: 'fitness', emoji: '🏃', label: 'Fitness' },
+    { name: 'cardio', emoji: '❤️', label: 'Cardio' },
+    { name: 'yoga', emoji: '🧘‍♀️', label: 'Yoga' },
+    { name: 'pilates', emoji: '🤸', label: 'Pilates' },
+    { name: 'dance', emoji: '💃', label: 'Tanzen' },
+    { name: 'swimming', emoji: '🏊', label: 'Schwimmen' },
+    { name: 'cycling', emoji: '🚴', label: 'Radfahren' },
+    { name: 'sauna', emoji: '🌡️', label: 'Sauna' },
+    { name: 'spa', emoji: '🧘', label: 'Wellness' },
+    { name: 'massage', emoji: '💆', label: 'Massage' },
+    { name: 'nutrition', emoji: '🥗', label: 'Ernährung' },
+    { name: 'personal', emoji: '👤', label: 'Personal Training' },
+    { name: 'group', emoji: '👥', label: 'Gruppenkurs' },
+    { name: 'star', emoji: '⭐', label: 'Premium' },
+    { name: 'fire', emoji: '🔥', label: 'Intensiv' },
+    { name: 'trophy', emoji: '🏆', label: 'Wettkampf' }
+  ];
+
+  const selectedIcon = iconOptions.find(icon => icon.name === value);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between bg-white"
+      >
+        <div className="flex items-center gap-2">
+          {selectedIcon ? (
+            <>
+              <span className="text-lg">{selectedIcon.emoji}</span>
+              <span>{selectedIcon.label}</span>
+            </>
+          ) : (
+            <span className="text-gray-500">Icon auswählen...</span>
+          )}
+        </div>
+        <ChevronDown size={16} className="text-gray-400" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="p-2">
+            <button
+              type="button"
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+              }}
+              className="w-full px-3 py-2 text-left hover:bg-gray-100 rounded flex items-center gap-2"
+            >
+              <span className="text-gray-400">Kein Icon</span>
+            </button>
+            {iconOptions.map((icon) => (
+              <button
+                key={icon.name}
+                type="button"
+                onClick={() => {
+                  onChange(icon.name);
+                  setIsOpen(false);
+                }}
+                className="w-full px-3 py-2 text-left hover:bg-gray-100 rounded flex items-center gap-2"
+              >
+                <span className="text-lg">{icon.emoji}</span>
+                <span>{icon.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function NeuesModulPage() {
   const router = useRouter();
@@ -23,12 +105,15 @@ export default function NeuesModulPage() {
   const [categories, setCategories] = useState<ModuleCategory[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [success, setSuccess] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<ModuleFormData>({
     name: '',
     description: '',
     price_per_month: 0,
+    price_type: 'per_month',
     category_id: '',
     icon_name: '',
     is_active: true
@@ -36,16 +121,62 @@ export default function NeuesModulPage() {
 
   useEffect(() => {
     loadCategories();
+    
+    // Check if editing
+    const urlParams = new URLSearchParams(window.location.search);
+    const editParam = urlParams.get('edit');
+    if (editParam) {
+      setIsEdit(true);
+      setEditId(editParam);
+      loadModuleForEdit(editParam);
+    }
   }, []);
 
   const loadCategories = async () => {
     try {
-      const response = await ContractsV2API.getModuleCategories();
+      const response = await contractsAPIInstance.getModuleCategories();
       if (response.data) {
         setCategories(response.data);
       }
     } catch (error) {
       console.error('Error loading categories:', error);
+    }
+  };
+
+  const loadModuleForEdit = async (moduleId: string) => {
+    try {
+      console.log('Loading module for edit:', moduleId);
+      const response = await contractsAPIInstance.getModule(moduleId);
+      console.log('API Response:', response);
+      
+      if (response.error) {
+        console.error('API Error:', response.error);
+        setErrors([`Fehler beim Laden: ${response.error}`]);
+        return;
+      }
+      
+      if (response.data) {
+        const module = response.data as any; // Cast to any to access icon_name
+        console.log('Module data loaded:', module);
+        
+        const newFormData = {
+          name: module.name,
+          description: module.description || '',
+          price_per_month: Number(module.price_per_month) || 0,
+          price_type: module.price_type || 'per_month',
+          category_id: module.category_id || '',
+          icon_name: module.icon_name || '',
+          is_active: module.is_active !== false
+        };
+        
+        console.log('Setting form data:', newFormData);
+        setFormData(newFormData);
+      } else {
+        setErrors(['Modul nicht gefunden']);
+      }
+    } catch (error) {
+      console.error('Exception in loadModuleForEdit:', error);
+      setErrors(['Fehler beim Laden des Moduls']);
     }
   };
 
@@ -56,22 +187,29 @@ export default function NeuesModulPage() {
 
     try {
       // Validierung
-      const validation = ContractsV2API.validateModule(formData);
+      const validation = contractsAPIInstance.validateModule(formData);
       if (!validation.isValid) {
         setErrors(validation.errors);
         setLoading(false);
         return;
       }
 
-      // Modul erstellen
-      const response = await ContractsV2API.createModule(formData);
+      let response;
+      if (isEdit && editId) {
+        // Modul bearbeiten
+        response = await contractsAPIInstance.updateModule(editId, formData);
+      } else {
+        // Modul erstellen
+        response = await contractsAPIInstance.createModule(formData);
+      }
       
       if (response.error) {
         setErrors([response.error]);
       } else {
         setSuccess(true);
         setTimeout(() => {
-          router.push('/vertragsarten-v2');
+          // Navigiere zu Module-Tab statt Dashboard
+          router.push('/vertragsarten-v2?tab=modules');
         }, 1500);
       }
     } catch (error) {
@@ -86,7 +224,9 @@ export default function NeuesModulPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Modul erstellt!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {isEdit ? 'Modul aktualisiert!' : 'Modul erstellt!'}
+          </h2>
           <p className="text-gray-600">Sie werden automatisch weitergeleitet...</p>
         </div>
       </div>
@@ -100,14 +240,18 @@ export default function NeuesModulPage() {
         <div className="mb-6">
           <div className="flex items-center gap-4 mb-4">
             <Link 
-              href="/vertragsarten-v2"
+              href="/vertragsarten-v2?tab=modules"
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft size={20} />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Neues Modul</h1>
-              <p className="text-gray-600">Erstellen Sie ein neues Vertragsmodul</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {isEdit ? 'Modul bearbeiten' : 'Neues Modul'}
+              </h1>
+              <p className="text-gray-600">
+                {isEdit ? 'Bearbeiten Sie das Vertragsmodul' : 'Erstellen Sie ein neues Vertragsmodul'}
+              </p>
             </div>
           </div>
         </div>
@@ -206,17 +350,14 @@ export default function NeuesModulPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Icon-Name (Lucide Icon)
+                  Icon auswählen
                 </label>
-                <input
-                  type="text"
+                <IconPicker
                   value={formData.icon_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, icon_name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="z.B. Waves, Dumbbell, Heart"
+                  onChange={(iconName) => setFormData(prev => ({ ...prev, icon_name: iconName }))}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Optional: Name eines Lucide Icons für die Anzeige
+                  Optional: Wählen Sie ein Icon für die bessere Anzeige des Moduls
                 </p>
               </div>
 

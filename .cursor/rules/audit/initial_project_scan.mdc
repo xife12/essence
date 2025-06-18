@@ -68,3 +68,22 @@ description: Statusprüfung für {{modulename}}
 - OK / Fehlend: <liste>
 
 ## Letzter Check: {{datum}}
+
+## 🔗 Regel: Modulabhängigkeiten prüfen
+
+Für jede Datei `modules/<modulename>/<modulename>.mdc`:
+
+→ Suche nach `dependencies:`-Block  
+→ Extrahiere Einträge (z. B. `loginmodul`, `userprofile`)
+
+Für jeden Eintrag:
+
+- ✅ Wenn `modules/<dependency>/` existiert:
+  - Keine Aktion
+
+- ❌ Wenn **nicht vorhanden**:
+  - Ergänze To-do in `tasks/<modulename>.md`:
+    - `- [ ] Modul {{dependency}} erstellen oder verlinken`
+  - Ergänze Audit-Eintrag:
+    - `❗ Fehlende Abhängigkeit: {{dependency}}`
+

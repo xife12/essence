@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ---
 description: "Überprüft neue oder geänderte Rule-Dateien direkt beim Einfügen"
@@ -25,6 +25,7 @@ Wenn Datei `modules/<modulename>.mdc` geändert wird:
 → Ergänze ggf. fehlende Prüfbereiche (Tests, UI, Relationen)
 
 → Schreibe Ergebnis nach `audits/<modulename>.mdc`
+
 > Falls nötig:
 > - teile sie auf
 > - verschiebe sie in den richtigen Modulordner

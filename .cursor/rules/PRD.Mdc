@@ -1,0 +1,521 @@
+# MemberCore - Product Requirements Document (PRD)
+
+## 📋 Projektübersicht
+
+**MemberCore** ist ein integriertes Verwaltungs- und Marketing-System für Fitnessstudios, das alle geschäftskritischen Bereiche von der Lead-Generierung bis zur Mitgliederverwaltung abdeckt.
+
+### 🎯 Hauptziele
+- Zentrale Verwaltung von Leads, Mitgliedern und Verträgen
+- Automatisiertes Marketing mit Kampagnen und Landingpages
+- Effiziente Mitarbeiterverwaltung mit Aufgaben-System
+- Professionelle CI-gesteuerte Designvorlagen
+- Sichere Passwort- und Dateiverwaltung
+
+### 🏗️ Technische Basis
+- **Framework:** Next.js (App Router) mit TypeScript
+- **Styling:** Tailwind CSS mit eigenen UI-Komponenten
+- **Datenbank:** Supabase (PostgreSQL) mit Auth & Vault
+- **Authentifizierung:** Supabase E-Mail + Passwort mit 2FA-Option
+- **Icons:** Lucide React
+
+---
+
+## 🏢 Rollenmodell & Berechtigungen
+
+### Rollenhierarchie
+
+| Rolle        | Beschreibung                                           | Zugriff                                    |
+|--------------|--------------------------------------------------------|--------------------------------------------|
+| **Admin**    | Vollzugriff auf alle Module + Systemeinstellungen     | Alle Module, Nutzer verwalten, Einstellungen |
+| **Studioleiter** | Darf Mitarbeiter verwalten, Stunden pflegen        | Alle außer Systemeinstellungen, keine Admin-Verwaltung |
+| **Mitarbeiter** | Leads & Beratungen bearbeiten, eigene Daten einsehen | Leads, Beratung, eigene Stunden, begrenzte Dateirechte |
+
+### Sicherheitsrichtlinien
+- Login via Supabase Auth (E-Mail + Passwort)
+- Optional: Zwei-Faktor-Authentifizierung (2FA)
+- Deaktivieren statt Löschen (Audit-fähig)
+- Row-Level-Security (RLS) für alle sensiblen Daten
+- Rollenbasierte Dateimanager-Berechtigungen
+
+---
+
+## 📊 Modul 1: Dashboard & KPIs
+
+### Zweck
+Zentrale Übersichtsseite mit aktuellen Kennzahlen, Kampagnenauswertungen und Frühwarnindikatoren.
+
+### Hauptfunktionen
+- **🎯 Zielerreichung:** Fortschrittsbalken für Mitgliederziele
+- **📈 Leads Monatsziel:** Verfolgung der Lead-Generierung
+- **📊 Kampagnenübersicht:** Laufende Kampagnen mit KPIs
+- **📅 Monatsvergleich:** Neuzugänge vs. Kündigungen
+- **📐 Vertragsverteilung:** Visualisierung nach Vertragsarten
+- **⚠️ Kündigungswarnung:** Mitglieder mit Kündigung <90 Tage
+
+### Technische Details
+- API-Layer für Dashboard-KPIs
+- Serverseitige Aggregation der Daten
+- Clientseitiges Caching (SWR/React Query)
+- Rollenbasierte Sichtbarkeit der KPIs
+
+---
+
+## 👥 Modul 2: Leads-Management
+
+### Tabelle: `public.leads`
+| Spalte        | Typ       | Beschreibung                          |
+|---------------|-----------|---------------------------------------|
+| id            | UUID      | Primärschlüssel                       |
+| name          | TEXT      | Pflichtfeld                           |
+| contact       | TEXT      | E-Mail oder Telefon                   |
+| source        | TEXT      | Quelle (Social Media, Empfehlung)     |
+| status        | ENUM      | open, consultation, lost, converted   |
+| campaign_id   | UUID      | FK → campaigns.id                     |
+| firstname     | TEXT      | Optional                              |
+| lastname      | TEXT      | Optional                              |
+| phone         | TEXT      | Optional                              |
+| email         | TEXT      | Optional                              |
+| birthdate     | DATE      | Optional                              |
+| member_number | TEXT      | Optional                              |
+
+### Status-Workflow
+- **open:** Neuer Lead, noch nicht bearbeitet
+- **consultation:** Beratungstermin vereinbart
+- **converted:** Automatisch neues Mitglied anlegen
+- **lost:** Lead archiviert, keine weiteren Aktionen
+
+### Funktionen
+- Suche nach Name (unscharf)
+- Filter nach Status und Kampagne
+- Statusänderung per Klick oder Kontextmenü
+- Lead-zu-Mitglied Konvertierung
+
+---
+
+## 🤝 Modul 3: Beratungsgespräche
+
+### Tabelle: `public.consultations`
+| Spalte                   | Typ       | Beschreibung                           |
+|--------------------------|-----------|---------------------------------------|
+| id                       | UUID      | Primärschlüssel                        |
+| lead_id                  | UUID      | FK → leads                             |
+| consultant               | TEXT      | Aktueller Benutzer                     |
+| date                     | TIMESTAMP | Datum + Uhrzeit                        |
+| result                   | ENUM      | contractsigned, nocontract             |
+| planned_contracttype_id  | UUID      | FK → contract_types                    |
+| notes                    | TEXT      | Freitext-Notizen                       |
+
+### Funktionen
+- **Terminverwaltung:** Chronologische Sortierung
+- **Ergebniserfassung:** bei "contractsigned" → automatische Mitglieder-Erstellung
+- **Auswertung:** Abschlüsse pro Vertragsart
+- **Berechtigungen:** Mitarbeiter sehen nur eigene Termine
+
+---
+
+## 🎯 Modul 4: Kampagnen-Management
+
+### Kampagnen-Struktur
+```
+Campaign (Hauptkampagne)
+├── Campaign_Strand (Kanal: Meta, Google, Print)
+│   ├── Campaign_Action (Flyer, Anzeige, Event)
+│   └── Campaign_Action (Landing Page, E-Mail)
+└── Campaign_Strand (Kanal: Inhouse)
+    └── Campaign_Action (Plakate, Mundpropaganda)
+```
+
+### Tabelle: `public.campaigns`
+| Feld               | Typ       | Beschreibung                          |
+|--------------------|-----------|---------------------------------------|
+| id                 | UUID      | Primärschlüssel                       |
+| name               | TEXT      | Kampagnenname                         |
+| description        | TEXT      | Zweck/Beschreibung                    |
+| start_date         | DATE      | Startzeitraum                         |
+| end_date           | DATE      | Endzeitraum                           |
+| status             | ENUM      | draft, active, completed, archived    |
+| campaign_type      | TEXT      | Online, Offline, Mischung             |
+| objective          | TEXT      | Leads, Verträge, Sichtbarkeit         |
+| lead_goal          | INTEGER   | Zielanzahl Leads                      |
+| contract_goal      | INTEGER   | Zielanzahl Verträge                   |
+| budget_total       | NUMERIC   | Gesamtbudget                          |
+| coordinator_id     | UUID      | Referenz auf mitarbeiter.id           |
+
+### Funktionen
+- **Strang-Management:** Verschiedene Kanäle organisieren
+- **Aktions-Tracking:** Einzelne Maßnahmen verfolgen
+- **Budget-Kontrolle:** Ausgaben vs. geplantes Budget
+- **Fortschritts-Monitoring:** Lead- und Vertragsziele
+- **Datei-Verknüpfung:** Assets aus Dateimanager zuweisen
+
+---
+
+## 📁 Modul 5: Dateimanager
+
+### Tabelle: `public.file_asset`
+| Feld             | Typ       | Beschreibung                          |
+|------------------|-----------|---------------------------------------|
+| id               | UUID      | Primärschlüssel                       |
+| filename         | TEXT      | Ursprünglicher Dateiname              |
+| file_url         | TEXT      | Speicherpfad (Supabase Storage)       |
+| category         | ENUM      | image, graphic, document, print, template, web, video |
+| type             | TEXT      | Unterkategorie (flyer, logo, testimonial) |
+| work_area        | TEXT      | Trainer, Rezeption, Verwaltung, Marketing |
+| campaign_id      | UUID      | Optional: Kampagnen-Verknüpfung       |
+| module_reference | TEXT      | system, landingpage, task, campaign   |
+| is_print_ready   | BOOLEAN   | Finale Druckdatei                     |
+| tags             | TEXT[]    | Freie Schlagworte                     |
+| description      | TEXT      | Einsatzzweck                          |
+| created_by       | UUID      | Uploader (Mitarbeiter)                |
+
+### Berechtigungssystem
+| Berechtigung | Beschreibung           | Verhalten                             |
+|-------------|------------------------|---------------------------------------|
+| **none**    | Keine Upload-Berechtigung | Kann keine Dateien hochladen/sehen   |
+| **own_files** | Nur eigene Dateien    | Kann eigene Dateien hochladen/verwalten |
+| **all_files** | Alle Dateien         | Kann alle sichtbaren Dateien verwalten |
+
+### Funktionen
+- **Drag & Drop Upload** mit automatischer Vorschau
+- **Intelligente Kategorisierung** nach Dateityp
+- **Virtuelle Ordner-Struktur** basierend auf Kampagnen/Arbeitsbereichen
+- **Tag-basierte Suche** und Filterung
+- **Rollenbasierte Zugriffskontrolle** mit granularen Berechtigungen
+- **Versionierung** Versionierung von Dokumenten
+
+---
+
+## 👥 Modul 6: Mitarbeiterverwaltung
+
+### Tabelle: `public.staff`
+| Spalte       | Typ       | Beschreibung                          |
+|--------------|-----------|---------------------------------------|
+| id           | UUID      | FK → auth.users.id                    |
+| rolle        | ENUM      | admin, studioleiter, mitarbeiter      |
+| created_at   | TIMESTAMP | Erstellungszeitpunkt                  |
+| updated_at   | TIMESTAMP | Letzte Änderung                       |
+
+### Tab-System
+1. **Übersicht-Tab:** Mitarbeiterliste mit Basis-Informationen
+2. **Dateimanager-Rechte-Tab:** Berechtigungsmatrix-Verwaltung
+
+### Dateimanager-Berechtigungen (`staff_file_permissions`)
+- **Upload-Berechtigung:** none/own_files/all_files
+- **Admin-Dateien-Zugriff:** Boolean-Flag
+- **Automatische Rechtevergabe** basierend auf Rolle
+- **Live-Updates** der Berechtigungen
+
+### Funktionen
+- **Mitarbeiter-Einladung** via Supabase E-Mail-Auth
+- **Rollenbasierte Berechtigungen** mit Vererbung
+- **Berechtigungsmatrix** für granulare Kontrolle
+- **Deaktivieren statt Löschen** für Audit-Compliance
+
+---
+
+## ⏰ Modul 7: Stundenerfassung
+
+### Tabelle: `public.staff_hours`
+| Spalte        | Typ         | Beschreibung                          |
+|---------------|-------------|---------------------------------------|
+| id            | UUID        | Primärschlüssel                       |
+| staff_id      | UUID        | FK → staff                            |
+| date          | DATE        | Arbeitsdatum                          |
+| hours         | DECIMAL(5,2)| Gearbeitete Stunden                   |
+| reason        | TEXT        | BGM-Termin, Urlaub, Krankheit         |
+| vacation_days | INTEGER     | Optionale Urlaubstage                 |
+| sick_days     | INTEGER     | Optionale Krankheitstage              |
+
+### Funktionen
+- **Tagesweise Erfassung** mit Validierung
+- **Wochen-/Monatsansichten** mit Aggregation
+- **Ampel-System:** Rot (<75%), Gelb (75-100%), Grün (≥100%)
+- **Rollenbasierte Berechtigung:** Mitarbeiter nur eigene, Studioleiter alle
+- **Soll/Ist-Vergleich** mit visueller Darstellung
+
+---
+
+## 🏷️ Modul 8: Vertragsarten & Mitgliedschaften
+
+### Vertragsarten (`public.contract_types`)
+- **Basis-Konfiguration:** Name, Preis, Laufzeiten
+- **Modulzuordnung:** Verfügbare Services pro Vertragsart
+- **Aktiv/Inaktiv-Status** für Verfügbarkeit
+- **Preisgestaltung** mit flexiblen Laufzeiten
+
+### Mitgliedschaften (`public.memberships`)
+- **Ein aktiver Vertrag** pro Mitglied
+- **Verlängerungs-Workflow** mit predecessor_id
+- **Kündigungs-Management** mit Statusverfolgung
+- **Restlaufzeit-Berechnung** mit Farbkodierung
+
+---
+
+## 🔐 Modul 9: Passwortmanager
+
+### Tabelle: `vault.secrets`
+- **Verschlüsselte Speicherung** aller Zugangsdaten
+- **Kategorisierung:** CRM, Social Media, HR-Tools
+- **Berechtigungsmatrix:** sehen/bearbeiten/löschen pro Rolle
+- **Ablaufdatum-Verwaltung** mit Erinnerungsfunktion
+
+### Sicherheitsfeatures
+- **Vollverschlüsselung** mit Supabase Vault
+- **Rollenbasierte Sichtbarkeit** ohne Berechtigung nicht sichtbar
+- **Audit-Logging** für alle Zugriffe
+- **2FA-Information** pro Passwort-Eintrag
+
+---
+
+## 📋 Modul 10: Aufgaben-System
+
+### Tabelle: `public.task_template`
+- **Aufgaben-Vorlagen** für wiederkehrende Prozesse
+- **Auto-Trigger:** on_campaign_start, on_flyer_delivered
+- **Modul-Verknüpfung:** campaign, system, landingpage
+
+### Tabelle: `public.task_instance`
+- **Aufgaben-Instanzen** mit Zuordnung zu Mitarbeitern
+- **Status-Tracking:** open, in_progress, done, skipped
+- **Feedback-Feld** für Ergebnis-Dokumentation
+- **Fälligkeitsdatum** mit Überwachung
+
+### Workflow
+1. **Template definieren** mit Trigger-Bedingungen
+2. **Automatische Erstellung** bei Trigger-Events
+3. **Mitarbeiter-Zuordnung** basierend auf Rolle/Verfügbarkeit
+4. **Status-Updates** mit Feedback-Erfassung
+5. **Monitoring** im Dashboard pro Kampagne
+
+---
+
+## 🎨 Modul 11: CI-Styling-System
+
+### Tabelle: `public.ci_templates`
+- **Design-Presets** für konsistente Gestaltung
+- **Farbschemata:** primary, secondary, accent, background, text
+- **Typografie:** font_family, font_headline, font_sizes (JSON)
+- **Button-Styles:** radius, padding, hover-effects
+- **Icon-Konfiguration:** style, color, shape
+
+### Master-CI-Konzept
+- **Ein Master-Template** als Basis für alle Designs
+- **Vererbung** von Basis-Eigenschaften
+- **Kampagnen-spezifische** Anpassungen möglich
+- **Logo-Verwaltung:** primary, white, black, favicon
+
+### Integration
+- **Landingpage-Builder:** Automatische Stil-Anwendung
+- **Kampagnen:** CI-Zuweisung bei Erstellung
+- **Dateimanager:** Logo-Upload und -Verwaltung
+
+---
+
+## 🌐 Modul 12: Landingpage-System
+
+### Landingpage-Struktur
+```
+Landingpage
+├── Header-Block (Hero, Split, Image Overlay)
+├── Text-Block (Classic, Two-Column, Quote)
+├── Media-Block (Gallery, Video, Carousel)
+├── Conversion-Block (Form, Pricing, CTA)
+├── Trust-Block (Testimonials, Logos, Stats)
+└── Footer-Block (Contact, Map, Social)
+```
+
+### Block-Kategorien
+
+#### Inhalts-Blöcke
+- **Header:** Hero Centered, Split, Image Overlay
+- **Text:** Classic Paragraph, Two-Column, Info Card
+- **Bild/Video:** Lightbox Grid, YouTube Card, Wide Banner
+- **Button:** Flat, Rounded, Ghost, Icon + Text
+
+#### Funktionale Blöcke
+- **Testimonials:** Card Wide, Quote Overlay, Carousel
+- **Pricing:** Highlight Center, Rabatt-Badge, Mirror Compare
+- **Formular:** Modern Clean, Floating Modal, Side Panel
+- **Countdown:** Classic Timer, Animated, Progress Bar
+
+#### Struktur-Blöcke
+- **FAQ:** Accordion, Card Toggle, Minimal Expand
+- **Kontakt:** Split Map, Overlay Map, Compact Info
+- **Trust-Logos:** Logo Strip, Gray Out, Carousel
+- **Statistik:** Animated Counter, Icon + Fact, Number Badge
+
+### Design-Presets
+Jeder Block hat 5 vordefinierte Design-Varianten:
+- **Modern Clean:** Minimalistisch, viel Weißraum
+- **Bold Impact:** Starke Farben, große Schriften
+- **Professional:** Business-orientiert, vertrauensvoll
+- **Playful:** Lebendig, für jüngere Zielgruppen
+- **Elegant:** Hochwertig, für Premium-Angebote
+
+### Dynamische Logiken
+- **CI-Integration:** Globale Farben und Schriften
+- **Kampagnen-Binding:** Countdown, Preise, Aktionen
+- **Form-Kontext:** Automatische Lead-Zuordnung
+- **Responsive Design:** Mobile-optimierte Layouts
+
+---
+
+## 📝 Modul 13: Formbuilder
+
+### Implementierungsstatus: ✅ VOLLSTÄNDIG
+
+### Feld-Typen (18+ verfügbar)
+- **Standard:** text, email, phone, number, textarea
+- **Auswahl:** select, radio, checkbox, checkbox_group
+- **Datum/Zeit:** date, time
+- **Spezial:** file_upload, signature, rating, slider, address
+- **Layout:** heading, paragraph, divider
+- **Dynamisch:** campaign_offers, contract_types, pricing_calculator
+
+### Multi-Step-Formulare
+- **Schritt-basierte Navigation** mit Fortschrittsanzeige
+- **Bedingte Logik** zwischen Schritten
+- **Validierung** pro Schritt und global
+- **Responsive Design** für alle Geräte
+
+### Analytics & Auswertung
+- **Submission-Tracking** mit Zeitstempel
+- **Conversion-Rates** pro Formular
+- **CSV-Export** aller Daten
+- **Lead-Integration** automatische Erstellung
+
+---
+
+## 🔄 Modul-Integrationen & Workflows
+
+### Lead-zu-Mitglied-Workflow
+1. **Lead erfasst** (Formular, manuell, Import)
+2. **Beratungstermin** vereinbart und durchgeführt
+3. **Vertrag abgeschlossen** → Status "converted"
+4. **Mitglied automatisch angelegt** mit Vertragsdaten
+5. **Willkommens-Aufgaben** automatisch erstellt
+
+### Kampagnen-zu-Landing-Workflow
+1. **Kampagne erstellt** mit CI-Template-Zuweisung
+2. **Landingpage generiert** mit Kampagnen-Branding
+3. **Formulare eingebettet** mit automatischer Lead-Zuordnung
+4. **QR-Codes generiert** für Print-Materialien
+5. **Analytics verknüpft** für ROI-Messung
+
+### Dateimanager-Workflow
+1. **Upload mit Kategorisierung** und Rechte-Zuweisung
+2. **Automatische Verknüpfung** zu Kampagnen/Modulen
+3. **Verwendung in Landingpages** und Print-Materialien
+4. **Versionierung** für Design-Iterationen
+5. **Archivierung** abgelaufener Assets
+
+---
+
+## 📊 Reporting & Analytics
+
+### Dashboard-KPIs
+- **Mitglieder-Entwicklung:** Neuzugänge vs. Kündigungen
+- **Kampagnen-Performance:** Leads, Conversion, ROI
+- **Team-Produktivität:** Aufgaben-Erfüllung, Stunden
+- **Vertrags-Verteilung:** Nach Art und Laufzeit
+
+### Export-Funktionen
+- **CSV-Exports** für alle Datentabellen
+- **PDF-Berichte** für Management-Übersichten
+- **QR-Code-Generierung** für Kampagnen-Materialien
+- **Daten-Backup** für Compliance
+
+---
+
+## 🔒 Sicherheit & Compliance
+
+### Datenschutz
+- **DSGVO-konforme** Datenverarbeitung
+- **Einverständniserklärungen** in Formularen
+- **Recht auf Löschung** implementiert
+- **Audit-Logs** für alle kritischen Aktionen
+
+### Technische Sicherheit
+- **Row-Level-Security (RLS)** auf Datenbankebene
+- **API-Rate-Limiting** gegen Missbrauch
+- **Verschlüsselte Passwort-Speicherung** in Vault
+- **Session-Management** mit automatischem Logout
+
+### Backup & Recovery
+- **Automatische Backups** der Supabase-Datenbank
+- **Versionierung** kritischer Konfigurationen
+- **Disaster-Recovery-Plan** dokumentiert
+- **Daten-Migration** zwischen Umgebungen
+
+---
+
+## 🚀 Roadmap & Erweiterungen
+
+### Phase 1: Core-Funktionen (✅ Abgeschlossen)
+- Basis-Module implementiert
+- Authentifizierung und Rollen
+- Lead-Management und Beratung
+- Grundlegende Kampagnen-Verwaltung
+
+### Phase 2: Design & Content (✅ Abgeschlossen)
+- CI-Styling-System
+- Landingpage-Builder mit Blöcken
+- Formbuilder mit 18+ Feldtypen
+- Dateimanager mit Berechtigungen
+
+### Phase 3: Automation & Integration (🔄 In Arbeit)
+- Aufgaben-System mit Auto-Triggern
+- E-Mail-Marketing-Integration
+- Social Media Posting
+- API-Schnittstellen für Drittsysteme
+
+### Phase 4: Advanced Features (📋 Geplant)
+- KI-gestützte Lead-Bewertung
+- Automatische A/B-Tests für Landingpages
+- Erweiterte Analytics mit Predictive Modeling
+- Mobile App für Mitarbeiter
+
+---
+
+## 📞 Support & Dokumentation
+
+### Benutzer-Handbücher
+- **Admin-Handbuch:** Vollständige Systemkonfiguration
+- **Studioleiter-Guide:** Tägliche Arbeitsabläufe
+- **Mitarbeiter-Quick-Start:** Basis-Funktionen
+
+### Technische Dokumentation
+- **API-Referenz:** Alle Endpunkte dokumentiert
+- **Datenbank-Schema:** ER-Diagramme und Beziehungen
+- **Deployment-Guide:** Schritt-für-Schritt Installation
+
+### Schulungen
+- **Onboarding-Sessions** für neue Nutzer
+- **Feature-Updates** bei neuen Releases
+- **Best-Practice-Workshops** für optimale Nutzung
+
+---
+
+## 📈 Erfolgsmessung
+
+### Business-KPIs
+- **Lead-Conversion-Rate:** Target >15%
+- **Kampagnen-ROI:** Target >300%
+- **Mitarbeiter-Effizienz:** Aufgaben-Completion >90%
+- **System-Adoption:** Daily Active Users >80%
+
+### Technische Metriken
+- **Page Load Time:** <2 Sekunden
+- **System Uptime:** >99.5%
+- **API Response Time:** <500ms
+- **Error Rate:** <1%
+
+### User Experience
+- **Net Promoter Score (NPS):** Target >50
+- **Feature Adoption Rate:** >70% nach 30 Tagen
+- **Support Ticket Volume:** <5% der User pro Monat
+- **Training Time:** <4 Stunden für neue Mitarbeiter
+
+---
+
+*Dieses PRD wird kontinuierlich aktualisiert basierend auf Nutzerfeedback und technischen Entwicklungen. Letzte Aktualisierung: Juni 2025*

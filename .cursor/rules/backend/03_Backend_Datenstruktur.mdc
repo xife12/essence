@@ -3,6 +3,15 @@ description:
 globs: 
 alwaysApply: true
 ---
+---
+alias: "@backend-datenstruktur"
+description: "Backend-Logik: Rollenmodell, Auth, Validierungen und Systemarchitektur"
+globs:
+  - "app/lib/**/*"
+  - "middleware.ts"
+  - "supabase/**/*"
+---
+
 # Backend-Logik und Datenstruktur
 
 ## Rollenmodell

@@ -11,6 +11,15 @@ description:
 globs: 
 alwaysApply: true
 ---
+---
+alias: "@stundenerfassung"
+description: "Stundenerfassung: Arbeitszeit-Tracking und Mitarbeiter-Auswertungen"
+globs:
+  - "app/(protected)/stunden/**/*"
+  - "app/components/stunden/**/*"
+  - "app/lib/api/staff.ts"
+---
+
 # Modul: Stundenerfassung
 
 ## Zweck

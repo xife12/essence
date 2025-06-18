@@ -11,6 +11,14 @@ description:
 globs: 
 alwaysApply: true
 ---
+---
+alias: "@passwortmanager"
+description: "Passwortmanager: Sichere Verwaltung von Zugangsdaten mit Berechtigungsmatrix"
+globs:
+  - "app/(protected)/passwoerter/**/*"
+  - "app/components/passwoerter/**/*"
+---
+
 # Modul: Passwortmanager
 
 ## Tabelle: `vault.secrets`

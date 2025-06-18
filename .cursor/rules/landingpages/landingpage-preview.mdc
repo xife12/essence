@@ -1,5 +1,151 @@
 ---
-description:
-globs:
-alwaysApply: false
+description: 
+globs: 
+alwaysApply: true
 ---
+# Landingpage-Preview System
+
+## Zweck
+Das Landingpage-Preview-System ermöglicht eine vollständige Vorschau von erstellten Landingpages in verschiedenen Device-Ansichten (Desktop, Tablet, Mobile) vor der Veröffentlichung. Es dient als Quality-Check und Design-Validierung.
+
+---
+
+## Route-Struktur
+
+### `/landingpage-preview/[id]`
+- **Parameter:** `id` = landingpage.id (UUID)
+- **Funktion:** Vollbild-Vorschau der Landingpage
+- **Device-Toggle:** Desktop/Tablet/Mobile-Ansichten
+
+---
+
+## Features
+
+### **1. Multi-Device-Vorschau**
+- **Desktop:** `w-full h-full min-h-[600px]` (Standard)
+- **Tablet:** `w-[768px] h-[1024px]` (iPad-Format)
+- **Mobile:** `w-[375px] h-[812px]` (iPhone-Format)
+
+### **2. Block-Rendering**
+Unterstützte Block-Typen:
+- `hero` - Hero-Section mit Titel, Subtitle, CTA
+- `text` - Text-Blöcke mit Titel und Inhalt
+- `image` - Bild-Blöcke mit Caption
+- `button` - Standalone-Buttons
+- `testimonial` - Kundenbewertungen
+- `pricing` - Preistabellen (Grid-Layout)
+
+### **3. Navigation**
+- **Zurück-Button:** Navigation zum Builder
+- **Device-Switcher:** Icons für Gerätewechsel
+- **Live-Data:** Direkte DB-Anbindung zu `landingpage` + `landingpage_block`
+
+---
+
+## Datenbankanbindung
+
+### **Tabellen:**
+- `landingpage` - Basis-Daten (titel, slug, headline, subheadline)
+- `landingpage_block` - Block-Inhalte (position, block_type, content_json, layout, preset)
+
+### **Queries:**
+```sql
+-- Landingpage laden
+SELECT * FROM landingpage WHERE id = :id
+
+-- Blöcke laden (sortiert)
+SELECT * FROM landingpage_block 
+WHERE landingpage_id = :id 
+ORDER BY position ASC
+```
+
+---
+
+## UI-Komponenten
+
+### **PreviewToolbar**
+- Zurück-Navigation
+- Device-Toggle (Desktop/Tablet/Mobile)
+- Responsive Icons (Monitor, Tablet, Smartphone)
+
+### **BlockRenderer**
+Dynamisches Rendering basierend auf `block_type`:
+- Fallback für unbekannte Block-Typen
+- Content aus `content_json` extrahieren
+- Layout-spezifische Klassen anwenden
+
+### **ResponsiveFrame**
+- Container mit Device-spezifischen Dimensionen
+- Zentrierte Darstellung bei kleineren Devices
+- Scroll-Verhalten bei Overflow
+
+---
+
+## Styling-Logik
+
+### **Block-Presets:**
+- **Hero:** Gradient-Background, zentrierte CTA
+- **Text:** Container mit Prose-Styling
+- **Image:** Responsive mit Shadow/Rounded
+- **Testimonial:** Card-Layout mit Avatar-Placeholder
+- **Pricing:** Grid-System für Preispläne
+
+### **Responsive Breakpoints:**
+- Mobile: `< 768px`
+- Tablet: `768px - 1024px`
+- Desktop: `> 1024px`
+
+---
+
+## Integration
+
+### **Verknüpfte Module:**
+- **Landingpage-Builder:** Direkte Navigation über "Vorschau"-Button
+- **CI-Styling:** Automatische Anwendung von CI-Presets
+- **Kampagnen:** Preview von kampagnen-spezifischen Landingpages
+
+### **Übergabeparameter:**
+- `landingpage_id` via URL-Parameter
+- Automatisches Laden aller zugehörigen Blöcke
+- Live-Sync mit Builder-Änderungen
+
+---
+
+## Error-Handling
+
+### **Fehlerbehandlung:**
+- 404 bei ungültiger Landingpage-ID
+- Loading-States während Datenabfrage
+- Fallback-Content bei fehlenden Block-Daten
+- Graceful Degradation bei Netzwerk-Fehlern
+
+### **Fallbacks:**
+- Placeholder-Bilder bei fehlenden URLs
+- Default-Texte bei leeren Content-Feldern
+- Standard-Styling bei ungültigen Presets
+
+---
+
+## Performance
+
+### **Optimierungen:**
+- Einzelne DB-Query für alle Blöcke
+- Client-seitiges Caching der Landingpage-Daten
+- Lazy-Loading für große Bilder
+- Effiziente Re-Renders bei Device-Wechsel
+
+---
+
+## Zukünftige Features
+
+### **Geplante Erweiterungen:**
+- **Screenshot-Export:** PNG/PDF der Vorschau
+- **Performance-Metrics:** Ladezeit-Analyse
+- **SEO-Preview:** Meta-Tags-Vorschau
+- **Social-Media-Preview:** Facebook/Twitter-Cards
+- **A/B-Testing:** Vergleichsansicht mehrerer Versionen
+
+---
+
+*Letzte Aktualisierung: 17.06.2025*
+*Status: ✅ Vollständig implementiert*

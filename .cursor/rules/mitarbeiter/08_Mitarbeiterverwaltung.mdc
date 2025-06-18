@@ -3,6 +3,15 @@ description:
 globs: 
 alwaysApply: true
 ---
+---
+alias: "@mitarbeiterverwaltung"
+description: "Mitarbeiter-Verwaltung: Rollen, Berechtigungen und Dateimanager-Zugriffe"  
+globs:
+  - "app/(protected)/mitarbeiter/**/*"
+  - "app/components/mitarbeiter/**/*"
+  - "app/lib/api/staff.ts"
+---
+
 # Modul: Mitarbeiterverwaltung (aktualisiert)
 
 ## Tabellen: `public.staff`, `auth.users`, `public.staff_hours`, `public.staff_file_permissions`

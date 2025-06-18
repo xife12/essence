@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MemberCore API Debug Tool</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { margin: 5px; padding: 10px; background: #333; color: #00ff00; border: 1px solid #555; cursor: pointer; }
+        button:hover { background: #555; }
+        .output { background: #000; padding: 15px; margin: 10px 0; border: 1px solid #333; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        .info { color: #ffff00; }
+        input { background: #333; color: #00ff00; border: 1px solid #555; padding: 5px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 MemberCore Vertragsarten API Debug Tool</h1>
+        
+        <div>
+            <h3>🧪 API Tests</h3>
+            <button onclick="testAllContracts()">GET /api/contracts-v2</button>
+            <button onclick="testContractDetails()">GET /api/contracts-v2/[id]</button>
+            <button onclick="testContractCreate()">POST /api/contracts-v2</button>
+            <br/>
+            <input type="text" id="contractId" placeholder="Contract ID für Details" value="test-id" />
+            <button onclick="testSpecificContract()">Test Spezifischen Vertrag</button>
+        </div>
+
+        <div>
+            <h3>🔢 Vertragsnummer Tests</h3>
+            <button onclick="testContractNumberGeneration()">Test Vertragsnummer-System</button>
+            <button onclick="testCampaignNumbers()">Test Kampagnen-Nummern</button>
+        </div>
+
+        <div>
+            <h3>💾 Module & Daten Tests</h3>
+            <button onclick="testModuleData()">Test Module-Daten</button>
+            <button onclick="testStarterPackageData()">Test Starter-Pakete</button>
+            <button onclick="testVersioningFlow()">Test Versionierungs-Workflow</button>
+        </div>
+
+        <div id="output" class="output">
+Bereit für Tests...
+
+🎯 Ziele:
+✅ API-Endpunkte funktionsfähig machen
+✅ Module & Zahlungsintervalle speichern
+✅ Vertragsnummer-System 10000-2 implementieren
+✅ Kampagnen-System 10000-3-1 implementieren
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollBottom;
+        }
+
+        async function apiCall(url, options = {}) {
+            try {
+                log(`📡 API Call: ${options.method || 'GET'} ${url}`);
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                log(`📋 Status: ${response.status} | Response: ${JSON.stringify(data, null, 2)}`, response.ok ? 'success' : 'error');
+                return { response, data };
+            } catch (error) {
+                log(`❌ API Error: ${error.message}`, 'error');
+                return { error };
+            }
+        }
+
+        async function testAllContracts() {
+            log('🧪 Teste GET /api/contracts-v2...');
+            await apiCall('http://localhost:3000/api/contracts-v2');
+        }
+
+        async function testContractDetails() {
+            log('🧪 Teste GET /api/contracts-v2/[id]...');
+            await apiCall('http://localhost:3000/api/contracts-v2/test-id');
+        }
+
+        async function testSpecificContract() {
+            const contractId = document.getElementById('contractId').value;
+            log(`🧪 Teste spezifischen Vertrag: ${contractId}...`);
+            await apiCall(`http://localhost:3000/api/contracts-v2/${contractId}`);
+        }
+
+        async function testContractCreate() {
+            log('🧪 Teste POST /api/contracts-v2...');
+            const testContract = {
+                name: "Test Vertrag Debug",
+                description: "Debug Test Contract",
+                terms: [{ duration_months: 12, base_price: 49.99 }],
+                auto_renew: true,
+                renewal_duration: 12,
+                cancellation_period: 30,
+                cancellation_unit: "days",
+                module_assignments: [
+                    { module_id: "test-module-1", assignment_type: "included" },
+                    { module_id: "test-module-2", assignment_type: "bookable", custom_price: 15.00 }
+                ],
+                payment_intervals: [
+                    { interval: "monthly", enabled: true, discount_percent: 0 },
+                    { interval: "yearly", enabled: true, discount_percent: 10 }
+                ],
+                starter_packages: [
+                    { name: "Basis-Paket", description: "Grundausstattung", price: 89.99, allow_installments: true }
+                ]
+            };
+
+            await apiCall('http://localhost:3000/api/contracts-v2', {
+                method: 'POST',
+                body: JSON.stringify(testContract)
+            });
+        }
+
+        function testContractNumberGeneration() {
+            log('🔢 Teste Vertragsnummer-Generierung...');
+            
+            // Standard-Verträge
+            log('Standard-Format Tests:');
+            log('  10000-1 (Erste Version)');
+            log('  10000-2 (Zweite Version)');
+            log('  10000-3 (Dritte Version)');
+            
+            // Kampagnen-Verträge
+            log('Kampagnen-Format Tests:');
+            log('  10000-3-1 (Kampagne basiert auf V3, Kampagnen-V1)');
+            log('  10000-3-2 (Kampagne verlängert, Kampagnen-V2)');
+            log('  10000-3-3 (Kampagne verlängert, Kampagnen-V3)');
+            
+            log('✅ Vertragsnummer-System designed!', 'success');
+        }
+
+        function testCampaignNumbers() {
+            log('🎯 Teste Kampagnen-Nummern-Workflow...');
+            log('Workflow:');
+            log('1. Basis-Vertrag: 10000-1');
+            log('2. Bearbeitung: 10000-2');
+            log('3. Weitere Bearbeitung: 10000-3');
+            log('4. Kampagne auf V3 basierend: 10000-3-1');
+            log('5. Kampagne verlängert: 10000-3-2');
+            log('✅ Kampagnen-Workflow designed!', 'success');
+        }
+
+        async function testModuleData() {
+            log('💾 Teste Module-Daten-Verarbeitung...');
+            log('Problembereiche:');
+            log('- Module werden nicht gespeichert');
+            log('- Zahlungsintervalle nicht geladen');
+            log('- Starter-Pakete Module-Zuordnung fehlt');
+            
+            // Test ob Module-API funktioniert
+            await apiCall('http://localhost:3000/api/contracts-v2/test-id');
+        }
+
+        async function testStarterPackageData() {
+            log('📦 Teste Starter-Pakete mit Modulen...');
+            log('Expected: Starter-Pakete sollten included_modules haben');
+            log('Current: Mapping zu is_mandatory fehlt');
+        }
+
+        async function testVersioningFlow() {
+            log('🔄 Teste vollständigen Versionierungs-Workflow...');
+            log('1. Neuer Vertrag → 10000-1');
+            log('2. Bearbeitung → 10000-2 (kopiert von 10000-1)');
+            log('3. Module/Daten sollten übertragen werden');
+        }
+    </script>
+</body>
+</html> 

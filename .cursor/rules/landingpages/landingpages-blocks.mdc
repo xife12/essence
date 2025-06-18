@@ -12,6 +12,7 @@ dependencies:
   - Vertragsarten
   - Kampagnen
   - Kursplan
+  - Dateimanager
 
 # Landingpage-Blöcke – Layouts, Einstellungen & Design-Presets
 

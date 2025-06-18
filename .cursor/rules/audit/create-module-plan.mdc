@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ---
 description: "Definiert den vollständigen Ablauf zur Integration neuer Module oder Submodule inkl. Audit, Analyse und Fahrplanerstellung"

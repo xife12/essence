@@ -1,14 +1,14 @@
 ---
 description: "Mitgliedschaften: Vertragsverwaltung, Laufzeiten und Kündigungen"
-alias: "@mitgliedschaften"
-globs:
-  - "app/(protected)/mitglieder/[id]/**"
-  - "components/mitglieder/vertraege/**"
-  - "lib/api/memberships.ts"
----
----
-description: 
 globs: 
+alwaysApply: false
+---
+alias: "@mitgliedschaften"
+description: "Mitgliedschaften: Vertragsverwaltung, Laufzeiten und Kündigungen"
+globs:
+  - "app/(protected)/mitglieder/**/*"
+  - "app/components/mitglieder/**/*"
+  - "app/lib/api/memberships.ts"
 alwaysApply: true
 ---
 # Modul: Mitgliedschaften (Verträge)
