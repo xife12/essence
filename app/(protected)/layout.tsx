@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Users, UserPlus, CalendarClock, Activity, 
-  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe, Palette, Settings, FileText, ChevronDown, MessageSquare, Calendar, Package
+  BarChart3, KeyRound, UserCog, File, Menu, X, LogOut, FolderOpen, Globe, Palette, Settings, FileText, ChevronDown, MessageSquare, Calendar, Package, CreditCard, Lock, UserCheck, Upload
 } from 'lucide-react';
 import supabase from '../lib/supabaseClient';
 
@@ -17,11 +17,15 @@ export default function ProtectedLayout({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
   const [landingpagesOpen, setLandingpagesOpen] = useState(pathname.startsWith('/landingpages'));
+  const [mitgliederOpen, setMitgliederOpen] = useState(pathname.startsWith('/mitglieder'));
 
-  // Submenü immer offen, wenn auf Landingpages-Route
+  // Submenü immer offen, wenn auf entsprechenden Routes
   React.useEffect(() => {
     if (pathname.startsWith('/landingpages')) {
       setLandingpagesOpen(true);
+    }
+    if (pathname.startsWith('/mitglieder')) {
+      setMitgliederOpen(true);
     }
   }, [pathname]);
 
@@ -85,7 +89,29 @@ export default function ProtectedLayout({
               <nav className="flex flex-col gap-1">
                 <NavItem href="/dashboard" icon={BarChart3} label="Dashboard" />
                 <NavItem href="/leads" icon={UserPlus} label="Leads" />
-                <NavItem href="/mitglieder" icon={Users} label="Mitglieder" />
+                
+                {/* Mitglieder mit Submenü */}
+                <button
+                  type="button"
+                  className={`flex items-center w-full px-3 py-2 rounded-md text-sm font-medium focus:outline-none transition-colors ${
+                    pathname.startsWith('/mitglieder')
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                  onClick={() => setMitgliederOpen((open) => !open)}
+                  aria-expanded={mitgliederOpen}
+                >
+                  <Users size={20} className="mr-3" />
+                  {sidebarOpen && <span>Mitglieder</span>}
+                  {sidebarOpen && <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${mitgliederOpen ? 'rotate-180' : ''}`} />}
+                </button>
+                {mitgliederOpen && sidebarOpen && (
+                  <ul className="ml-8 mt-1 space-y-1">
+                    <li><NavItem href="/mitglieder" icon={Users} label="Übersicht" /></li>
+                    <li><NavItem href="/mitglieder/pdf-upload" icon={Upload} label="PDF-Upload" badge="BETA" /></li>
+                  </ul>
+                )}
+                
                 <NavItem href="/kursplan" icon={Calendar} label="Kursplan" />
                 <NavItem href="/stunden" icon={CalendarClock} label="Stunden" />
               </nav>
@@ -126,11 +152,12 @@ export default function ProtectedLayout({
             <div>
               <p className={`text-xs uppercase text-gray-500 mb-2 ${!sidebarOpen && 'sr-only'}`}>Verwaltung</p>
               <nav className="flex flex-col gap-1">
+                <NavItem href="/payment-system" icon={CreditCard} label="Finanzen" badge="BETA" />
                 <NavItem href="/dateimanager" icon={FolderOpen} label="Dateimanager" />
-                <NavItem href="/passwoerter" icon={KeyRound} label="Passwörter" />
-                <NavItem href="/mitarbeiter" icon={UserCog} label="Mitarbeiter" />
-                <NavItem href="/vertragsarten" icon={File} label="Vertragsarten (Legacy)" />
-                <NavItem href="/vertragsarten-v2" icon={Package} label="Vertragsarten V2" badge="NEU" />
+                <NavItem href="/passwoerter" icon={Lock} label="Passwörter" />
+                <NavItem href="/mitarbeiter" icon={UserCheck} label="Mitarbeiter" />
+                <NavItem href="/vertragsarten" icon={FileText} label="Vertragsarten (Legacy)" />
+                <NavItem href="/vertragsarten-v2" icon={FileText} label="Vertragsarten V2" badge="NEU" />
               </nav>
             </div>
           </div>

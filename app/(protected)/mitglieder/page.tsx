@@ -1,15 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Search, Filter, X, Edit, Save } from 'lucide-react';
+import { Users, Plus, Search, Filter, X, Edit, Save, FileText, Upload, CreditCard, BarChart3, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 import PageHeader from '../../components/ui/PageHeader';
 import MemberTable, { Member } from '../../components/mitglieder/MemberTable';
 import Modal from '../../components/ui/Modal';
 import MemberForm, { MemberData } from '../../components/mitglieder/MemberForm';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import Button from '@/app/components/ui/Button';
+import Card from '@/app/components/ui/Card';
 import FormField from '../../components/ui/FormField';
 import Badge from '../../components/ui/Badge';
+import { PaymentSystemAPI } from '@/app/lib/api/payment-system';
+import type { PaymentMember, MemberAccount } from '@/app/lib/types/payment-system';
 
 // Dummy-Vertragsarten für Filter
 const CONTRACT_TYPES = [
@@ -142,6 +145,11 @@ export default function MitgliederPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [newMemberNumber, setNewMemberNumber] = useState('');
+  const [showPaymentStatus, setShowPaymentStatus] = useState(false);
+  const [paymentMembers, setPaymentMembers] = useState<PaymentMember[]>([]);
+  
+  // Payment System API
+  const paymentAPI = new PaymentSystemAPI();
   
   // Filter-Zustand
   const [filters, setFilters] = useState<FilterOptions>({
@@ -150,8 +158,60 @@ export default function MitgliederPage() {
     status: '',
   });
   
+  // Load Payment Members
+  const loadPaymentMembers = async () => {
+    try {
+      const result = await paymentAPI.getPaymentMembers();
+      if (result.success && result.data) {
+        setPaymentMembers(result.data);
+        console.log('✅ Payment Members loaded:', result.data.length);
+      }
+    } catch (error) {
+      console.error('Error loading payment members:', error);
+    }
+  };
+  
+  // Combine normal members with payment members
+  const getAllMembers = (): Member[] => {
+    const combinedMembers = [...members];
+    
+    // Add payment members that are not already in the list
+    paymentMembers.forEach(paymentMember => {
+      const exists = combinedMembers.find(m => 
+        m.first_name === paymentMember.first_name && 
+        m.last_name === paymentMember.last_name
+      );
+      
+      if (!exists) {
+        // Convert PaymentMember to Member format
+        const member: Member = {
+          id: paymentMember.id,
+          first_name: paymentMember.first_name,
+          last_name: paymentMember.last_name,
+          email: paymentMember.email || undefined,
+          phone: paymentMember.phone || undefined,
+          birthdate: paymentMember.birth_date || undefined,
+          member_number: paymentMember.member_number,
+          created_at: paymentMember.created_at,
+          // Payment members don't have regular memberships yet
+          // But we can show their payment status
+          paymentStatus: paymentMember.member_accounts?.[0] ? {
+            balance: paymentMember.member_accounts[0].current_balance,
+            iban: paymentMember.iban,
+            paymentGroup: paymentMember.payment_groups?.name
+          } : undefined
+        };
+        combinedMembers.push(member);
+      }
+    });
+    
+    return combinedMembers;
+  };
+  
   // Beim ersten Laden alle Mitglieder aus localStorage abrufen, falls vorhanden
   useEffect(() => {
+    loadPaymentMembers(); // Load payment members first
+    
     // Funktion zum Laden der Mitgliedsdaten aus localStorage
     const loadMembersFromLocalStorage = () => {
       const updatedMembers = [...DUMMY_MEMBERS];
@@ -319,53 +379,187 @@ export default function MitgliederPage() {
   };
 
   return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
     <div>
-      <PageHeader
-        title="Mitglieder"
-        description="Verwalte alle Mitgliedschaften"
-        action={{
-          label: "Neues Mitglied",
-          icon: <Plus size={18} />,
-          onClick: () => setIsCreateModalOpen(true),
-        }}
-      />
-      
-      {/* Filterbereich */}
-      <Card className="mb-6">
-        <div className="p-4">
-          <h3 className="text-lg font-medium mb-4">Filter</h3>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Users className="w-6 h-6" />
+            Mitglieder
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Verwalten Sie alle Mitgliedschaften und automatisierte Imports
+          </p>
+        </div>
+        
+        <div className="flex space-x-3">
+          <Link href="/mitglieder/pdf-upload">
+            <Button variant="outline" className="bg-blue-50 border-blue-200 hover:bg-blue-100">
+              <Upload className="w-4 h-4 mr-2" />
+              PDF-Upload
+            </Button>
+          </Link>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Suchfeld */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-gray-400" />
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Neues Mitglied
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-5 gap-4">
+        <Card>
+          <div className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Gesamt</p>
+                <p className="text-2xl font-bold text-gray-900">{members.length}</p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Aktiv</p>
+                <p className="text-2xl font-bold text-green-600">{members.filter(m => m.membership?.status === 'active').length}</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-green-600" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Ausstehend</p>
+                <p className="text-2xl font-bold text-yellow-600">{members.filter(m => m.membership?.status === 'planned').length}</p>
+              </div>
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Gekündigt</p>
+                <p className="text-2xl font-bold text-red-600">{members.filter(m => m.membership?.status === 'cancelled').length}</p>
+              </div>
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-red-600" />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Payment-Konten</p>
+                <p className="text-2xl font-bold text-purple-600">3</p>
+              </div>
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-purple-600" />
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Schnellaktionen</h3>
+        <div className="grid grid-cols-3 gap-4">
+          <Link href="/mitglieder/pdf-upload" className="group">
+            <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <FileText className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900">PDF-Upload für Mitglieder</h4>
+                <p className="text-sm text-gray-600">
+                  Magicline-Verträge hochladen und automatisch Mitglieder erstellen
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <Plus className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900">Mitglied manuell hinzufügen</h4>
+              <p className="text-sm text-gray-600">
+                Neues Mitglied ohne PDF-Import erstellen
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <CreditCard className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900">Payment-System</h4>
+              <p className="text-sm text-gray-600">
+                SEPA-Abrechnung und Kontoverwaltung
+              </p>
+            </div>
+          </div>
+        </div>
               </div>
               
+      {/* Search and Filter */}
+      <div className="flex items-center justify-between space-x-4">
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Suche nach Name, E-Mail oder Mitgliedsnummer"
+              placeholder="Mitglied suchen..."
                 value={filters.searchQuery}
                 onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              
-              {filters.searchQuery && (
-                <button
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={clearSearchQuery}
-                >
-                  <X size={18} className="text-gray-400 hover:text-gray-600" />
-                </button>
-              )}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
             </div>
             
-            {/* Vertragstyp-Filter */}
-            <div>
+        <div className="flex items-center space-x-3">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={showPaymentStatus}
+              onChange={(e) => setShowPaymentStatus(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Payment-Status anzeigen</span>
+          </label>
+
               <select
                 value={filters.contractTypeId}
                 onChange={(e) => setFilters(prev => ({ ...prev, contractTypeId: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Alle Vertragsarten</option>
                 {CONTRACT_TYPES.map(type => (
@@ -374,14 +568,11 @@ export default function MitgliederPage() {
                   </option>
                 ))}
               </select>
-            </div>
             
-            {/* Status-Filter */}
-            <div>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as FilterOptions['status'] }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Alle Status</option>
                 <option value="active">Aktiv</option>
@@ -389,31 +580,48 @@ export default function MitgliederPage() {
                 <option value="no-contract">Kein Vertrag</option>
                 <option value="planned">Geplant</option>
               </select>
+
+          <Button variant="outline">
+            <Filter className="w-4 h-4 mr-2" />
+            Filter
+          </Button>
             </div>
           </div>
           
-          {/* Filter-Aktionsbuttons */}
-          <div className="mt-4 flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<X size={16} />}
-              onClick={resetFilters}
-              disabled={!filters.searchQuery && !filters.contractTypeId && !filters.status}
-            >
-              Filter zurücksetzen
+      {/* Members Table */}
+      <Card>
+        <div className="p-6">
+          {filteredMembers.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Noch keine Mitglieder</h3>
+              <p className="text-gray-600 mb-6">
+                Beginnen Sie mit dem Upload von Magicline-PDFs oder erstellen Sie manuell ein neues Mitglied.
+              </p>
+              <div className="flex justify-center space-x-3">
+                <Link href="/mitglieder/pdf-upload">
+                  <Button>
+                    <Upload className="w-4 h-4 mr-2" />
+                    PDF-Upload starten
+                  </Button>
+                </Link>
+                <Button variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Manuell hinzufügen
             </Button>
           </div>
         </div>
-      </Card>
-
-      {/* Mitgliedertabelle */}
+          ) : (
       <MemberTable 
         data={paginatedMembers}
         isLoading={isLoading}
         onEditMemberNumber={openEditMemberNumberModal}
         showStatusBadges={true}
+              showPaymentStatus={showPaymentStatus}
       />
+          )}
+        </div>
+      </Card>
       
       {/* Pagination */}
       {totalPages > 1 && (

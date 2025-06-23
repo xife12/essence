@@ -2755,4 +2755,4 @@ class ContractsV2API {
   }
 }
 
-export default new ContractsV2API();
+export default new ContractsV2API(); 

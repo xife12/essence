@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 
-type BadgeVariant = 'green' | 'blue' | 'red' | 'yellow' | 'purple' | 'gray' | 'gold';
+type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'green' | 'blue' | 'red' | 'yellow' | 'purple' | 'gray' | 'gold';
 
 type BadgeProps = {
   children: ReactNode;
@@ -11,6 +11,9 @@ type BadgeProps = {
 };
 
 const variantStyles: Record<BadgeVariant, string> = {
+  default: 'bg-blue-100 text-blue-800',
+  secondary: 'bg-gray-100 text-gray-700',
+  destructive: 'bg-red-100 text-red-800',
   green: 'bg-green-100 text-green-800',
   blue: 'bg-blue-100 text-blue-800',
   red: 'bg-red-100 text-red-800',
@@ -32,4 +35,7 @@ export default function Badge({
       {children}
     </span>
   );
-} 
+}
+
+// Named export for compatibility
+export { Badge }; 

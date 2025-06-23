@@ -69,4 +69,7 @@ export default function Button({
       {content}
     </button>
   );
-} 
+}
+
+// Named export for compatibility
+export { Button }; 

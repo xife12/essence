@@ -1168,7 +1168,7 @@ export default function NeuerVertragPage() {
                 console.error('❌ Fehler beim Erstellen des Kampagnenvertrags:', error);
                 alert('❌ Fehler beim Erstellen des Kampagnenvertrags: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'));
               } finally {
-                setShowCampaignModal(false);
+              setShowCampaignModal(false);
               }
             }}
             onClose={() => setShowCampaignModal(false)}
@@ -1779,10 +1779,10 @@ function CampaignModal({
     }
 
     const finalCampaignData: ContractFormData = {
-      ...contractData,
+    ...contractData,
       name: campaignName,
       campaign_name: campaignName,
-      is_campaign_version: true,
+    is_campaign_version: true,
       campaign_start_date: campaignDates.start_date,
       campaign_end_date: campaignDates.end_date,
       
@@ -1851,7 +1851,7 @@ function CampaignModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold text-gray-900">Kampagnen-Vertrag erstellen</h3>
@@ -1862,22 +1862,22 @@ function CampaignModal({
               ✕
             </button>
           </div>
-          
-          <div className="space-y-6">
+        
+        <div className="space-y-6">
             {/* Kampagnen-Name */}
-            <div>
+          <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Kampagnen-Name *
               </label>
-              <input
-                type="text"
+            <input
+              type="text"
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="z.B. Sommer-Aktion 2025"
-              />
-            </div>
-
+            />
+          </div>
+          
             {/* Kampagnen-Zeitraum */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -1913,44 +1913,44 @@ function CampaignModal({
               <h4 className="font-medium text-orange-900 mb-3 flex items-center gap-2">
                 🎯 Kampagnen-Anpassungen
               </h4>
-              <div className="text-sm text-orange-800 space-y-2">
-                <p>✅ <strong>Vollständige Anpassungen möglich:</strong></p>
-                <ul className="ml-4 space-y-1">
-                  <li>• Laufzeiten & Monatliche Grundpreise</li>
-                  <li>• Pauschalen & Zahlungsintervalle</li>
-                  <li>• Startpakete & Preisdynamik</li>
-                  <li>• Module & Gruppenrabatte</li>
-                  <li>• Verlängerungskonditionen</li>
-                </ul>
-                <p className="mt-3"><strong>📅 Zeitlich begrenzt:</strong> Nur während Kampagnenzeitraum buchbar</p>
-              </div>
+            <div className="text-sm text-orange-800 space-y-2">
+              <p>✅ <strong>Vollständige Anpassungen möglich:</strong></p>
+              <ul className="ml-4 space-y-1">
+                <li>• Laufzeiten & Monatliche Grundpreise</li>
+                <li>• Pauschalen & Zahlungsintervalle</li>
+                <li>• Startpakete & Preisdynamik</li>
+                <li>• Module & Gruppenrabatte</li>
+                <li>• Verlängerungskonditionen</li>
+              </ul>
+              <p className="mt-3"><strong>📅 Zeitlich begrenzt:</strong> Nur während Kampagnenzeitraum buchbar</p>
             </div>
+          </div>
 
             {/* Anpassungsbereiche */}
             <div>
               <h4 className="text-lg font-medium text-gray-900 mb-4">
-                Was möchten Sie für die Kampagne anpassen?
-              </h4>
-              
+              Was möchten Sie für die Kampagne anpassen?
+            </h4>
+            
               <div className="space-y-4">
                 {sections.map(section => (
                   <div key={section.key} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
                     <div className="flex items-center justify-between">
                       <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
+                <input
+                  type="checkbox"
                           checked={campaignOverrides[section.key].enabled}
                           onChange={(e) => toggleSection(section.key, e.target.checked)}
                           className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <div>
+                />
+                <div>
                           <span className="font-medium text-gray-900">
                             {section.icon} {section.label}
                           </span>
                           <p className="text-sm text-gray-600">{section.description}</p>
-                        </div>
-                      </label>
-                      
+                </div>
+              </label>
+
                                            </div>
                      
                      {/* Direkte Bearbeitungsfelder */}
@@ -1958,11 +1958,11 @@ function CampaignModal({
                        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                          {renderInlineEditor(section.key, campaignOverrides[section.key].data, (data) => {
                            setCampaignOverrides(prev => ({
-                             ...prev,
+                    ...prev, 
                              [section.key]: { enabled: true, data }
                            }));
                          })}
-                       </div>
+                </div>
                      )}
                   </div>
                 ))}
@@ -1977,7 +1977,7 @@ function CampaignModal({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Kampagnen-Start *
                   </label>
-                  <input
+                <input
                     type="date"
                     value={campaignDates.start_date}
                     onChange={(e) => setCampaignDates(prev => ({ ...prev, start_date: e.target.value }))}
@@ -2082,7 +2082,7 @@ function PricingEditor({ data, onChange, originalData }: { data: any; onChange: 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Laufzeit (Monate)
-                </label>
+              </label>
                 <input
                   type="number"
                   min="1"
@@ -2187,13 +2187,13 @@ function ModulesEditor({ data, onChange, originalData }: { data: any; onChange: 
   };
 
   return (
-    <div>
+                <div>
       <h4 className="text-lg font-semibold text-gray-900 mb-4">Module (inkl. vs. zubuchbar)</h4>
       
       {modules.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">Keine Module verfügbar.</p>
-        </div>
+                </div>
       ) : (
         <div>
           {/* Module Table */}
@@ -2222,7 +2222,7 @@ function ModulesEditor({ data, onChange, originalData }: { data: any; onChange: 
                         <div>
                           <div className="text-sm font-medium text-gray-900">{module.name}</div>
                           <div className="text-sm text-gray-500">{module.price_per_month.toFixed(2)} €/Monat</div>
-                        </div>
+            </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <button
@@ -2305,7 +2305,7 @@ function StartPackagesEditor({ data, onChange, originalData }: { data: any; onCh
   };
 
   return (
-    <div>
+                <div>
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-semibold text-gray-900">Startpakete</h4>
         <button
@@ -2433,18 +2433,18 @@ function CampaignStartPackageModal({
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Preis (€)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
               value={formData.price}
               onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="99.99"
-            />
-          </div>
-          
-          <div>
+                  />
+                </div>
+                
+                <div>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -2459,8 +2459,8 @@ function CampaignStartPackageModal({
           {formData.allow_installments && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max. Anzahl Raten</label>
-              <input
-                type="number"
+                  <input
+                    type="number"
                 min="2"
                 max="12"
                 value={formData.max_installments}
@@ -2480,8 +2480,8 @@ function CampaignStartPackageModal({
                     checked={formData.included_modules.includes(module.id)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setFormData(prev => ({
-                          ...prev,
+                      setFormData(prev => ({
+                        ...prev,
                           included_modules: [...prev.included_modules, module.id]
                         }));
                       } else {
@@ -2496,13 +2496,13 @@ function CampaignStartPackageModal({
                   <span className="text-sm">{module.name} ({module.price_per_month}€/Monat)</span>
                 </label>
               ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
         
         <div className="flex justify-end gap-3 mt-6">
-          <button
-            type="button"
+              <button
+                type="button"
             onClick={onClose}
             className="px-4 py-2 text-gray-600 hover:text-gray-800"
           >
@@ -2514,8 +2514,8 @@ function CampaignStartPackageModal({
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
             Speichern
-          </button>
-        </div>
+              </button>
+            </div>
       </div>
     </div>
   );
@@ -2585,7 +2585,7 @@ function FlatRatesEditor({ data, onChange, originalData }: { data: any; onChange
                   {rate.payment_interval === 'quarterly' && 'Quartalsweise'}
                   {rate.payment_interval === 'yearly' && 'Jährlich'}
                   {rate.payment_interval === 'fixed_date' && `Fester Stichtag${rate.fixed_date ? `: ${rate.fixed_date}` : ''}`}
-                </div>
+                  </div>
               </div>
               <div className="flex gap-2">
                 <button
@@ -2605,8 +2605,8 @@ function FlatRatesEditor({ data, onChange, originalData }: { data: any; onChange
               </div>
             </div>
           ))}
-        </div>
-      )}
+            </div>
+          )}
 
       {/* FlatRate Modal */}
       {isModalOpen && (
@@ -2647,7 +2647,7 @@ function CampaignFlatRateModal({
         </h3>
         
         <div className="space-y-4">
-          <div>
+                <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
             <input
               type="text"
@@ -2660,18 +2660,18 @@ function CampaignFlatRateModal({
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Preis (€)</label>
-            <input
-              type="number"
-              min="0"
+                  <input
+                    type="number"
+                    min="0"
               step="0.01"
               value={formData.price}
               onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="29.99"
-            />
-          </div>
+                  />
+                </div>
           
-          <div>
+                <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Zahlungsintervall</label>
             <select
               value={formData.payment_interval}
@@ -2688,15 +2688,15 @@ function CampaignFlatRateModal({
           {formData.payment_interval === 'fixed_date' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Stichtag</label>
-              <input
+                    <input
                 type="date"
                 value={formData.fixed_date || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, fixed_date: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+                </div>
           )}
-        </div>
+              </div>
         
         <div className="flex justify-end gap-3 mt-6">
           <button
@@ -2823,9 +2823,9 @@ function PriceDynamicsEditor({ data, onChange, originalData }: { data: any; onCh
               </div>
             </div>
           ))}
-        </div>
-      )}
-
+            </div>
+          )}
+          
       {/* PriceRule Modal */}
       {isModalOpen && (
         <CampaignPriceRuleModal
@@ -2867,18 +2867,18 @@ function CampaignPriceRuleModal({
         </h3>
         
         <div className="space-y-4">
-          <div>
+            <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-            <input
+              <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="z.B. Preiserhöhung Januar"
-            />
-          </div>
-          
-          <div>
+              />
+            </div>
+            
+            <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Typ</label>
             <select
               value={formData.adjustment_type}
@@ -2942,7 +2942,7 @@ function CampaignPriceRuleModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="15"
               />
-            </div>
+          </div>
           )}
           
           {formData.adjustment_type === 'after_duration' && (
@@ -2965,7 +2965,7 @@ function CampaignPriceRuleModal({
                 <p className="text-sm text-green-800">
                   <strong>Erste Monate kostenlos:</strong> Die angegebene Anzahl von Monaten ab Vertragsbeginn sind für das Mitglied kostenfrei.
                 </p>
-              </div>
+          </div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Anzahl kostenloser Monate</label>
               <input
                 type="number"

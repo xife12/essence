@@ -6,8 +6,8 @@ import {
   ArrowLeft, 
   Save, 
   Eye, 
-  Plus, 
-  Trash2, 
+  Plus,
+  Trash2,
   Settings, 
   FileText, 
   ChevronDown,
@@ -384,7 +384,7 @@ export default function DocumentEditorPage() {
       } else {
         response = await contractsAPIInstance.createDocument(formData);
       }
-
+      
       if (response.error) {
         setErrors([response.error]);
       } else {
@@ -418,12 +418,12 @@ export default function DocumentEditorPage() {
   };
 
   const updateCustomSection = (id: string, updates: Partial<CustomSection>) => {
-    setFormData(prev => ({
-      ...prev,
+      setFormData(prev => ({
+        ...prev,
       custom_sections: prev.custom_sections.map(section =>
         section.id === id ? { ...section, ...updates } : section
       )
-    }));
+      }));
   };
 
   const removeCustomSection = (id: string) => {
@@ -460,7 +460,7 @@ export default function DocumentEditorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+        {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -516,10 +516,10 @@ export default function DocumentEditorPage() {
               <div>
                 <h3 className="text-sm font-medium text-red-800">Fehler beim Speichern</h3>
                 <ul className="mt-1 text-sm text-red-700 list-disc list-inside">
-                  {errors.map((error, index) => (
+              {errors.map((error, index) => (
                     <li key={index}>{error}</li>
-                  ))}
-                </ul>
+              ))}
+            </ul>
               </div>
             </div>
           </div>
@@ -557,7 +557,7 @@ export default function DocumentEditorPage() {
             </div>
 
             {/* Tab Content */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
               {activeTab === 'basic' && (
                 <BasicSettingsTab 
                   formData={formData} 
@@ -624,43 +624,43 @@ export default function DocumentEditorPage() {
 function BasicSettingsTab({ formData, setFormData, contracts }: any) {
   return (
     <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
           Dokumentname *
-        </label>
-        <input
-          type="text"
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           className="w-full border border-gray-300 rounded-md px-3 py-2"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Beschreibung
-        </label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          rows={3}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Beschreibung
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  rows={3}
           className="w-full border border-gray-300 rounded-md px-3 py-2"
-        />
-      </div>
-
-      <div>
+                      />
+                    </div>
+                    
+                    <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Zugeordnete Verträge
-        </label>
+                      </label>
         <p className="text-xs text-gray-500 mb-2">
           Wählen Sie Verträge aus, mit denen dieses Dokument verwendet werden kann.
         </p>
         <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3">
           {contracts.map((contract: any) => (
             <label key={contract.id} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
+                        <input
+                          type="checkbox"
                 checked={formData.assigned_contracts.includes(contract.id)}
                 onChange={(e) => {
                   if (e.target.checked) {
@@ -678,37 +678,37 @@ function BasicSettingsTab({ formData, setFormData, contracts }: any) {
                 className="rounded"
               />
               <span className="text-sm">{contract.name} ({contract.contract_number})</span>
-            </label>
-          ))}
-        </div>
-      </div>
+                      </label>
+              ))}
+            </div>
+          </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Kopfzeile-Template
-        </label>
-        <textarea
-          value={formData.header_template}
-          onChange={(e) => setFormData(prev => ({ ...prev, header_template: e.target.value }))}
-          rows={3}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kopfzeile-Template
+                </label>
+                <textarea
+                  value={formData.header_template}
+                  onChange={(e) => setFormData(prev => ({ ...prev, header_template: e.target.value }))}
+                  rows={3}
           className="w-full border border-gray-300 rounded-md px-3 py-2"
           placeholder="HTML für Kopfzeile..."
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Fußzeile-Template
-        </label>
-        <textarea
-          value={formData.footer_template}
-          onChange={(e) => setFormData(prev => ({ ...prev, footer_template: e.target.value }))}
-          rows={3}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fußzeile-Template
+                </label>
+                <textarea
+                  value={formData.footer_template}
+                  onChange={(e) => setFormData(prev => ({ ...prev, footer_template: e.target.value }))}
+                  rows={3}
           className="w-full border border-gray-300 rounded-md px-3 py-2"
           placeholder="HTML für Fußzeile..."
-        />
-      </div>
-    </div>
+                />
+              </div>
+            </div>
   );
 }
 
@@ -801,7 +801,7 @@ function RequiredModulesTab({ formData, setFormData }: any) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Datenschutztext
-              </label>
+                      </label>
               <textarea
                 value={formData.required_modules.privacy_policy.content}
                 onChange={(e) => setFormData(prev => ({
@@ -838,8 +838,8 @@ function RequiredModulesTab({ formData, setFormData }: any) {
               <span className="ml-2 text-sm">Unterschrift erforderlich</span>
             </label>
           </div>
-        )}
-      </div>
+                    )}
+                  </div>
 
       {/* AGBs */}
       <div className="border border-gray-200 rounded-lg p-4">
@@ -863,7 +863,7 @@ function RequiredModulesTab({ formData, setFormData }: any) {
             />
             <span className="ml-2 text-sm">Aktiviert</span>
           </label>
-        </div>
+              </div>
 
         {formData.required_modules.terms_conditions.enabled && (
           <div className="space-y-4">
@@ -938,7 +938,7 @@ function OptionalModulesTab({ formData, setFormData }: any) {
             />
             <span className="ml-2 text-sm">Aktiviert</span>
           </label>
-        </div>
+          </div>
 
         {formData.optional_modules.payment_calendar.enabled && (
           <div className="space-y-3">

@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
-import { Edit, Phone, Mail, Calendar, Timer, Tag, Clock, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Edit, Phone, Mail, Calendar, Timer, Tag, Clock, Info, CreditCard, Euro, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
 import Table from '../ui/Table';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Link from 'next/link';
+import { PaymentSystemAPI } from '@/app/lib/api/payment-system';
+import type { PaymentMember, MemberAccount } from '@/app/lib/types/payment-system';
 
 export type Member = {
   id: string;
@@ -26,6 +28,12 @@ export type Member = {
     end_date: string;
     status: 'active' | 'cancelled' | 'completed' | 'suspended' | 'planned';
   };
+  // Payment-Daten (werden asynchron geladen)
+  paymentData?: {
+    paymentMember?: PaymentMember;
+    account?: MemberAccount;
+    isLoading?: boolean;
+  };
 };
 
 type MemberTableProps = {
@@ -33,6 +41,7 @@ type MemberTableProps = {
   isLoading?: boolean;
   onEditMemberNumber?: (member: Member) => void;
   showStatusBadges?: boolean;
+  showPaymentStatus?: boolean;
 };
 
 type BadgeVariant = 'green' | 'blue' | 'red' | 'yellow' | 'purple' | 'gray';
@@ -42,7 +51,70 @@ export default function MemberTable({
   isLoading = false,
   onEditMemberNumber,
   showStatusBadges = false,
+  showPaymentStatus = false,
 }: MemberTableProps) {
+  const [membersWithPayment, setMembersWithPayment] = useState<Member[]>(data);
+
+  useEffect(() => {
+    setMembersWithPayment(data);
+    if (showPaymentStatus) {
+      loadPaymentData();
+    }
+  }, [data, showPaymentStatus]);
+
+  const loadPaymentData = async () => {
+    const api = new PaymentSystemAPI();
+    
+    // Erstelle eine Kopie der Daten mit Loading-Status
+    const updatedMembers = data.map(member => ({
+      ...member,
+      paymentData: { isLoading: true }
+    }));
+    setMembersWithPayment(updatedMembers);
+
+    // Lade Payment-Daten für jeden Member parallel
+    const paymentPromises = data.map(async (member) => {
+      try {
+        const response = await api.getPaymentMemberByMemberId(member.id);
+        if (response.success && response.data) {
+          const paymentMember = response.data;
+          
+          // Lade Account-Daten
+          const accountResponse = await api.getMemberAccount(paymentMember.id);
+          
+          return {
+            memberId: member.id,
+            paymentData: {
+              paymentMember,
+              account: accountResponse.success ? accountResponse.data : undefined,
+              isLoading: false
+            }
+          };
+        }
+        return {
+          memberId: member.id,
+          paymentData: { isLoading: false }
+        };
+      } catch (error) {
+        console.error(`Error loading payment data for member ${member.id}:`, error);
+        return {
+          memberId: member.id,
+          paymentData: { isLoading: false }
+        };
+      }
+    });
+
+    const paymentResults = await Promise.all(paymentPromises);
+    
+    // Update state mit Payment-Daten
+    setMembersWithPayment(prevMembers => 
+      prevMembers.map(member => {
+        const paymentResult = paymentResults.find(r => r.memberId === member.id);
+        return paymentResult ? { ...member, paymentData: paymentResult.paymentData } : member;
+      })
+    );
+  };
+
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '-';
     
@@ -52,6 +124,13 @@ export default function MemberTable({
       month: '2-digit',
       year: 'numeric',
     });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('de-DE', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(amount);
   };
 
   const calculateRemainingDays = (endDate?: string) => {
@@ -66,6 +145,77 @@ export default function MemberTable({
     
     const differenceMs = end.getTime() - today.getTime();
     return Math.ceil(differenceMs / (1000 * 60 * 60 * 24));
+  };
+
+  const getPaymentStatusBadge = (member: Member) => {
+    const { paymentData } = member;
+    
+    if (!paymentData) {
+      return (
+        <div className="flex items-center space-x-2">
+          <CreditCard className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-500">-</span>
+        </div>
+      );
+    }
+
+    if (paymentData.isLoading) {
+      return (
+        <div className="flex items-center space-x-2">
+          <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
+          <span className="text-sm text-gray-500">Lädt...</span>
+        </div>
+      );
+    }
+
+    if (!paymentData.paymentMember || !paymentData.account) {
+      return (
+        <div className="flex items-center space-x-2">
+          <CreditCard className="w-4 h-4 text-gray-400" />
+          <Badge variant="gray">Kein Konto</Badge>
+        </div>
+      );
+    }
+
+    const balance = paymentData.account.current_balance;
+    
+    if (balance > 50) {
+      return (
+        <div className="flex items-center space-x-2">
+          <TrendingUp className="w-4 h-4 text-green-600" />
+          <Badge variant="green">
+            {formatCurrency(balance)}
+          </Badge>
+        </div>
+      );
+    } else if (balance > 0) {
+      return (
+        <div className="flex items-center space-x-2">
+          <CheckCircle className="w-4 h-4 text-blue-600" />
+          <Badge variant="blue">
+            {formatCurrency(balance)}
+          </Badge>
+        </div>
+      );
+    } else if (balance >= -50) {
+      return (
+        <div className="flex items-center space-x-2">
+          <Clock className="w-4 h-4 text-yellow-600" />
+          <Badge variant="yellow">
+            {formatCurrency(balance)}
+          </Badge>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 text-red-600" />
+          <Badge variant="red">
+            {formatCurrency(balance)}
+          </Badge>
+        </div>
+      );
+    }
   };
 
   const getMembershipStatusBadge = (member: Member) => {
@@ -172,7 +322,7 @@ export default function MemberTable({
     );
   };
 
-  const columns = [
+  const baseColumns = [
     {
       header: 'Name',
       accessor: (item: Member) => (
@@ -247,7 +397,16 @@ export default function MemberTable({
           )}
         </div>
       ),
-    },
+    }
+  ];
+
+  // Payment-Status-Spalte hinzufügen wenn aktiviert
+  const paymentColumn = showPaymentStatus ? [{
+    header: 'Payment-Status',
+    accessor: (item: Member) => getPaymentStatusBadge(item),
+  }] : [];
+
+  const statusColumn = [
     {
       header: 'Status',
       accessor: (item: Member) => {
@@ -288,7 +447,10 @@ export default function MemberTable({
           </div>
         );
       },
-    },
+    }
+  ];
+
+  const endColumns = [
     {
       header: 'Seit',
       accessor: (item: Member) => (
@@ -314,12 +476,19 @@ export default function MemberTable({
         </div>
       ),
       className: 'text-right',
-    },
+    }
+  ];
+
+  const columns = [
+    ...baseColumns,
+    ...paymentColumn,
+    ...statusColumn,
+    ...endColumns
   ];
 
   return (
     <Table
-      data={data}
+      data={membersWithPayment}
       columns={columns}
       isLoading={isLoading}
       emptyMessage="Keine Mitglieder vorhanden"

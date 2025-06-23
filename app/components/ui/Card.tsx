@@ -2,6 +2,7 @@
 
 import React, { ReactNode } from 'react';
 
+// Main Card Component
 type CardProps = {
   children: ReactNode;
   title?: string;
@@ -38,5 +39,62 @@ export default function Card({
         </div>
       )}
     </div>
+  );
+}
+
+// Sub-components for modern Card structure
+export function CardHeader({ 
+  children, 
+  className = '' 
+}: { 
+  children: ReactNode; 
+  className?: string; 
+}) {
+  return (
+    <div className={`p-4 border-b border-gray-100 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+export function CardContent({ 
+  children, 
+  className = '' 
+}: { 
+  children: ReactNode; 
+  className?: string; 
+}) {
+  return (
+    <div className={`p-4 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+export function CardTitle({ 
+  children, 
+  className = '' 
+}: { 
+  children: ReactNode; 
+  className?: string; 
+}) {
+  return (
+    <h3 className={`font-semibold text-lg text-gray-900 ${className}`}>
+      {children}
+    </h3>
+  );
+}
+
+export function CardDescription({ 
+  children, 
+  className = '' 
+}: { 
+  children: ReactNode; 
+  className?: string; 
+}) {
+  return (
+    <p className={`text-sm text-gray-600 mt-1 ${className}`}>
+      {children}
+    </p>
   );
 } 

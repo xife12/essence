@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import { 
   User, Edit, Save, ChevronLeft, Calendar, Phone, Mail, 
   Tag, Clock, CreditCard, FileText, CheckCircle, Plus, X,
-  AlertTriangle, Pause, Info, Award
+  AlertTriangle, Pause, Info, Award, Upload, Download, 
+  File, Folder, Trash2, Eye, ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import PageHeader from '../../../components/ui/PageHeader';
@@ -18,6 +19,15 @@ import Modal from '../../../components/ui/Modal';
 import FormField from '../../../components/ui/FormField';
 import MemberForm, { MemberData } from '../../../components/mitglieder/MemberForm';
 import MembershipForm from '../../../components/mitglieder/MembershipForm';
+import { MemberPaymentCard } from '@/app/components/payment-system/MemberPaymentCard';
+import { AccountCorrectionModal } from '@/app/components/payment-system/AccountCorrectionModal';
+import FileUpload from '../../../components/dateimanager/FileUpload';
+import { 
+  getFileAssets, 
+  deleteFileAsset, 
+  getFileAssetById 
+} from '../../../lib/api/file-asset';
+import type { FileAsset } from '../../../lib/types/file-asset';
 
 // Dummy-Daten für die Entwicklung
 const DUMMY_MEMBERS = [
@@ -326,7 +336,7 @@ export default function MemberDetailPage() {
   const { id } = useParams();
   const [member, setMember] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'memberships' | 'consultations'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'memberships' | 'consultations' | 'documents' | 'payment'>('overview');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditMemberNumberModalOpen, setIsEditMemberNumberModalOpen] = useState(false);
   const [isAddMembershipModalOpen, setIsAddMembershipModalOpen] = useState(false);
@@ -346,6 +356,17 @@ export default function MemberDetailPage() {
   const [expandedMembershipId, setExpandedMembershipId] = useState<string | null>(null);
   const [cancellationDate, setCancellationDate] = useState<string>('');
   const [cancellationType, setCancellationType] = useState<'regular' | 'immediate' | 'custom'>('regular');
+  const [fileAssets, setFileAssets] = useState<FileAsset[]>([]);
+  
+  // Document Management States
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<FileAsset | null>(null);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [filesError, setFilesError] = useState<string | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<string>('all');
+  const [showContractUpload, setShowContractUpload] = useState(false);
   
   useEffect(() => {
     // Simuliere API-Aufruf, um Mitgliedsdaten zu laden
@@ -981,8 +1002,112 @@ export default function MemberDetailPage() {
   };
   
   const handleViewMembershipDetails = (membershipId: string) => {
-    setSelectedMembershipId(membershipId);
-    setIsDetailModalOpen(true);
+    setExpandedMembershipId(expandedMembershipId === membershipId ? null : membershipId);
+  };
+
+  // Load member documents
+  const loadMemberDocuments = async () => {
+    setIsLoadingFiles(true);
+    setFilesError(null);
+    try {
+      const files = await getFileAssets({
+        module_reference: 'system',
+        category: 'document',
+        tags: [`member_${member?.id}`] // Use member-specific tag for filtering
+      });
+      setFileAssets(files);
+    } catch (error) {
+      console.error('Fehler beim Laden der Dokumente:', error);
+      setFilesError('Fehler beim Laden der Dokumente');
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'documents' && member) {
+      loadMemberDocuments();
+    }
+  }, [activeTab, member?.id]);
+
+  // Document Management Handlers
+  const handleFileUpload = (fileAsset: FileAsset) => {
+    setFileAssets(prev => [fileAsset, ...prev]);
+    setShowUploadModal(false);
+  };
+
+  const handleContractUpload = (fileAsset: FileAsset) => {
+    // Add contract-specific tag
+    setFileAssets(prev => [fileAsset, ...prev]);
+    setShowContractUpload(false);
+  };
+
+  const handleViewFile = (file: FileAsset) => {
+    setSelectedFile(file);
+    setShowViewModal(true);
+  };
+
+  const handleDeleteFile = (file: FileAsset) => {
+    setSelectedFile(file);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteFile = async () => {
+    if (!selectedFile) return;
+
+    try {
+      const success = await deleteFileAsset(selectedFile.id);
+      if (success) {
+        setFileAssets(prev => prev.filter(f => f.id !== selectedFile.id));
+        setShowDeleteModal(false);
+        setSelectedFile(null);
+      }
+    } catch (error) {
+      console.error('Fehler beim Löschen der Datei:', error);
+    }
+  };
+
+  const getFilteredFiles = () => {
+    if (selectedFolder === 'all') return fileAssets;
+    return fileAssets.filter(file => 
+      file.tags.some(tag => tag.toLowerCase().includes(selectedFolder.toLowerCase()))
+    );
+  };
+
+  const getFolderCounts = () => {
+    const counts = {
+      vertraege: fileAssets.filter(f => f.tags.some(t => t.includes('vertrag') || t.includes('contract'))).length,
+      zahlungsbelege: fileAssets.filter(f => f.tags.some(t => t.includes('zahlung') || t.includes('beleg'))).length,
+      korrespondenz: fileAssets.filter(f => f.tags.some(t => t.includes('korrespondenz') || t.includes('email'))).length,
+      sonstiges: fileAssets.filter(f => !f.tags.some(t => 
+        t.includes('vertrag') || t.includes('contract') || 
+        t.includes('zahlung') || t.includes('beleg') ||
+        t.includes('korrespondenz') || t.includes('email')
+      )).length
+    };
+    return counts;
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileTypeIcon = (filename: string) => {
+    const extension = filename.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'pdf': return <FileText className="w-6 h-6 text-red-500" />;
+      case 'doc':
+      case 'docx': return <FileText className="w-6 h-6 text-blue-500" />;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif': return <File className="w-6 h-6 text-green-500" />;
+      default: return <File className="w-6 h-6 text-gray-500" />;
+    }
   };
   
   if (isLoading) {
@@ -1075,6 +1200,26 @@ export default function MemberDetailPage() {
           onClick={() => setActiveTab('consultations')}
         >
           Beratungsgespräche
+        </button>
+        <button
+          className={`px-4 py-2 text-sm font-medium ${
+            activeTab === 'documents'
+              ? 'text-blue-600 border-b-2 border-blue-500'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => setActiveTab('documents')}
+        >
+          Dokumente
+        </button>
+        <button
+          className={`px-4 py-2 text-sm font-medium ${
+            activeTab === 'payment'
+              ? 'text-blue-600 border-b-2 border-blue-500'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => setActiveTab('payment')}
+        >
+          Beitragskonto
         </button>
       </div>
       
@@ -1257,6 +1402,286 @@ export default function MemberDetailPage() {
               </Card>
             </div>
           </div>
+        </div>
+      )}
+      
+      {/* Dokumente-Tab */}
+      {activeTab === 'documents' && (
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-medium">Dokumente</h2>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                icon={<FileText size={16} />}
+                onClick={() => setShowContractUpload(true)}
+              >
+                Vertrag hochladen
+              </Button>
+              <Button 
+                variant="primary" 
+                size="sm" 
+                icon={<Upload size={16} />}
+                onClick={() => setShowUploadModal(true)}
+              >
+                Dokument hochladen
+              </Button>
+            </div>
+          </div>
+          
+          {/* Dokumentenübersicht */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Verbesserte Dokumentenstruktur */}
+            <div className="lg:col-span-1">
+              <Card title="Dokumentenkategorien" icon={<Folder size={18} />}>
+                <div className="space-y-2">
+                  {(() => {
+                    const folderCounts = getFolderCounts();
+                    return (
+                      <>
+                        <div 
+                          className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                            selectedFolder === 'all' ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => setSelectedFolder('all')}
+                        >
+                          <Folder size={16} className="text-blue-500" />
+                          <span className="text-sm font-medium">Alle Dokumente</span>
+                          <span className="text-xs text-gray-500 ml-auto">{fileAssets.length}</span>
+                        </div>
+                        
+                        <div 
+                          className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                            selectedFolder === 'vertraege' ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => setSelectedFolder('vertraege')}
+                        >
+                          <Folder size={16} className="text-green-500" />
+                          <span className="text-sm font-medium">Verträge</span>
+                          <span className="text-xs text-gray-500 ml-auto">{folderCounts.vertraege}</span>
+                        </div>
+                        
+                        <div 
+                          className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                            selectedFolder === 'zahlungsbelege' ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => setSelectedFolder('zahlungsbelege')}
+                        >
+                          <Folder size={16} className="text-yellow-500" />
+                          <span className="text-sm font-medium">Zahlungsbelege</span>
+                          <span className="text-xs text-gray-500 ml-auto">{folderCounts.zahlungsbelege}</span>
+                        </div>
+                        
+                        <div 
+                          className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                            selectedFolder === 'korrespondenz' ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => setSelectedFolder('korrespondenz')}
+                        >
+                          <Folder size={16} className="text-purple-500" />
+                          <span className="text-sm font-medium">Korrespondenz</span>
+                          <span className="text-xs text-gray-500 ml-auto">{folderCounts.korrespondenz}</span>
+                        </div>
+                        
+                        <div 
+                          className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                            selectedFolder === 'sonstiges' ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => setSelectedFolder('sonstiges')}
+                        >
+                          <Folder size={16} className="text-gray-500" />
+                          <span className="text-sm font-medium">Sonstiges</span>
+                          <span className="text-xs text-gray-500 ml-auto">{folderCounts.sonstiges}</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </Card>
+            </div>
+            
+            {/* Verbesserte Dokumentenliste */}
+            <div className="lg:col-span-3">
+              <Card>
+                {/* Filteranzeige */}
+                {selectedFolder !== 'all' && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-blue-700">
+                        Gefiltert nach: <strong>{selectedFolder === 'vertraege' ? 'Verträge' : 
+                                               selectedFolder === 'zahlungsbelege' ? 'Zahlungsbelege' :
+                                               selectedFolder === 'korrespondenz' ? 'Korrespondenz' : 'Sonstiges'}</strong>
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedFolder('all')}
+                        icon={<X size={14} />}
+                      >
+                        Filter entfernen
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-4">
+                  {/* Loading State */}
+                  {isLoadingFiles && (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="text-gray-600 mt-2">Dokumente werden geladen...</p>
+                    </div>
+                  )}
+                  
+                  {/* Error State */}
+                  {filesError && (
+                    <div className="text-center py-8">
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-red-600">{filesError}</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={loadMemberDocuments}
+                        >
+                          Erneut versuchen
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Gefilterte Dokumente Liste */}
+                  {!isLoadingFiles && !filesError && (
+                    <>
+                      {(() => {
+                        const filteredFiles = getFilteredFiles();
+                        return filteredFiles.length > 0 ? (
+                          filteredFiles.map(file => (
+                            <div key={file.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
+                                  {getFileTypeIcon(file.filename)}
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="text-sm font-medium text-gray-900">{file.filename}</h3>
+                                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                    <span className="px-2 py-1 bg-gray-100 rounded">{file.category}</span>
+                                    {file.description && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{file.description}</span>
+                                      </>
+                                    )}
+                                    <span>•</span>
+                                    <span>Hochgeladen: {formatDate(file.created_at)}</span>
+                                  </div>
+                                  {/* Tags anzeigen */}
+                                  {file.tags.length > 0 && (
+                                    <div className="flex gap-1 mt-2">
+                                      {file.tags.slice(0, 3).map((tag, index) => (
+                                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                          {tag}
+                                        </span>
+                                      ))}
+                                      {file.tags.length > 3 && (
+                                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                          +{file.tags.length - 3}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  icon={<Eye size={14} />}
+                                  onClick={() => handleViewFile(file)}
+                                >
+                                  Ansehen
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  icon={<Download size={14} />}
+                                  onClick={() => window.open(file.file_url, '_blank')}
+                                >
+                                  Download
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  icon={<Trash2 size={14} />} 
+                                  className="text-red-600 hover:text-red-700"
+                                  onClick={() => handleDeleteFile(file)}
+                                >
+                                  Löschen
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-12 text-gray-500">
+                            <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+                            <p className="text-lg font-medium">
+                              {selectedFolder === 'all' ? 'Noch keine Dokumente vorhanden' : 
+                               `Keine ${selectedFolder === 'vertraege' ? 'Verträge' : 
+                                        selectedFolder === 'zahlungsbelege' ? 'Zahlungsbelege' :
+                                        selectedFolder === 'korrespondenz' ? 'Korrespondenz' : 'sonstigen Dokumente'} gefunden`}
+                            </p>
+                            <p className="text-sm mt-2">
+                              {selectedFolder === 'all' ? 
+                                'Laden Sie das erste Dokument für dieses Mitglied hoch' :
+                                `Keine Dokumente in der Kategorie "${selectedFolder}" vorhanden`}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
+                
+                {/* Verbesserter Upload-Bereich */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Allgemeiner Upload */}
+                    <div 
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
+                      onClick={() => setShowUploadModal(true)}
+                    >
+                      <Upload size={20} className="mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">Dokument hochladen</p>
+                      <p className="text-xs text-gray-500">PDF, DOC, DOCX, JPG, PNG</p>
+                    </div>
+                    
+                    {/* Vertrag-spezifischer Upload */}
+                    <div 
+                      className="border-2 border-dashed border-green-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors cursor-pointer bg-green-50"
+                      onClick={() => setShowContractUpload(true)}
+                    >
+                      <FileText size={20} className="mx-auto text-green-500 mb-2" />
+                      <p className="text-sm text-green-700 mb-1 font-medium">Vertrag hochladen</p>
+                      <p className="text-xs text-green-600">Spezielle Vertragsablage</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Beitragskonto-Tab */}
+      {activeTab === 'payment' && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium">Beitragskonto</h2>
+          </div>
+          
+          <MemberPaymentCard memberId={member.id} memberName={`${member.first_name} ${member.last_name}`} />
         </div>
       )}
       
@@ -1923,6 +2348,244 @@ export default function MemberDetailPage() {
             })()}
           </div>
         )}
+      </Modal>
+      
+      {/* Dokumenten-Upload Modal */}
+      <Modal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        title="Dokument hochladen"
+        footer={
+          <Button 
+            variant="outline" 
+            onClick={() => setShowUploadModal(false)} 
+            icon={<X size={18} />}
+          >
+            Schließen
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Laden Sie ein Dokument für <strong>{member?.first_name} {member?.last_name}</strong> hoch.
+          </p>
+          
+          <FileUpload
+            onUploadComplete={handleFileUpload}
+            defaultCategory="document"
+            defaultModuleReference="system"
+          />
+        </div>
+      </Modal>
+
+      {/* Dokumenten-Ansicht Modal */}
+      <Modal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        title={selectedFile?.filename || "Dokument"}
+        footer={
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => window.open(selectedFile?.file_url, '_blank')}
+              icon={<ExternalLink size={18} />}
+            >
+              In neuem Tab öffnen
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowViewModal(false)} 
+              icon={<X size={18} />}
+            >
+              Schließen
+            </Button>
+          </div>
+        }
+      >
+        {selectedFile && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-gray-700">Kategorie:</span>
+                <span className="ml-2">{selectedFile.category}</span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Hochgeladen:</span>
+                <span className="ml-2">{formatDate(selectedFile.created_at)}</span>
+              </div>
+              {selectedFile.description && (
+                <div className="col-span-2">
+                  <span className="font-medium text-gray-700">Beschreibung:</span>
+                  <span className="ml-2">{selectedFile.description}</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Vorschau für PDF-Dateien */}
+            {selectedFile.filename.toLowerCase().endsWith('.pdf') && (
+              <div className="border rounded-lg overflow-hidden">
+                <iframe
+                  src={selectedFile.file_url}
+                  className="w-full h-96"
+                  title={selectedFile.filename}
+                />
+              </div>
+            )}
+            
+            {/* Vorschau für Bilder */}
+            {(selectedFile.filename.toLowerCase().endsWith('.jpg') || 
+              selectedFile.filename.toLowerCase().endsWith('.jpeg') || 
+              selectedFile.filename.toLowerCase().endsWith('.png')) && (
+              <div className="text-center">
+                <img
+                  src={selectedFile.file_url}
+                  alt={selectedFile.filename}
+                  className="max-w-full max-h-96 mx-auto rounded-lg shadow-sm"
+                />
+              </div>
+            )}
+            
+            {/* Fallback für andere Dateitypen */}
+            {!selectedFile.filename.toLowerCase().endsWith('.pdf') &&
+             !selectedFile.filename.toLowerCase().endsWith('.jpg') &&
+             !selectedFile.filename.toLowerCase().endsWith('.jpeg') &&
+             !selectedFile.filename.toLowerCase().endsWith('.png') && (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-lg flex items-center justify-center">
+                  {getFileTypeIcon(selectedFile.filename)}
+                </div>
+                <p className="text-gray-600">Vorschau für diesen Dateityp nicht verfügbar</p>
+                <p className="text-sm text-gray-500">Klicken Sie auf "In neuem Tab öffnen" um die Datei anzuzeigen</p>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Dokumenten-Lösch Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Dokument löschen"
+        footer={
+          <>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteModal(false)} 
+              icon={<X size={18} />}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              variant="outline"
+              onClick={confirmDeleteFile}
+              icon={<Trash2 size={18} />}
+              className="text-red-600 hover:text-red-700"
+            >
+              Löschen
+            </Button>
+          </>
+        }
+      >
+        {selectedFile && (
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-red-400" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Achtung: Unwiderrufliche Aktion</h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <p>
+                      Das Dokument wird dauerhaft gelöscht und kann nicht wiederhergestellt werden.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">
+                Möchten Sie das folgende Dokument wirklich löschen?
+              </p>
+              
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                    {getFileTypeIcon(selectedFile.filename)}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{selectedFile.filename}</p>
+                    <p className="text-xs text-gray-500">
+                      Hochgeladen: {formatDate(selectedFile.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Vertrag-Upload Modal */}
+      <Modal
+        isOpen={showContractUpload}
+        onClose={() => setShowContractUpload(false)}
+        title="Vertrag hochladen"
+        footer={
+          <Button 
+            variant="outline" 
+            onClick={() => setShowContractUpload(false)} 
+            icon={<X size={18} />}
+          >
+            Schließen
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <FileText className="w-5 h-5 text-green-600 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-green-800">Vertragsupload</h3>
+                <p className="text-sm text-green-700 mt-1">
+                  Laden Sie hier Vertragsdokumente für <strong>{member?.first_name} {member?.last_name}</strong> hoch. 
+                  Diese werden automatisch in der Kategorie "Verträge" abgelegt.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-700">Vertragsdetails</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Vertragstyp</label>
+                <select className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500">
+                  <option>Mitgliedschaftsvertrag</option>
+                  <option>Zusatzleistungsvertrag</option>
+                  <option>Änderungsvereinbarung</option>
+                  <option>Kündigungsbestätigung</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Vertragsdatum</label>
+                <input 
+                  type="date" 
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+                  defaultValue={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <FileUpload
+            onUploadComplete={handleContractUpload}
+            defaultCategory="document"
+            defaultModuleReference="system"
+          />
+        </div>
       </Modal>
     </div>
   );

@@ -374,96 +374,96 @@ export default function VertragsartenV2Page() {
     }
   };
 
-  return (
+    return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
+        {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <div>
+            <div>
           <h1 className="text-2xl font-bold text-gray-900">Vertragsarten V2</h1>
           <p className="text-gray-600 mt-1">Verwalte Verträge, Module und Dokumente</p>
+            </div>
+              <Link 
+                href="/vertragsarten-v2/contracts/neu"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Plus size={20} />
+                Neuer Vertrag
+              </Link>
         </div>
-        <Link
-          href="/vertragsarten-v2/contracts/neu"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Neuer Vertrag
-        </Link>
-      </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
+            <div className="flex items-center justify-between">
+              <div>
               <p className="text-sm font-medium text-gray-600">Gesamt Verträge</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalContracts}</p>
-            </div>
+                <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalContracts}</p>
+              </div>
             <Package className="h-8 w-8 text-blue-500" />
-          </div>
-        </div>
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Aktive Verträge</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeContracts}</p>
             </div>
+          </div>
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Aktive Verträge</p>
+                <p className="text-2xl font-bold text-gray-900">{dashboardStats.activeContracts}</p>
+              </div>
             <CheckCircle className="h-8 w-8 text-green-500" />
-          </div>
-        </div>
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Module</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalModules}</p>
             </div>
+          </div>
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Module</p>
+                <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalModules}</p>
+              </div>
             <Zap className="h-8 w-8 text-orange-500" />
-          </div>
-        </div>
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Umsatz/Monat</p>
-              <p className="text-2xl font-bold text-gray-900">{formatPrice(dashboardStats.monthlyRevenue)}</p>
             </div>
+          </div>
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+              <p className="text-sm font-medium text-gray-600">Umsatz/Monat</p>
+                <p className="text-2xl font-bold text-gray-900">{formatPrice(dashboardStats.monthlyRevenue)}</p>
+              </div>
             <TrendingUp className="h-8 w-8 text-purple-500" />
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Tabs */}
       <div className="bg-white rounded-lg border border-gray-200">
-        <div className="border-b border-gray-200">
+          <div className="border-b border-gray-200">
           <nav className="flex space-x-8 px-6">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                     isActive
                       ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
                   <Icon size={16} />
-                  {tab.label}
+                    {tab.label}
                   {/* Badge für Archiviert Tab */}
                   {tab.id === 'archived' && archivedContracts.length > 0 && (
                     <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
                       {archivedContracts.length}
                     </span>
                   )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
 
         {/* Tab Content */}
-        <div className="p-6">
+          <div className="p-6">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -700,9 +700,9 @@ function ContractsTab({ contracts, expandedContracts, contractDetails, onToggleE
             return (
               <div key={contract.id} className="bg-gray-50 rounded-lg border border-gray-200">
                 <div className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
                         <button
                           onClick={() => onToggleExpansion(contract.id)}
                           className="p-1 hover:bg-gray-200 rounded transition-colors"
@@ -713,7 +713,7 @@ function ContractsTab({ contracts, expandedContracts, contractDetails, onToggleE
                             <ChevronRight size={20} className="text-gray-600" />
                           )}
                         </button>
-                        <h3 className="text-lg font-semibold text-gray-900">{contract.name}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{contract.name}</h3>
                         {/* Status Badge mit Kampagnen-Status */}
                         {(contract.is_campaign_version || contract.campaign_name) ? (
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -740,13 +740,13 @@ function ContractsTab({ contracts, expandedContracts, contractDetails, onToggleE
                             })()}
                           </span>
                         ) : (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            contract.is_active 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {contract.is_active ? 'Aktiv' : 'Inaktiv'}
-                          </span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      contract.is_active 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {contract.is_active ? 'Aktiv' : 'Inaktiv'}
+                    </span>
                         )}
                         
                         {/* Campaign Badge */}
@@ -756,48 +756,48 @@ function ContractsTab({ contracts, expandedContracts, contractDetails, onToggleE
                           </span>
                         )}
                         
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
                           v{contract.version || contract.version_number || 1}
-                        </span>
-                      </div>
-                      {contract.description && (
+                    </span>
+                  </div>
+                  {contract.description && (
                         <p className="text-gray-600 mt-1 ml-8">{contract.description}</p>
-                      )}
+                  )}
                       <div className="flex items-center gap-6 mt-3 ml-8 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Coins size={16} />
+                    <span className="flex items-center gap-1">
+                      <Coins size={16} />
                           {formatPrice(contract.total_base_price || contract.base_price || 0)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar size={16} />
-                          {formatDate(contract.created_at)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <button
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar size={16} />
+                      {formatDate(contract.created_at)}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button
                         onClick={() => openVersionsModal(contract.contract_group_id || contract.id, contract.name)}
-                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                        title="Versionierung"
-                      >
-                        <GitBranch size={16} />
-                      </button>
-                      <button
-                        onClick={() => onEdit(contract.id)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Bearbeiten"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => onDuplicate(contract.id)}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title="Duplizieren"
-                      >
-                        <Copy size={16} />
-                      </button>
-                      <button
+                    className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                    title="Versionierung"
+                  >
+                    <GitBranch size={16} />
+                  </button>
+                  <button
+                    onClick={() => onEdit(contract.id)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Bearbeiten"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button
+                    onClick={() => onDuplicate(contract.id)}
+                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    title="Duplizieren"
+                  >
+                    <Copy size={16} />
+                  </button>
+                  <button
                         onClick={() => onToggleStatus(contract.id, contract.is_active)}
                         className={`p-2 hover:bg-orange-50 rounded-lg transition-colors ${
                           contract.is_active ? 'text-orange-600' : 'text-green-600'
@@ -805,17 +805,17 @@ function ContractsTab({ contracts, expandedContracts, contractDetails, onToggleE
                         title={contract.is_active ? "Deaktivieren" : "Aktivieren"}
                       >
                         {contract.is_active ? <Ban size={16} /> : <CheckCircle size={16} />}
-                      </button>
-                      <button
-                        onClick={() => onArchive(contract.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Archivieren"
-                      >
-                        <Archive size={16} />
-                      </button>
-                    </div>
-                  </div>
+                  </button>
+                  <button
+                    onClick={() => onArchive(contract.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Archivieren"
+                  >
+                    <Archive size={16} />
+                  </button>
                 </div>
+              </div>
+            </div>
 
                 {/* Expanded Details Section */}
                 {isExpanded && (
@@ -1020,12 +1020,12 @@ function ContractVersionsModal({
   contractGroupId, 
   contractName,
   formatDate 
-}: { 
+}: {
   isOpen: boolean;
   onClose: () => void;
   contractGroupId: string;
   contractName: string;
-  formatDate: (date: string) => string; 
+  formatDate: (date: string) => string;
 }) {
   const [versions, setVersions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1074,79 +1074,79 @@ function ContractVersionsModal({
               <span className="ml-2 text-gray-600">Lade Versionen...</span>
             </div>
           ) : (
-            <div className="space-y-4">
+          <div className="space-y-4">
               {versions.map((version, index) => (
-                <div key={version.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-semibold text-gray-900">
-                          v{version.version_number}
-                        </span>
-                        {version.is_active && (
-                          <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                            Aktiv
-                          </span>
-                        )}
-                        {version.is_campaign_version && (
-                          <span className="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
-                            Kampagne
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
+              <div key={version.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-gray-900">
+                        v{version.version_number}
+                      </span>
+                        {version.is_active && (
+                        <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                            Aktiv
+                        </span>
+                      )}
+                      {version.is_campaign_version && (
+                        <span className="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
+                          Kampagne
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
                       <button 
                         onClick={() => window.open(`/vertragsarten-v2/contracts/${version.id}`, '_blank')}
                         className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg" 
                         title="Anzeigen"
                       >
-                        <Eye size={16} />
-                      </button>
+                      <Eye size={16} />
+                    </button>
                       <button 
                         onClick={() => window.location.href = `/vertragsarten-v2/contracts/neu?edit=${version.id}`}
                         className="p-2 text-green-600 hover:bg-green-100 rounded-lg" 
                         title="Bearbeiten"
                       >
-                        <Edit size={16} />
-                      </button>
-                    </div>
+                      <Edit size={16} />
+                    </button>
                   </div>
-                  
+                </div>
+                
                   {version.version_note && (
-                    <div className="mt-2">
-                      <span className="text-sm font-medium text-gray-700">Änderungen:</span>
+                  <div className="mt-2">
+                    <span className="text-sm font-medium text-gray-700">Änderungen:</span>
                       <p className="text-gray-600 text-sm mt-1">{version.version_note}</p>
-                    </div>
-                  )}
-                  
-                  {version.description && (
-                    <div className="mt-2">
-                      <span className="text-sm font-medium text-gray-700">Beschreibung:</span>
-                      <p className="text-gray-600 text-sm mt-1">{version.description}</p>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={14} />
-                      {formatDate(version.created_at)}
-                    </span>
+                  </div>
+                )}
+                
+                {version.description && (
+                  <div className="mt-2">
+                    <span className="text-sm font-medium text-gray-700">Beschreibung:</span>
+                    <p className="text-gray-600 text-sm mt-1">{version.description}</p>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Calendar size={14} />
+                    {formatDate(version.created_at)}
+                  </span>
                     {version.campaign_start_date && (
                       <span className="flex items-center gap-1">
                         <Star size={14} />
                         Kampagne: {formatDate(version.campaign_start_date)}
                       </span>
                     )}
-                  </div>
                 </div>
-              ))}
+              </div>
+            ))}
               
               {versions.length === 0 && !loading && (
                 <div className="text-center py-8 text-gray-500">
                   Keine Versionen gefunden.
-                </div>
+          </div>
               )}
             </div>
           )}
@@ -1237,7 +1237,7 @@ function ModulesTab({ modules, onDelete, onEdit, onView, formatPrice, formatDate
 
       {/* Search and Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
-        <div className="flex-1">
+              <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
@@ -1247,8 +1247,8 @@ function ModulesTab({ modules, onDelete, onEdit, onView, formatPrice, formatDate
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-          </div>
-        </div>
+                  </div>
+                </div>
         
         <div className="min-w-[200px]">
           <select
@@ -1263,7 +1263,7 @@ function ModulesTab({ modules, onDelete, onEdit, onView, formatPrice, formatDate
               </option>
             ))}
           </select>
-        </div>
+              </div>
       </div>
 
       {/* Results Count */}
@@ -1306,7 +1306,7 @@ function ModulesTab({ modules, onDelete, onEdit, onView, formatPrice, formatDate
             <div>
               <p className="text-lg font-medium mb-2">Keine Module gefunden</p>
               <p>Versuchen Sie andere Suchbegriffe oder Filter.</p>
-              <button
+                <button
                 onClick={() => {
                   setSearchTerm('');
                   setSelectedCategory('');
@@ -1314,19 +1314,19 @@ function ModulesTab({ modules, onDelete, onEdit, onView, formatPrice, formatDate
                 className="mt-3 text-blue-600 hover:text-blue-700"
               >
                 Filter zurücksetzen
-              </button>
+                </button>
             </div>
           ) : (
             <div>
               <p className="text-lg font-medium mb-2">Noch keine Module vorhanden</p>
               <p className="mb-4">Erstellen Sie Ihr erstes Modul für Vertragsarten.</p>
-              <button
+                <button
                 onClick={() => window.location.href = '/vertragsarten-v2/modules/neu'}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
+                >
                 <Plus size={16} />
                 Erstes Modul erstellen
-              </button>
+                </button>
             </div>
           )}
         </div>
@@ -1364,7 +1364,7 @@ function ModulesTab({ modules, onDelete, onEdit, onView, formatPrice, formatDate
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-2">Beschreibung</h4>
                     <p className="text-gray-700">{selectedModule.description}</p>
-                  </div>
+            </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1403,9 +1403,9 @@ function ModulesTab({ modules, onDelete, onEdit, onView, formatPrice, formatDate
                             <span className="text-green-600">✓</span>
                             <span className="font-medium">{contract.name}</span>
                             <span className="text-sm text-gray-500">v{contract.version_number || 1}</span>
-                          </div>
-                        ))}
-                      </div>
+          </div>
+        ))}
+      </div>
                     </div>
                   )}
 
@@ -1529,8 +1529,8 @@ function DocumentsTab({ documents, formatDate, loading, onReload }: DocumentsTab
           <p className="text-sm text-gray-600 mt-1">
             Verwalten Sie Ihre Dokumentenvorlagen
           </p>
-        </div>
-        
+      </div>
+
         <Link
           href="/vertragsarten-v2/documents/neu"
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -1589,11 +1589,11 @@ function DocumentsTab({ documents, formatDate, loading, onReload }: DocumentsTab
         ) : (
           filteredDocuments.map((document) => (
             <div key={document.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <FileText size={20} className="text-gray-500" />
-                    <h3 className="font-semibold text-gray-900">{document.name}</h3>
+                <h3 className="font-semibold text-gray-900">{document.name}</h3>
                     
                     {/* Status Badges */}
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -1606,8 +1606,8 @@ function DocumentsTab({ documents, formatDate, loading, onReload }: DocumentsTab
                     
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
                       v{document.version_number || 1}
-                    </span>
-                  </div>
+                  </span>
+                </div>
                   
                   {document.description && (
                     <p className="text-gray-600 mt-1 ml-8">{document.description}</p>
@@ -1625,7 +1625,7 @@ function DocumentsTab({ documents, formatDate, loading, onReload }: DocumentsTab
                         <strong>Geändert:</strong> {formatDate(document.updated_at)}
                       </span>
                     )}
-                  </div>
+              </div>
                   
                   {/* Contract Assignments Preview */}
                   {document.assigned_contract_names?.length > 0 && (
@@ -1648,31 +1648,31 @@ function DocumentsTab({ documents, formatDate, loading, onReload }: DocumentsTab
                 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
-                  <button
+                <button
                     onClick={() => handleViewDocument(document)}
                     className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     title="Details anzeigen"
-                  >
-                    <Eye size={16} />
-                  </button>
+                >
+                  <Eye size={16} />
+                </button>
                   
-                  <button
+                <button
                     onClick={() => handleEditDocument(document.id)}
                     className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title="Bearbeiten"
-                  >
-                    <Edit size={16} />
-                  </button>
+                  title="Bearbeiten"
+                >
+                  <Edit size={16} />
+                </button>
                   
-                  <button
+                <button
                     onClick={() => handleDeleteDocument(document.id)}
                     className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Löschen"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+                  title="Löschen"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
+            </div>
             </div>
           ))
         )}
@@ -1739,8 +1739,8 @@ function DocumentsTab({ documents, formatDate, loading, onReload }: DocumentsTab
                         <div key={index} className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
                           <FileText size={16} className="text-blue-600" />
                           <span className="font-medium">{contractName}</span>
-                        </div>
-                      ))}
+          </div>
+        ))}
                     </div>
                   ) : (
                     <div className="text-center py-6 text-gray-500">
