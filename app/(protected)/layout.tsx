@@ -109,6 +109,7 @@ export default function ProtectedLayout({
                   <ul className="ml-8 mt-1 space-y-1">
                     <li><NavItem href="/mitglieder" icon={Users} label="Übersicht" /></li>
                     <li><NavItem href="/mitglieder/pdf-upload" icon={Upload} label="PDF-Upload" badge="BETA" /></li>
+                    <li><NavItem href="/mitglieder/dual-import" icon={FileText} label="Dual-Import" badge="PRO" /></li>
                   </ul>
                 )}
                 

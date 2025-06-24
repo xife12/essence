@@ -1,0 +1,67 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Ziel
+
+Dieses Projekt bildet ein internes Verwaltungs- und Tracking-System für Fitnessstudios ab.  
+Es beinhaltet Module zur Verwaltung von:
+
+- Leads
+- Beratungsgesprächen
+- Mitgliedschaften
+- Kampagnen
+- Vertragsarten
+- Mitarbeitern
+- passwortgeschützten Logins
+
+---
+
+## Projektarchitektur
+
+- **Framework:** Next.js (App Router)
+- **Sprache:** TypeScript
+- **Styling:** Tailwind CSS
+- **UI-Komponenten:** Eigene, plus `lucide-react` Icons
+- **Datenbank:** Supabase (PostgreSQL) mit Auth- und Vault-Modulen
+- **Client-DB-Access:** `@supabase/supabase-js` (clientseitig via Context)
+- **Auth:** Supabase E-Mail + Passwort-Login mit optionaler 2FA
+
+---
+
+## Projektstruktur (empfohlen für Cursor)
+
+```
+
+app/
+├── dashboard/
+├── leads/
+├── beratung/
+├── mitglieder/
+├── kampagnen/
+├── passwoerter/
+├── mitarbeiter/
+├── vertragsarten/
+├── stunden/ # ⏱️ NEU: Stundenübersicht & Zeiterfassung
+├── stunden/[id]/edit/ # Bearbeitungsansicht einzelner Stundeneinträge
+├── layout.tsx # Sidebar, Topbar
+└── page.tsx # Start → Dashboard
+
+components/
+├── forms/
+├── tables/
+├── cards/
+├── modals/
+├── stunden/ # Komponenten: StundenCard, StundenModal, StundenTabelle
+
+lib/
+├── supabaseClient.ts
+├── auth.ts
+└── api.ts # zentraler API-Wrapper
+
+styles/
+└── globals.css
+
+middleware.ts # Auth-Redirects
+utils/

@@ -1,0 +1,110 @@
+---
+description: "Kampagnen-Management: Erstellung, Stränge, Aktionen und KPI-Tracking"
+globs: 
+alwaysApply: false
+---
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Modul: Kampagnen (campaign_flow)
+
+### Zweck
+Zentrale Steuerungseinheit für jede Marketingkampagne. Das Modul enthält Metadaten, Zieldefinitionen, Budgetvorgaben, Fortschrittskennzahlen sowie die gesamte Verzweigung in Stränge und Aktionen.
+
+---
+
+### Entität: campaign
+
+| Feld               | Typ       | Beschreibung |
+|--------------------|-----------|--------------|
+| id                 | UUID      | Primärschlüssel |
+| name               | TEXT      | Kampagnenname |
+| description        | TEXT      | Freitextbeschreibung / Zweck |
+| start_date         | DATE      | Startzeitraum |
+| end_date           | DATE      | Endzeitraum |
+| status             | ENUM      | 'draft', 'active', 'completed', 'archived' |
+| campaign_type      | TEXT      | Typ: z. B. Online, Offline, Mischung |
+| objective          | TEXT      | Ziel (Leads, Verträge, Sichtbarkeit) |
+| lead_goal          | INTEGER   | Zielanzahl an Leads |
+| contract_goal      | INTEGER   | Zielanzahl an Verträgen |
+| budget_total       | NUMERIC   | Gesamtbudget |
+| coordinator_id     | UUID      | Referenz auf mitarbeiter.id |
+| created_at         | TIMESTAMP | Erstellt am |
+| updated_at         | TIMESTAMP | Letzte Änderung |
+
+---
+
+### Entität: campaign_strand
+
+| Feld           |eibung |
+|----------------|---------|--------------|
+| id             | UUID    | Strang-ID |
+| campaign_id    | UUID    | Verknüpfung zu campaign.id |
+| title          | TEXT    | Titel des Strangs |
+| description    | TEXT    | Inhaltlicher Zweck |
+| channel        | TEXT    | Meta, WhatsApp, Print, etc. |
+| audience       | TEXT    | Zielgruppensegment |
+| status         | ENUM    | 'draft', 'active', 'completed', 'archived' |
+| created_at     | TIMESTAMP | Erstellt am |
+
+---
+
+### Verknüpfungen
+- campaign → campaign_strand (1:n)
+- campaign → dashboard_kpi (1:1)
+- campaign_strand → campaign_action (1:n)
+- campaign → file_asset (n:m) über „Verknüpfung“
+
+---
+
+### UI/UX Flow
+1. **Übersichtsseite Kampagnen:** Zeigt alle Kampagnen mit Status, Zeitraum, Zielerreichung (z. B. 40/100 Leads)
+2. **"+ Neue Kampagne":** Modal oder neue Seite mit Basisfeldern (Name, Ziel, Zeitraum, Typ, Budget, Koordinator)
+3. **Detailansicht Kampagne:** Tabs für:
+   - Übersicht (Status, Beschreibung, KPI-Fortschritt)
+   - Stränge & Aktionen (Strukturbaum + Bearbeitungsoptionen)
+   - Verknüpfte Dateien
+   - Mitarbeiterinformationen
+4. **Strang hinzufügen:** Button innerhalb der Kampagnenseite
+5. **Stränge sortierbar und mit Farbe markierbar** (nach Kanaltyp)
+6. **Verknüpfte Landingpages, Canva-Designs, Checklisten direkt sichtbar und klickbar**
+
+---
+
+### Besonderheiten
+- Automatische Fortschrittsbewertung über Leads, Maßnahmenstatus und Zeitverlauf
+- Aktivierte Trigger aus Aktionen (z.B. Erinnerungen, Aufgaben) können aggregiert angezeigt werden
+- Heatmap-Auswertung nach Aktionstyp / Strang (Klickrate, Effektivität, Rücklauf)
+
+---
+
+### Validierungslogik
+- Kampagnen dürfen nicht ohne Zeitraum gespeichert werden
+- Keine Überschneidung der gleichen Kampagne mit identischer Zielgruppe
+- Stränge müssen mindestens eine Aktion enthalten, bevor sie aktiviert werden
+
+---
+
+### ENUMs
+- status: 'draft', 'active', 'completed', 'archived'
+- campaign_type: 'online', 'offline', 'kombiniert'
+- strand.status: analog zu campaign
+- strand.channel: z.B. 'meta', 'google', 'print', 'mailing', 'inhouse'
+
+---
+
+### Verknüpfte Module
+- Dateimanager (Dateien je Kampagne zuweisbar)
+- Canva (Design-Vorlagen je Aktion oder zentral)
+- Landingpages (Zuweisung pro Aktion oder über Vorschau im Kampagnen-Dashboard)
+- Aufgabenmodul (Erzeugung von Triggern bei bestimmten Aktionsstatus)
+- Leads (Zuweisung von Quelle → Kampagne)
+- Vertragsarten (Zieldefinitionen → Kampagne bewirbt Vertragsart A)
+- Dashboard_KPI (Visualisierung der Zielerreichung pro Kampagne)
+
+---
+
+### Hinweis für Cursor
+Die Modulstruktur setzt voraus, dass `campaign`, `campaign_strand` und `campaign_action` relational implementiert werden, mit klarer Parent-Child-Beziehung und Triggerkaskade beim Statuswechsel (z. B. wenn Kampagne aktiv, prüfen ob mind. ein aktiver Strang und Aktion existiert).

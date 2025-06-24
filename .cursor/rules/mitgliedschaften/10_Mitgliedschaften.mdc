@@ -1,7 +1,7 @@
 ---
 description: "Mitgliedschaften: Vertragsverwaltung, Laufzeiten und Kündigungen"
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 alias: "@mitgliedschaften"
 description: "Mitgliedschaften: Vertragsverwaltung, Laufzeiten und Kündigungen"

@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ---
 alias: "@health-audit"
@@ -401,7 +401,7 @@ const REPORT_GENERATOR = {
 
 Das Health-Audit-System ist vollständig in den System-Health-Orchestrator integriert und wird automatisch bei allen `@system-health` Aufrufen mit ausgeführt.
 
-> **ZIEL**: Null-Toleranz für `alwaysApply: false` und 100% automatische Synchronisation zwischen Code und Rules ohne manuelle Intervention.
+> **ZIEL**: Null-Toleranz für `alwaysApply: true` und 100% automatische Synchronisation zwischen Code und Rules ohne manuelle Intervention.
 
 # 🧠 Vollständiges Cursor Audit: Projekt- & Regelprüfung
 

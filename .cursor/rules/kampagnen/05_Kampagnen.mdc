@@ -1,7 +1,7 @@
 ---
 description: "Kampagnen-Management: Erstellung, Stränge, Aktionen und KPI-Tracking"
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ---
 description: 

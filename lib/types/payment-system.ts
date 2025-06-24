@@ -5,28 +5,70 @@ export interface ExtractedMemberData {
   // Basic member information
   firstName: string;
   lastName: string;
+  salutation?: string; // "Herr", "Frau", etc.
   birthDate?: string;
   address?: string;
+  street?: string;
+  postalCode?: string;
+  city?: string;
   phone?: string;
   email?: string;
   
-  // Contract details
+  // Contract details - ERWEITERT für vollständige Vertragserfassung
   memberNumber?: string;
+  contractNumber?: string;
   contractStartDate?: string;
+  contractEndDate?: string;
+  contractDuration?: string; // "24 Monate" / "unbefristet"
+  trainingStartDate?: string; // Kann unterschiedlich zum Vertragsbeginn sein
   contractTariff?: string;
   contractPrice?: number;
+  contractType?: string; // "Fitness", "Wellness", "Premium"
   
-  // Payment information
+  // Extended contract details
+  setupFee?: number; // Aufnahmegebühr
+  administrationFee?: number; // Verwaltungsgebühr
+  keyCardFee?: number; // Kartengebühr
+  contractTerms?: string; // Kündigungsbedingungen
+  noticePeriod?: string; // Kündigungsfrist
+  minimumDuration?: string; // Mindestlaufzeit
+  extensionPeriod?: string; // Verlängerungszeitraum
+  extensionAmount?: number; // Betrag des Verlängerungszeitraums
+  
+  // Payment information - ERWEITERT
   iban?: string;
+  bic?: string; // Bank Identifier Code
+  bankName?: string; // Name der Bank
+  accountHolder?: string; // Kontoinhaber (falls abweichend)
   mandateReference?: string;
+  mandateSignedDate?: string;
+  paymentInterval?: string; // "monatlich", "quartalsweise", "jährlich"
+  paymentDay?: number; // Abbuchungstag im Monat
+  
+  // Special contract features
+  hasFreezingOption?: boolean; // Stillegungsoption
+  freezingFee?: number; // Stillegungsgebühr
+  hasGuestPrivileges?: boolean; // Gastnutzung
+  includedServices?: string[]; // Inkludierte Leistungen
+  additionalModules?: ContractModule[]; // Zusatzmodule
+  
+  // Detected financial items
+  detectedPauschalen?: DetectedPauschale[];
+  detectedRuhezeiten?: DetectedRuhezeit[];
+  detectedDiscounts?: DetectedDiscount[];
   
   // Account data
   accountBalance?: number; // Negative = overpayment, Positive = debt
+  
+  // Enhanced Calendar Data - Added 2025-01-03
+  paidContributions?: ExtractedContribution[];
+  futureContributions?: ExtractedContribution[];
   
   // PDF metadata
   extractionSuccess: boolean;
   extractionErrors: string[];
   pdfType: 'contract' | 'statement' | 'unknown';
+  extractionConfidence?: number; // 0-100 Confidence score
 }
 
 export interface PaymentMember {
@@ -70,7 +112,9 @@ export type TransactionType =
   | 'correction'
   | 'chargeback'
   | 'manual_adjustment'
-  | 'pause_fee';
+  | 'pause_fee'
+  | 'pauschale' // NEU: Erweitert für Beitragskonto-System (24.06.2025)
+  | 'modul'; // NEU: Exklusive Module (24.06.2025)
 
 export interface MemberTransaction {
   id: string;
@@ -83,6 +127,10 @@ export interface MemberTransaction {
   paymentRunId?: string;
   isReversed: boolean;
   reversalReason?: string;
+  // NEU: Sales-Tool-Integration (24.06.2025)
+  salesToolReferenceId?: string;
+  salesToolOrigin?: 'sales_tool' | 'manual' | 'import' | 'automatic';
+  businessLogicTrigger?: string; // 'stillegung', 'kuendigung', 'guthaben_verrechnung'
   createdAt: Date;
   updatedAt: Date;
 }
@@ -131,6 +179,10 @@ export interface PaymentRunItem {
   mandateReference: string;
   status: 'pending' | 'processed' | 'failed' | 'returned';
   returnReason?: string;
+  // NEU: Enhanced Status-Tracking für "Offen"-Berechnung (24.06.2025)
+  partialPaymentAmount?: number;
+  returnPartialAmount?: number;
+  outstandingAmount?: number; // Computed: amount - partialPayment + returnAmount
   createdAt: Date;
   updatedAt: Date;
 }
@@ -235,4 +287,45 @@ export interface PaymentRunFormData {
   paymentGroupId: string;
   executionDate: Date;
   notes?: string;
+}
+
+// Zusätzliche Interfaces für erweiterte Datenstrukturen
+export interface ContractModule {
+  name: string;
+  price: number;
+  interval: string; // "monatlich", "einmalig"
+  description?: string;
+}
+
+export interface DetectedPauschale {
+  type: string; // "setup", "administration", "keycard"
+  amount: number;
+  description: string;
+  isOneTime: boolean;
+}
+
+export interface DetectedRuhezeit {
+  startDate?: string;
+  endDate?: string;
+  fee?: number;
+  reason?: string;
+}
+
+export interface DetectedDiscount {
+  type: string; // "student", "family", "senior"
+  amount: number;
+  percentage?: number;
+  validUntil?: string;
+}
+
+export interface ExtractedContribution {
+  date?: string;
+  startDate?: string;
+  endDate?: string;
+  amount?: number;
+  forderung?: number;
+  offen?: number;
+  type: string;
+  description: string;
+  status: 'paid' | 'future' | 'pending';
 } 

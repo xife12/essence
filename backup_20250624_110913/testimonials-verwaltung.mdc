@@ -1,0 +1,535 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+title: "Testimonials-Verwaltung - Vollständiges Management-System"
+description: "Umfassende Verwaltung von Kundenbewertungen mit erweiterten Filter-, Such- und Bearbeitungsfunktionen"
+version: "2.1.0"
+category: "landingpages"
+priority: "high"
+tags: ["testimonials", "kundenbewertungen", "verwaltung", "filter", "suche", "dateimanager"]
+related_modules: ["landingpages", "dateimanager", "file_asset"]
+author: "system"
+created: "2025-01-17"
+last_updated: "2025-01-17"
+route: "/landingpages/testimonials"
+component: "app/(protected)/landingpages/testimonials/page.tsx"
+globs:
+  - "app/(protected)/landingpages/testimonials/**"
+  - "app/components/landingpages/blocks/TestimonialBlock.tsx"
+  - "lib/api/testimonials.ts"
+alias: "@testimonials-verwaltung"
+---
+
+# Testimonials-Verwaltung - Management-System
+
+## Überblick
+
+Das Testimonials-Verwaltungsmodul ermöglicht die vollständige Verwaltung von Kundenbewertungen für die Verwendung in Landingpages. Es bietet erweiterte Filter-, Such- und Bearbeitungsfunktionen sowie Integration mit dem Dateimanager für Profilbilder.
+
+## 🗄️ Datenbankstruktur
+
+### Tabelle: `public.testimonials`
+
+| Feld              | Typ       | Beschreibung                                    |
+|---|----|----|
+| id                | UUID      | Primärschlüssel (gen_random_uuid())             |
+| name              | TEXT      | Vollständiger Name (Legacy-Feld)                |
+| firstname         | TEXT      | Vorname                                         |
+| lastname          | TEXT      | Nachname                                        |
+| gender            | ENUM      | 'Männlich', 'Weiblich', 'Divers'               |
+| age               | INTEGER   | Alter in Jahren                                 |
+| location          | TEXT      | Wohnort/Standort                                |
+| rating            | INTEGER   | Bewertung (1-5 Sterne)                          |
+| text_content      | TEXT      | Testimonial-Text                                |
+| image_id          | TEXT      | Legacy-Feld für Bild-ID                        |
+| file_asset_id     | UUID      | FK → file_asset.id (Profilbild)                |
+| tags              | TEXT[]    | Array von Tags/Schlagworten                     |
+| training_goals    | TEXT[]    | Array von Trainingszielen                       |
+| member_since      | DATE      | Mitglied seit Datum                             |
+| is_active         | BOOLEAN   | Aktiv/Inaktiv Status                            |
+| created_at        | TIMESTAMP | Erstellungszeitpunkt                            |
+| updated_at        | TIMESTAMP | Letzte Änderung                                 |
+
+### Relationen
+- `file_asset_id` → `public.file_asset.id` (Profilbild)
+- Integration mit Landingpage-Blöcken via Testimonial-Auswahl
+
+---
+
+## 🎯 Hauptfunktionen
+
+### **1. Testimonial-Übersicht**
+- **Grid-Layout** - Responsive 3-Spalten-Grid (Desktop) / 1-Spalte (Mobile)
+- **Statistik-Cards** - Gesamt, Aktive, Durchschnittsbewertung
+- **Status-Anzeige** - Aktiv/Inaktiv Badge pro Testimonial
+- **Sortierung** - Nach Erstellungsdatum (neueste zuerst)
+
+### **2. Erweiterte Filter- und Suchfunktionen**
+- **Volltext-Suche** - Name, Ort, Testimonial-Text, Tags, Trainingsziele
+- **Geschlechter-Filter** - Männlich, Weiblich, Divers
+- **Bewertungs-Filter** - 1+ bis 5 Sterne
+- **Tag-Filter** - Freitext-Suche in Tags
+- **Live-Filterung** - Sofortige Ergebnisse ohne Reload
+- **Filter-Reset** - Ein-Klick Zurücksetzen aller Filter
+
+### **3. Testimonial-Erstellung**
+- **Modal-basierte Eingabe** - Übersichtliches Formular
+- **Vollständige Datenerfassung**:
+  - Persönliche Daten (Vor-/Nachname, Alter, Geschlecht, Ort)
+  - Bewertung (1-5 Sterne mit visueller Auswahl)
+  - Testimonial-Text (Textarea)
+  - Profilbild-Upload (Dateimanager-Integration)
+  - Tags (dynamisch hinzufügbar)
+  - Trainingsziele (dynamisch hinzufügbar)
+  - Mitglied seit Datum
+  - Aktiv/Inaktiv Status
+
+### **4. Testimonial-Bearbeitung**
+- **Inline-Bearbeitung** - Direkter Edit-Modus
+- **Vollständige Datenänderung** - Alle Felder editierbar
+- **Profilbild-Austausch** - Upload neuer Bilder
+- **Tag-/Ziel-Management** - Hinzufügen/Entfernen
+- **Status-Toggle** - Aktiv/Inaktiv umschalten
+
+### **5. Dateimanager-Integration**
+- **Profilbild-Upload** - Direkte Integration mit file_asset
+- **Bildvorschau** - Thumbnail-Anzeige in Grid
+- **Fallback-Avatar** - User-Icon bei fehlendem Bild
+- **Dateiformate** - JPG, PNG, WebP Support
+- **Automatische Versionierung** - Alte Profilbilder werden versioniert
+- **Versionsverlauf** - Zugriff auf alle vorherigen Profilbilder
+- **Rollback-Funktion** - Wiederherstellung älterer Bildversionen
+
+---
+
+## 🎨 UI-Komponenten
+
+### **Haupt-Layout**
+```typescript
+// Responsive Grid mit Statistiken
+<div className="space-y-6">
+  <Header />
+  <StatisticsCards />
+  <FilterPanel />
+  <TestimonialsGrid />
+  <CreateModal />
+</div>
+```
+
+### **Testimonial-Card**
+- **Profilbereich** - Avatar, Name, Alter, Geschlecht, Ort
+- **Mitgliedschafts-Info** - "Mitglied seit" mit Kalender-Icon
+- **Bewertung** - 5-Sterne-Anzeige (gefüllt/ungefüllt)
+- **Testimonial-Text** - Gekürzte Anzeige mit "Mehr lesen"
+- **Tags & Ziele** - Farbkodierte Badges
+- **Aktionen** - Edit, Delete, Status-Toggle
+
+### **Filter-Panel**
+- **4-Spalten-Layout** - Suche, Geschlecht, Bewertung, Tags
+- **Live-Search** - Sofortige Filterung bei Eingabe
+- **Dropdown-Filter** - Vordefinierte Optionen
+- **Ergebnis-Anzeige** - "X von Y Testimonials angezeigt"
+- **Reset-Button** - Alle Filter zurücksetzen
+
+### **Create/Edit-Modal**
+- **Tab-basierte Struktur** - Grunddaten, Erweitert, Bild
+- **Validierung** - Client- und serverseitige Prüfung
+- **Tag-Management** - Eingabe + Enter zum Hinzufügen
+- **Sterne-Rating** - Klickbare Sterne-Auswahl
+- **Datei-Upload** - Drag & Drop + Klick-Upload
+
+---
+
+## 🔧 API-Funktionen
+
+### **Testimonials laden**
+```typescript
+const fetchTestimonials = async () => {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select(`
+      *,
+      file_asset:file_asset_id (
+        id, filename, file_url
+      )
+    `)
+    .order('created_at', { ascending: false });
+}
+```
+
+### **Testimonial erstellen**
+```typescript
+const createTestimonial = async (testimonialData) => {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .insert([testimonialData])
+    .select();
+}
+```
+
+### **Testimonial aktualisieren**
+```typescript
+const updateTestimonial = async (id, updates) => {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .update(updates)
+    .eq('id', id)
+    .select();
+}
+```
+
+### **Testimonial löschen**
+```typescript
+const deleteTestimonial = async (id) => {
+  const { error } = await supabase
+    .from('testimonials')
+    .delete()
+    .eq('id', id);
+}
+```
+
+### **Status umschalten**
+```typescript
+const toggleStatus = async (id, currentStatus) => {
+  const { error } = await supabase
+    .from('testimonials')
+    .update({ is_active: !currentStatus })
+    .eq('id', id);
+}
+```
+
+---
+
+## 🔍 Filter-Logik
+
+### **Volltext-Suche**
+```typescript
+const applyTextSearch = (testimonials, searchTerm) => {
+  return testimonials.filter(testimonial => {
+    const fullName = `${testimonial.firstname || ''} ${testimonial.lastname || ''}`.toLowerCase();
+    const name = testimonial.name?.toLowerCase() || '';
+    const content = testimonial.text_content?.toLowerCase() || '';
+    const location = testimonial.location?.toLowerCase() || '';
+    const search = searchTerm.toLowerCase();
+    
+    return fullName.includes(search) || 
+           name.includes(search) || 
+           content.includes(search) || 
+           location.includes(search) ||
+           testimonial.tags.some(tag => tag.toLowerCase().includes(search)) ||
+           testimonial.training_goals.some(goal => goal.toLowerCase().includes(search));
+  });
+}
+```
+
+### **Kombinierte Filter**
+- **Geschlecht** - Exakte Übereinstimmung
+- **Bewertung** - Mindest-Rating (>=)
+- **Tags** - Teilstring-Suche (case-insensitive)
+- **Live-Update** - useEffect mit Dependency-Array
+
+---
+
+## 📱 Responsive Design
+
+### **Desktop (lg+)**
+- **3-Spalten-Grid** - Optimal für große Bildschirme
+- **4-Spalten-Filter** - Alle Filter in einer Zeile
+- **Vollständige Card-Inhalte** - Alle Details sichtbar
+
+### **Tablet (md)**
+- **2-Spalten-Grid** - Ausgewogene Darstellung
+- **2-Spalten-Filter** - Filter in zwei Zeilen
+- **Kompakte Cards** - Optimierte Darstellung
+
+### **Mobile (sm)**
+- **1-Spalten-Grid** - Vertikale Anordnung
+- **1-Spalten-Filter** - Filter untereinander
+- **Touch-optimiert** - Größere Touch-Targets
+
+---
+
+## 🔐 Berechtigungen
+
+### **Zugriffskontrolle**
+- **Authentifizierung** - Nur eingeloggte Benutzer
+- **Rollenbasiert** - Admin/Studioleiter/Mitarbeiter
+- **RLS-Policies** - Supabase Row Level Security
+
+### **Aktionen nach Rolle**
+| Rolle        | Lesen | Erstellen | Bearbeiten | Löschen | Status ändern |
+|---|---|---|---|---|---|
+| Admin        | ✅    | ✅        | ✅         | ✅      | ✅            |
+| Studioleiter | ✅    | ✅        | ✅         | ✅      | ✅            |
+| Mitarbeiter  | ✅    | ✅        | ✅         | ❌      | ❌            |
+
+---
+
+## 🐛 Debug-Funktionen
+
+### **Entwicklungs-Tools**
+- **Debug-Button** - Konsolen-Ausgabe aller Testimonials
+- **Datenbank-Reparatur** - Automatische Schema-Fixes
+- **Versionierungs-Test** - Test der Dateimanager-Integration
+- **Detaillierte Logs** - Umfassende Fehlerprotokollierung
+
+### **Fehlerbehebung**
+- **Schema-Validation** - Automatische Tabellen-Überprüfung
+- **Daten-Migration** - Legacy-Daten-Konvertierung
+- **API-Error-Handling** - Benutzerfreundliche Fehlermeldungen
+
+---
+
+## 🔗 Integration mit anderen Modulen
+
+### **Landingpage-Builder**
+- **Testimonial-Block** - Direkte Auswahl aus Datenbank
+- **Filter-Integration** - Nach Tags, Geschlecht, Rating
+- **Layout-Presets** - 7 verschiedene Darstellungsformen
+
+### **Dateimanager**
+- **Profilbilder** - file_asset Integration
+- **Upload-Workflow** - Direkte Verknüpfung
+- **Automatische Versionierung** - Alte Bilder werden als Versionen gespeichert
+- **Versionsverlauf** - Vollständige Historie aller Profilbilder
+- **Metadaten-Tracking** - Upload-Zeitpunkt und Benutzer pro Version
+
+### **Kampagnen-System**
+- **Zielgruppen-Filter** - Testimonials nach Demografie
+- **A/B-Testing** - Verschiedene Testimonial-Sets
+- **Performance-Tracking** - Conversion-Raten
+
+---
+
+## 🔄 Profilbild-Versionierung
+
+### **Automatische Versionierung bei Bild-Upload**
+
+Wenn ein neues Profilbild für ein Testimonial hochgeladen wird, erfolgt automatische Versionierung:
+
+#### **Versionierungs-Workflow**
+```typescript
+const updateTestimonialImage = async (testimonialId: string, newImageFile: File) => {
+  try {
+    // 1. Aktuelles Bild ermitteln
+    const { data: currentTestimonial } = await supabase
+      .from('testimonials')
+      .select('file_asset_id, file_asset(id, filename, file_url)')
+      .eq('id', testimonialId)
+      .single();
+
+    // 2. Neues Bild hochladen
+    const { data: newAsset } = await FileAssetAPI.upload({
+      file: newImageFile,
+      category: 'testimonial',
+      type: 'profile_image',
+      uploaded_by: currentUser.id
+    });
+
+    // 3. Alte Datei versionieren (falls vorhanden)
+    if (currentTestimonial?.file_asset_id) {
+      await FileAssetAPI.createVersion({
+        original_asset_id: currentTestimonial.file_asset_id,
+        reason: 'Testimonial Profilbild aktualisiert',
+        created_by: currentUser.id
+      });
+    }
+
+    // 4. Testimonial mit neuer file_asset_id aktualisieren
+    const { data: updatedTestimonial } = await supabase
+      .from('testimonials')
+      .update({ 
+        file_asset_id: newAsset.id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', testimonialId)
+      .select();
+
+    return updatedTestimonial;
+  } catch (error) {
+    console.error('Fehler bei Profilbild-Update:', error);
+    throw error;
+  }
+};
+```
+
+#### **Versionierungs-Tabelle: `file_versions`**
+| Feld              | Typ       | Beschreibung                                    |
+|---|----|----|
+| id                | UUID      | Primärschlüssel                                 |
+| original_asset_id | UUID      | FK → file_asset.id (Original-Datei)            |
+| version_number    | INTEGER   | Automatisch incrementierte Versionsnummer      |
+| file_url          | TEXT      | URL der versionierten Datei                    |
+| file_size         | BIGINT    | Dateigröße in Bytes                             |
+| reason            | TEXT      | Grund für Versionierung                         |
+| created_by        | UUID      | FK → auth.users.id (Benutzer)                  |
+| created_at        | TIMESTAMP | Versionierungs-Zeitpunkt                        |
+
+#### **Versionierungs-Features**
+
+1. **Automatische Archivierung**
+   - Beim Upload eines neuen Profilbilds wird das alte automatisch versioniert
+   - Original-Datei bleibt als Version erhalten
+   - Neue Datei übernimmt die Haupt-file_asset_id
+
+2. **Versionsverlauf-Anzeige**
+   ```typescript
+   const getImageVersions = async (assetId: string) => {
+     const { data: versions } = await supabase
+       .from('file_versions')
+       .select(`
+         id, version_number, file_url, file_size, reason,
+         created_at, created_by,
+         user:created_by (email, staff(rolle))
+       `)
+       .eq('original_asset_id', assetId)
+       .order('version_number', { ascending: false });
+     
+     return versions;
+   };
+   ```
+
+3. **Rollback-Funktionalität**
+   ```typescript
+   const rollbackToVersion = async (testimonialId: string, versionId: string) => {
+     // Version als neue Hauptdatei setzen
+     const { data: version } = await supabase
+       .from('file_versions')
+       .select('file_url, original_asset_id')
+       .eq('id', versionId)
+       .single();
+
+     // Aktuelles Bild versionieren
+     await createCurrentImageVersion(testimonialId, 'Rollback zu vorheriger Version');
+
+     // Version als neue Hauptdatei aktivieren
+     await supabase
+       .from('testimonials')
+       .update({ file_asset_id: version.original_asset_id })
+       .eq('id', testimonialId);
+   };
+   ```
+
+#### **UI-Integration der Versionierung**
+
+1. **Profilbild-Bereich erweitert**
+   - **Versions-Button** neben Profilbild
+   - **Tooltip** zeigt Anzahl verfügbarer Versionen
+   - **Modal** mit Versionsverlauf bei Klick
+
+2. **Versions-Modal**
+   ```typescript
+   <VersionsModal>
+     <VersionsList>
+       {versions.map(version => (
+         <VersionItem key={version.id}>
+           <Thumbnail src={version.file_url} />
+           <VersionInfo>
+             <VersionNumber>v{version.version_number}</VersionNumber>
+             <UploadDate>{version.created_at}</UploadDate>
+             <UploadedBy>{version.user.email}</UploadedBy>
+             <Reason>{version.reason}</Reason>
+           </VersionInfo>
+           <Actions>
+             <PreviewButton />
+             <RollbackButton />
+             <DownloadButton />
+           </Actions>
+         </VersionItem>
+       ))}
+     </VersionsList>
+   </VersionsModal>
+   ```
+
+3. **Berechtigungen für Versionierung**
+   | Rolle        | Versionen anzeigen | Rollback | Versionen löschen |
+   |---|---|---|---|
+   | Admin        | ✅                 | ✅       | ✅                |
+   | Studioleiter | ✅                 | ✅       | ❌                |
+   | Mitarbeiter  | ✅                 | ❌       | ❌                |
+
+#### **Storage-Integration**
+
+1. **Bucket-Struktur**
+   ```
+   testimonials/
+   ├── current/           # Aktuelle Profilbilder
+   │   └── {asset_id}.jpg
+   └── versions/          # Versionierte Bilder
+       └── {asset_id}/
+           ├── v1.jpg
+           ├── v2.jpg
+           └── v3.jpg
+   ```
+
+2. **Automatische Bereinigung**
+   - Versionen älter als 12 Monate werden archiviert
+   - Maximale Anzahl Versionen pro Bild: 10
+   - Automatische Komprimierung älterer Versionen
+
+---
+
+## 🚀 Performance-Optimierungen
+
+### **Datenbank**
+- **Indizierung** - Optimierte Queries für Filter
+- **Pagination** - Lazy Loading für große Datenmengen
+- **Caching** - Client-seitiges State-Management
+
+### **Frontend**
+- **Lazy Loading** - Bilder erst bei Bedarf
+- **Debounced Search** - Verzögerte Suche bei Eingabe
+- **Optimistic Updates** - Sofortige UI-Updates
+
+---
+
+## 📈 Zukünftige Erweiterungen
+
+### **Geplante Features**
+- **Bulk-Operationen** - Mehrfach-Bearbeitung
+- **Import/Export** - CSV-Funktionalität
+- **Automatische Moderation** - KI-basierte Inhalts-Prüfung
+- **Social Proof Widgets** - Einbettbare Testimonial-Widgets
+- **Analytics** - Testimonial-Performance-Tracking
+
+### **Integration-Roadmap**
+- **CRM-Anbindung** - Automatischer Import aus Kundensystem
+- **Review-Plattformen** - Google/Facebook Reviews Import
+- **E-Mail-Marketing** - Testimonial-Request-Automation
+- **Video-Testimonials** - Multimedia-Support
+
+---
+
+## 🎯 Verwendung in Landingpages
+
+### **Block-Integration**
+```typescript
+// Testimonial-Block Konfiguration
+{
+  block_type: 'testimonial',
+  layout: 'grid', // classic, split, carousel, grid, cards, centered, compact
+  content_json: {
+    testimonial_filters: {
+      gender: 'Weiblich',
+      min_rating: 4,
+      tags: ['Abnehmen', 'Motivation'],
+      limit: 6
+    },
+    display_options: {
+      show_images: true,
+      show_names: true,
+      show_ratings: true,
+      show_location: true
+    }
+  }
+}
+```
+
+### **Dynamische Auswahl**
+- **Filter-basiert** - Automatische Testimonial-Auswahl
+- **Manuelle Auswahl** - Spezifische Testimonials wählen
+- **Randomisierung** - Zufällige Anzeige bei jedem Besuch
+- **A/B-Testing** - Verschiedene Testimonial-Sets testen

@@ -1,0 +1,214 @@
+# 🎯 VERTRAGSARTEN-SYSTEM V2 - ÜBERSICHT
+
+## 🔄 TRANSFORMATION DES SYSTEMS
+
+**Alter Zustand:** Einfache contract_types mit statischen Feldern  
+# Vertragsarten-V2 System-Übersicht (✅ VOLLSTÄNDIG IMPLEMENTIERT NACH CRISIS-RECOVERY)
+
+## 🎯 Status nach Crisis-Recovery (17.06.2025)
+**ALLE ROLLOUT-PHASEN ERFOLGREICH ABGESCHLOSSEN** mit Mock-Daten-Performance-Optimierung
+- ✅ **Infrastruktur**: Datenbank + API vollständig (contracts-v2.ts mit 692 Zeilen)
+- ✅ **Business Logic**: Versionierung + Kampagnenlogik implementiert
+- ✅ **User Interface**: 3 Hauptbereiche mit GitBranch-Versionierung
+- ✅ **Integration**: Bestehende Module verknüpft
+- ✅ **Testing & Go-Live**: System produktionsbereit mit < 2s Ladezeit
+
+## 🔄 TRANSFORMATION ERFOLGREICH DURCHGEFÜHRT
+
+### **Alter Zustand:** Statisches contract_types System ohne Flexibilität
+
+## 🎯 VERTRAGSARTEN-SYSTEM V2 - ÜBERSICHT
+
+## 🔄 TRANSFORMATION DES SYSTEMS
+
+**Alter Zustand:** Einfache contract_types mit statischen Feldern  
+**Neuer Zustand:** Umfassendes 3-Bereiche-System mit Versionierung und Kampagnenlogik
+
+---
+
+## 🏗️ DIE 3 HAUPTBEREICHE
+
+### 🔸 **A) VERTRÄGE** (vorher Vertragsarten)
+- **Übersicht:** Alle Vertragsarten mit Versionsanzeige
+- **Erstellung:** + Neuer Vertrag mit erweiterten Einstellungen  
+- **Versionierung:** Automatische Versionierung bei Änderungen
+- **Kampagnenverträge:** Temporäre Versionen für Kampagnenzeiträume
+
+### 🔸 **B) MODULE**
+- **Übersicht:** Kategorisierte Darstellung aller Module
+- **Verwaltung:** + Modul hinzufügen mit Icon und Kategorie
+- **Schnellzuordnung:** Bulk-Assignment zu mehreren Verträgen
+- **Kategorien:** Training, Wellness, Premium, Digital, etc.
+
+### 🔸 **C) VERTRAGSDOKUMENTE** 
+- **Übersicht:** Alle gespeicherten Vertragsdokumente
+- **Editor:** WYSIWYG + Live PDF-Vorschau (Vollbild)
+- **Verknüpfung:** Zuordnung zu einem oder mehreren Verträgen
+- **Abschnitte:** Strukturierte Dokumenterstellung
+
+---
+
+## 📋 USERFLOWS
+
+### **🔸 STRANG A: VERTRÄGE**
+```
+Übersicht → + Neuer Vertrag → Vertragseinstellungen → Speichern
+    ↓
+Versionierung: Neue Version wird automatisch aktiviert
+    ↓ 
+Änderungsnotiz: Automatisch generiert + manuell ergänzbar
+```
+
+### **🔸 STRANG A1: VERSIONIERUNG**
+```
+Vertrag bearbeiten → Neue Version erstellen → Änderungsnotiz → Speichern
+    ↓
+Alte Version: Bleibt parallel aktiv für bestehende Mitgliedschaften
+    ↓
+Neue Version: Wird für neue Abschlüsse aktiviert
+```
+
+### **🔸 STRANG B: MODULE**
+```
+Modulübersicht → + Modul hinzufügen → Kategorie & Icon wählen
+    ↓
+Schnellzuordnung: Popup mit Verträgen → Enthalten/Zubuchbar → Speichern
+    ↓
+Auto-Update: Alle zugeordneten Verträge werden aktualisiert
+```
+
+### **🔸 STRANG C: VERTRAGSDOKUMENTE**
+```
+Dokumentübersicht → + Dokument anlegen → WYSIWYG-Editor (Vollbild)
+    ↓
+Abschnitte: + Abschnitt hinzufügen → Konfiguration → Live PDF-Vorschau
+    ↓
+Verknüpfung: Einem oder mehreren Verträgen zuordnen → Speichern
+```
+
+---
+
+## 🎛️ NEUE FUNKTIONEN
+
+### **Preisdynamik**
+- **Einmalig:** Fester Betrag oder Prozentsatz
+- **Stichtag:** 1. Monats oder manuelles Datum
+- **Wiederholend:** Nach X Monaten, monatlich, jährlich
+- **Mehrfach:** Mehrere Dynamiken pro Vertrag möglich
+
+### **Startpaket & Pauschalen**
+- **Startpaket:** Einmaliger Betrag mit Modulverknüpfung
+- **Pauschalen:** Mehrere hinzufügbar mit verschiedenen Zyklen
+
+### **Kampagnenverträge**
+- **Duplikation:** Einstellungen werden dupliziert und anpassbar
+- **Zeitraum:** Automatische Aktivierung/Deaktivierung
+- **Rückschaltung:** Nach Kampagnenende → ursprünglicher Vertrag
+- **Verlängerung:** Neue Kampagnenversion mit Verlängerungs-Flag
+
+### **Vertragsdokumente**
+- **WYSIWYG-Editor:** Vollbild mit Live-Vorschau
+- **Abschnitte:** Überschrift, Inhalt, Verpflichtend, Unterschrift
+- **Darstellung:** Als Checkbox, normale Ansicht
+- **Integration:** Abbuchungskalender, Leistungsinhalt, Stammdaten
+
+---
+
+## 🔗 SYSTEMINTEGRATIONEN
+
+### **Mitgliedschaften**
+- Vertragsauswahl zeigt aktive Versionen
+- Kampagnenverträge werden erkannt
+- Preisdynamik wird in Beitragsberechnung einbezogen
+- Startpaket wird bei Vertragsabschluss berücksichtigt
+
+### **Kampagnen**
+- Kampagnenverträge werden automatisch erstellt
+- Zeitgesteuerte Aktivierung basierend auf Kampagnenlaufzeit
+- Verlängerungslogik für Kampagnen integriert
+
+### **Beratung & Leads**
+- Aktualisierte Vertragsauswahl in Formularen
+- Kampagnenverträge in Beratungsgesprächen verfügbar
+- Preisvorschau mit dynamischen Berechnungen
+
+### **Dateimanager**
+- Modul-Icons aus Asset-Verwaltung
+- Vertragsdokument-Assets (Logos, Header-Bilder)
+- PDF-Template-Verwaltung
+
+---
+
+## 📊 DATENSTRUKTUR-ÜBERSICHT
+
+### **Neue Haupttabellen**
+- `contracts` (Verträge mit Versionierung)
+- `contract_pricing` (Preisdynamiken)
+- `contract_modules` (Module mit Kategorien)  
+- `contract_documents` (WYSIWYG-Dokumente)
+- `contract_document_sections` (Dokumentabschnitte)
+
+### **Beziehungstabellen**
+- `contract_module_assignments` (Modul ↔ Vertrag)
+- `contract_document_assignments` (Dokument ↔ Vertrag)
+- `contract_terms` (Laufzeiten pro Vertrag)
+- `contract_starter_packages` (Startpakete)
+- `contract_flat_rates` (Pauschalen)
+
+---
+
+## 🎨 UI/UX KONZEPT
+
+### **Navigation**
+```
+Vertragsarten (Hauptbereich)
+├── Verträge (Standard-Tab)
+├── Module 
+└── Vertragsdokumente
+```
+
+### **Übersichtstabellen**
+- **Filter:** Aktiv/Inaktiv, Kampagne, Kategorie
+- **Suche:** Nach Name, Beschreibung
+- **Aktionen:** Bearbeiten, Versionierung, Auswertung, Duplizieren
+
+### **Spezial-Views**
+- **Versionierungs-Modal:** Historie mit Änderungsnotizen
+- **Schnellzuordnung:** Matrix-View für Module ↔ Verträge
+- **Dokument-Editor:** Split-Screen WYSIWYG + PDF-Vorschau
+
+---
+
+## ⚡ LEISTUNGSMERKMALE
+
+### **Versionierung**
+- Parallele Vertragsversionen ohne Datenverlust
+- Automatische und manuelle Änderungsnotizen
+- Historien-Tracking für Compliance
+
+### **Kampagnenlogik**
+- Zeitgesteuerte Vertragsaktivierung
+- Vererbung von Basis-Einstellungen
+- Automatische Rückschaltung
+
+### **Modulflexibilität**
+- Kategorisierte Organisation
+- Bulk-Zuordnung zu Verträgen
+- Icon-basierte Darstellung
+
+### **Dokumentenerstellung**
+- WYSIWYG-Editor mit Live-Vorschau
+- Modulare Abschnitte
+- PDF-Export-Ready
+
+---
+
+## 🚀 ROLLOUT-PHASEN
+
+1. **Infrastruktur:** Datenbank + API (3-4 Tage)
+2. **Business Logic:** Versionierung + Kampagnen (4-5 Tage)  
+3. **User Interface:** 3 Hauptbereiche (5-6 Tage)
+4. **Integration:** Bestehende Module (2-3 Tage)
+5. **Testing & Go-Live:** Validierung + Rollout (2-3 Tage)
+
+**Gesamt: 16-21 Arbeitstage**

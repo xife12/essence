@@ -26,7 +26,6 @@
     "better-sepa": "^0.0.5",
     "buffer": "^6.0.3",
     "dotenv": "^16.5.0",
-    "iban-validator": "^0.2.1",
     "lucide-react": "^0.279.0",
     "next": "^13.5.4",
     "pdf-parse": "^1.1.1",

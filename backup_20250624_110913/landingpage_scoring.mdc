@@ -1,0 +1,113 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Zielgruppenbasiertes Scoring für Landingpage-Blöcke (Detailübersicht)
+
+---
+
+## 1. Zielgruppe: Abnehmwillige
+
+### Zielsetzung: Leadgenerierung
+
+| Blocktyp        | Beschreibung                                                | Score (0–10) |
+|------------------|--------------------------------------------------------------|--------------|
+| CTA-Block        | Klare Motivation: „Gratis Probetraining starten“            | 10           |
+| Trust-Block      | Vorher-Nachher-Fotos, echte Kundenzitate                    | 8            |
+| Preis-Block      | Kostenlosigkeit betonen                                     | 3            |
+| SEO-Block        | Keywords: „abnehmen“, „Ernährungsplan“, „Bauchfett reduzieren“ | 9        |
+| Mobile UX        | Leicht verständlich, schnelle Lead-Erfassung                | 9            |
+
+### Zielsetzung: Mitgliedschaftsverkauf
+
+| Blocktyp        | Beschreibung                                                | Score (0–10) |
+|------------------|--------------------------------------------------------------|--------------|
+| CTA-Block        | Emotional, motivierend: „Verändere dein Leben jetzt“        | 9            |
+| Trust-Block      | Vorher/Nachher-Galerie, zertifizierte Coaches               | 9            |
+| Preis-Block      | Vergleichstabellen, Preis/Leistung-Vorteile                 | 9            |
+| SEO-Block        | Landingpage Longtail (z. B. „Fitnessstudio für Übergewichtige“) | 7        |
+| Mobile UX        | Mobile Vertragsabschluss mit Zwischenschritten              | 9            |
+
+### Zielsetzung: Newsletter-Anmeldung
+
+| Blocktyp        | Beschreibung                                                | Score (0–10) |
+|------------------|--------------------------------------------------------------|--------------|
+| CTA-Block        | „Hol dir deinen Wochenplan zum Abnehmen – kostenlos“        | 9            |
+| Trust-Block      | Newsletter-Vorschau, Promi-Zitat oder Experteneinblick      | 7            |
+| Preis-Block      | Kostenlos, jederzeit kündbar                                | 10           |
+| SEO-Block        | Diät-Tipps, Erfolgsgeschichten, Fettverbrennung             | 9            |
+| Mobile UX        | Auto-Fill-Funktion, mobile Optimierung                      | 9            |
+
+---
+
+## 2. Zielgruppe: Muskelaufbau-Fokussierte
+
+### Zielsetzung: Leadgenerierung
+
+| Blocktyp        | Beschreibung                                                 | Score (0–10) |
+|------------------|---------------------------------------------------------------|--------------|
+| CTA-Block        | „Gratis Personal Training testen“                            | 10           |
+| Trust-Block      | Muskelaufbau-Ergebnisse, Influencer-Testimonials             | 8            |
+| Preis-Block      | Hinweis auf Wert: „Normal 99 €, jetzt kostenlos testen“      | 4            |
+| SEO-Block        | Keywords: „Hypertrophie“, „Trainingsplan“, „Krafttraining“   | 6            |
+| Mobile UX        | Clean UI, starke Bilder, schnelle Aktion                     | 9            |
+
+### Zielsetzung: Mitgliedschaftsverkauf
+
+| Blocktyp        | Beschreibung                                                 | Score (0–10) |
+|------------------|---------------------------------------------------------------|--------------|
+| CTA-Block        | Dominant & direkt: „Jetzt durchstarten“                      | 10           |
+| Trust-Block      | Coach-Videos, Leistungsnachweise                             | 8            |
+| Preis-Block      | Packages mit Leistungsumfang                                 | 8            |
+| SEO-Block        | Keywords: Muskelaufbau Gym, Supplement-Trainingsplan         | 6            |
+| Mobile UX        | Responsive + Checkout ohne Ablenkung                         | 9            |
+
+### Zielsetzung: Newsletter-Anmeldung
+
+| Blocktyp        | Beschreibung                                                 | Score (0–10) |
+|------------------|---------------------------------------------------------------|--------------|
+| CTA-Block        | „Erhalte kostenlose Tipps vom Head Coach“                    | 8            |
+| Trust-Block      | Coach-Profil, z. B. „Coach Max schreibt persönlich“          | 8            |
+| Preis-Block      | „0 € – direkt in deine Inbox“                                | 10           |
+| SEO-Block        | Kraftaufbau, Massephase, Trainingszyklen                     | 7            |
+| Mobile UX        | Anmeldeformular kurz, mobil scrollfähig                      | 9            |
+
+---
+
+## 3. Zielgruppe: Stressabbau & Wellness-Suchende
+
+### Zielsetzung: Leadgenerierung
+
+| Blocktyp        | Beschreibung                                                 | Score (0–10) |
+|------------------|---------------------------------------------------------------|--------------|
+| CTA-Block        | „Buche deine gratis Meditationssession“                     | 9            |
+| Trust-Block      | Entspannungserfolge, ruhige Designästhetik                  | 9            |
+| Preis-Block      | „Keine Verpflichtung – unverbindlich testen“                | 3            |
+| SEO-Block        | Keywords: Entspannung, Achtsamkeit, Anti-Stress             | 8            |
+| Mobile UX        | Scrollfreundlich, leicht lesbar, beruhigend                 | 10           |
+
+### Zielsetzung: Mitgliedschaftsverkauf
+
+| Blocktyp        | Beschreibung                                                 | Score (0–10) |
+|------------------|---------------------------------------------------------------|--------------|
+| CTA-Block        | „Starte deine Balance-Mitgliedschaft“                       | 8            |
+| Trust-Block      | Erfahrungsberichte, TÜV-Siegel für Gesundheit                | 10           |
+| Preis-Block      | Preis mit Fokus auf Mehrwert statt Rabatt                    | 6            |
+| SEO-Block        | „Ganzheitliche Gesundheit“, „Yoga für Anfänger“             | 5            |
+| Mobile UX        | große Schrift, ruhiger Aufbau, keine Hektik                  | 10           |
+
+### Zielsetzung: Newsletter-Anmeldung
+
+| Blocktyp        | Beschreibung                                                 | Score (0–10) |
+|------------------|---------------------------------------------------------------|--------------|
+| CTA-Block        | „Jede Woche ein Impuls für mehr Balance“                    | 8            |
+| Trust-Block      | Vertrauen durch einfache Vorschau, kein Marketing-Geschrei  | 9            |
+| Preis-Block      | Kostenlos, jederzeit kündbar                                 | 10           |
+| SEO-Block        | Balance, Work-Life, Yoga-E-Mail-Serie                        | 9            |
+| Mobile UX        | Dark Mode & sanfte Animation                                | 10           |
+
+---
+
+(Weitere Zielgruppen und Kombinationen können anschließend ergänzt werden.)
+

@@ -30,7 +30,7 @@
 3. **VERTRAGSDOKUMENTE** (WYSIWYG + PDF-Vorschau)
 
 ---
-
+alwaysApply: true
 ## ⚡ PHASE 1: INFRASTRUKTUR & DATENBANK (Priorität: KRITISCH)
 
 ### 1.1 Datenbankstruktur
@@ -53,7 +53,7 @@
 - [ ] **ContractDocumentsAPI** (WYSIWYG + PDF-Generation)
 
 ---
-
+alwaysApply: true
 ## 🧩 PHASE 2: BUSINESS LOGIC (Priorität: HOCH)
 
 ### 2.1 Versionierungs-System
@@ -75,7 +75,7 @@
 - [ ] **Mehrere Dynamiken** pro Vertrag
 
 ---
-
+alwaysApply: true
 ## 🎨 PHASE 3: USER INTERFACE (Priorität: MITTEL)
 
 ### 3.1 Verträge-Bereich
@@ -97,7 +97,7 @@
 - [ ] **Dokumentverknüpfung** zu Verträgen
 
 ---
-
+alwaysApply: true
 ## 🔗 INTEGRATION MIT BESTEHENDEN MODULEN
 
 ### Mitgliedschaften-Modul
@@ -122,7 +122,7 @@
 - [ ] **PDF-Template-Verwaltung**
 
 ---
-
+alwaysApply: true
 ## ⚠️ RISIKEN & ABHÄNGIGKEITEN
 
 ### Kritische Punkte
@@ -138,7 +138,7 @@
 - **Icon-System** Erweiterung um Modul-Icons
 
 ---
-
+alwaysApply: true
 ## 📊 ZEITSCHÄTZUNG
 
 | Phase | Aufwand | Abhängigkeiten |
@@ -152,7 +152,7 @@
 **Gesamt: 16-21 Arbeitstage**
 
 ---
-
+alwaysApply: true
 ## 🎯 ROLLOUT-STRATEGIE
 
 ### Stufe 1: Parallelbetrieb
@@ -171,7 +171,7 @@
 - Performance-Monitoring
 
 ---
-
+alwaysApply: true
 ## ✅ ERFOLGSKRITERIEN
 
 1. **Funktional:**
@@ -190,7 +190,7 @@
    - Positive Feedback von Mitarbeitern
 
 ---
-
+alwaysApply: true
 ## 🔄 NÄCHSTE SCHRITTE
 
 1. **SOFORT:** Detaillierte Rules erstellen

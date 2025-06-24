@@ -4,7 +4,7 @@
 ```
 
 ---
-
+alwaysApply: true
 ## ✅ IMPLEMENTIERTE UI/UX-Features
 
 ### **Split-Screen Layout (VOLLSTÄNDIG IMPLEMENTIERT)**
@@ -30,7 +30,7 @@
 - ✅ **Conditional Logic:** Grundlagen für bedingte Anzeige
 
 ---
-
+alwaysApply: true
 ## ✅ DASHBOARD & VERWALTUNG (IMPLEMENTIERT)
 
 ### **Formular-Dashboard** (`/formulare`)
@@ -49,7 +49,7 @@
 - ✅ **Vorschau** (`/formulare/[id]/vorschau`) - Live-Formularvorschau
 
 ---
-
+alwaysApply: true
 ## ✅ FORMULAR-EINSTELLUNGEN (5-TAB SYSTEM IMPLEMENTIERT)
 
 ### **Tab 1: Allgemein** ✅
@@ -80,7 +80,7 @@
 - DSGVO-Einstellungen (Vorbereitung)
 
 ---
-
+alwaysApply: true
 ## ✅ DRAG & DROP SYSTEM (VOLLSTÄNDIG IMPLEMENTIERT)
 
 ### **Drag-Mechanismus**

@@ -87,7 +87,7 @@
 - **Responsive Layouts** für verschiedene Ausgabeformate
 
 ---
-
+alwaysApply: true
 ## 🏗️ DOKUMENTSTRUKTUR
 
 ### **Dokument-Hierarchie**
@@ -158,7 +158,7 @@ interface ContractDocumentAssignment {
 ```
 
 ---
-
+alwaysApply: true
 ## ✏️ WYSIWYG-EDITOR INTEGRATION
 
 ### **Editor-Konfiguration (TinyMCE)**
@@ -329,7 +329,7 @@ const processDocumentVariables = (
 ```
 
 ---
-
+alwaysApply: true
 ## 🖥️ VOLLBILD-EDITOR UI
 
 ### **Split-Screen Layout**
@@ -529,7 +529,7 @@ const SectionManager: React.FC<SectionManagerProps> = ({
 ```
 
 ---
-
+alwaysApply: true
 ## 📋 PDF-GENERATION
 
 ### **PDF-Export mit Puppeteer**
@@ -783,7 +783,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({
 ```
 
 ---
-
+alwaysApply: true
 ## 🔗 VERTRAGSVERKNÜPFUNG
 
 ### **Dokument zu Verträgen zuordnen**
@@ -871,7 +871,7 @@ const DocumentAssignmentModal: React.FC<{
 ```
 
 ---
-
+alwaysApply: true
 ## 🚀 IMPLEMENTIERUNG PRIORITY
 
 1. **Basis-Dokumentenverwaltung** (CRUD + Tabellen)
@@ -884,7 +884,7 @@ const DocumentAssignmentModal: React.FC<{
 **Geschätzte Zeit:** 4-5 Tage für vollständige Implementierung
 
 ---
-
+alwaysApply: true
 ## 📝 DEPENDENCIES
 
 ### **Required NPM Packages**

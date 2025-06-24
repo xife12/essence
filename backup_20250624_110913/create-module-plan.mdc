@@ -1,0 +1,69 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: "Definiert den vollständigen Ablauf zur Integration neuer Module oder Submodule inkl. Audit, Analyse und Fahrplanerstellung"
+alias: "@create-module-plan"
+globs:
+  - "modules/**"
+---
+
+# 📦 Modul-Integrationsworkflow
+
+Dieser Rule-Prozess steuert die automatisierte Planung und Prüfung bei der Einführung eines neuen Moduls im Projekt. Er dient als strukturierte Anleitung für Cursor Agent, um eine konsistente, sichere und vollständige Implementierung vorzubereiten.
+
+---
+
+## 🔁 Ablauf für neue Module / Submodule
+
+### 1. Audit ausführen
+- Starte: `@audit-rules` + `@audit-on-create`
+- Prüfe Naming, Globs, dependencies, Description, Struktur und Trennschärfe der Rules
+
+### 2. Projektkontext analysieren
+- Bestehen ähnliche Module?
+- Gibt es Wiederverwendungspotenzial?
+- Prüfe Imports, Komponenten, Shared Logic
+
+### 3. Datenbankanalyse
+- Scanne Supabase-Typen, Migrations, Enums, Policies
+- Prüfe auf Redundanz oder Konflikte
+- Berücksichtige Fremdschlüssel und Modul-Zuordnungen
+
+### 4. Regel-/Systemkonflikte erkennen
+- Fehlende, doppelte oder unscharfe Regeln?
+- Naming-Kollisionen? Modulübergreifende Überschneidungen?
+- Markiere: `critical`, `optional`, `conflict`, `suggestion`
+
+### 5. Abhängigkeiten prüfen
+- Gibt es Links zu Mitarbeiter, Mitglieder, Verträgen, Leads, Dashboards, Landingpages?
+- Müssen verknüpfte Regeln synchronisiert werden?
+
+### 6. Modul-Fahrplan generieren
+- 
+
+> Optional: Generiere automatisiert `modul-plan_<modulname>.md`
+
+---
+
+## 📋 Mindestanforderungen für jede Modul-Rule
+
+- **Metadaten**:
+  - `description:` muss enthalten sein
+  - `globs:` passend zur Struktur (z. B. `modules/email/**`)
+  - optional: `alias:` für manuelle Ausführung
+  - `dependencies:` auflistung aller dependencies 
+- **Struktur:**
+  - Nur ein Thema je `.mdc` (UI, DB, Validation, Meta)
+  - Klar gegliedert, keine Mehrfachinhalte
+- **Technische Korrektheit:**
+  - mind. 10 Zeilen Inhalt
+  - kein Konflikt mit anderen Rules
+  - Naming enthält Modulbezug
+  - Verweis auf reale Pfade, Tabellen, Komponenten
+
+---
+
+> Dieser Ruleplan kann jederzeit durch `@create-module-plan` aktiviert und durch `@finalize-module-audit` validiert werden.

@@ -25,7 +25,7 @@
 **Neuer Zustand:** Umfassendes 3-Bereiche-System mit Versionierung und Kampagnenlogik
 
 ---
-
+alwaysApply: true
 ## 🏗️ DIE 3 HAUPTBEREICHE
 
 ### 🔸 **A) VERTRÄGE** (vorher Vertragsarten)
@@ -47,7 +47,7 @@
 - **Abschnitte:** Strukturierte Dokumenterstellung
 
 ---
-
+alwaysApply: true
 ## 📋 USERFLOWS
 
 ### **🔸 STRANG A: VERTRÄGE**
@@ -87,7 +87,7 @@ Verknüpfung: Einem oder mehreren Verträgen zuordnen → Speichern
 ```
 
 ---
-
+alwaysApply: true
 ## 🎛️ NEUE FUNKTIONEN
 
 ### **Preisdynamik**
@@ -113,7 +113,7 @@ Verknüpfung: Einem oder mehreren Verträgen zuordnen → Speichern
 - **Integration:** Abbuchungskalender, Leistungsinhalt, Stammdaten
 
 ---
-
+alwaysApply: true
 ## 🔗 SYSTEMINTEGRATIONEN
 
 ### **Mitgliedschaften**
@@ -138,7 +138,7 @@ Verknüpfung: Einem oder mehreren Verträgen zuordnen → Speichern
 - PDF-Template-Verwaltung
 
 ---
-
+alwaysApply: true
 ## 📊 DATENSTRUKTUR-ÜBERSICHT
 
 ### **Neue Haupttabellen**
@@ -156,7 +156,7 @@ Verknüpfung: Einem oder mehreren Verträgen zuordnen → Speichern
 - `contract_flat_rates` (Pauschalen)
 
 ---
-
+alwaysApply: true
 ## 🎨 UI/UX KONZEPT
 
 ### **Navigation**
@@ -178,7 +178,7 @@ Vertragsarten (Hauptbereich)
 - **Dokument-Editor:** Split-Screen WYSIWYG + PDF-Vorschau
 
 ---
-
+alwaysApply: true
 ## ⚡ LEISTUNGSMERKMALE
 
 ### **Versionierung**
@@ -202,7 +202,7 @@ Vertragsarten (Hauptbereich)
 - PDF-Export-Ready
 
 ---
-
+alwaysApply: true
 ## 🚀 ROLLOUT-PHASEN
 
 1. **Infrastruktur:** Datenbank + API (3-4 Tage)

@@ -1,0 +1,75 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: CI-Styling-Presets (Vollständig Implementiert)
+
+## Zweck
+Das CI-Styling-Modul definiert Designvorlagen zur konsistenten visuellen Gestaltung von Landingpages, E-Mails, Flyern und Werbeanzeigen. Der Nutzer erhält mit minimalem Input (Farben, Schriften, Button-Stil) automatisch ein stimmiges, CI-konformes Gesamtbild.
+
+---
+
+## 🗄️ Datenbankstruktur
+
+### Haupttabelle: `public.ci_templates`
+
+| Feld                      | Typ      | Beschreibung                                    |
+|---------------------------|----------|-------------------------------------------------|
+| id                        | UUID     | Primärschlüssel (gen_random_uuid())             |
+| name                      | TEXT     | Template-Name (z.B. "Frühjahrskampagne 2025")  |
+| description               | TEXT     | Optional: Beschreibung/Verwendungszweck        |
+| primary_color             | TEXT     | Primärfarbe (Hex-Format)                        |
+| secondary_color           | TEXT     | Sekundärfarbe (Hex-Format)                      |
+| accent_color              | TEXT     | Akzentfarbe (Hex-Format)                        |
+| background_color          | TEXT     | Hintergrundfarbe (Standard: #ffffff)            |
+| text_color                | TEXT     | Textfarbe (Standard: #000000)                   |
+| font_family               | TEXT     | Hauptschriftart (z.B. "Inter")                 |
+| font_headline             | TEXT     | Überschriftschriftart                           |
+| font_sizes                | JSONB    | `{h1: "32px", h2: "24px", body: "16px"}`      |
+| button_style              | JSONB    | `{radius: "6px", padding: "12px 24px"}`       |
+| icon_style                | JSONB    | `{style: "outline", color: "auto", shape: "round"}` |
+| block_styles              | JSONB    | Spezifische Block-Designs                       |
+| spacing_config            | JSONB    | Abstände und Spacing-Regeln                    |
+| accessibility_aa_compliant| BOOLEAN  | AA-Konformität erreicht                        |
+| linked_campaign_id        | UUID     | Optional: Verknüpfung zu Kampagne               |
+| campaign_scope            | ENUM     | 'single', 'all' - Kampagnenbereich             |
+| is_default                | BOOLEAN  | Standard-Template (nur eins aktiv)              |
+| parent_ci_id              | UUID     | Optional: Vererbung von Master-CI               |
+| is_master_ci              | BOOLEAN  | Master Corporate Identity Template              |
+| category                  | TEXT     | Kategorisierung (z.B. "Kampagne", "Saisonal")  |
+| target_audience           | JSONB    | Legacy: Zielgruppendaten                        |
+| target_audience_detailed  | JSONB    | `{description, age_min, age_max, interests, sports_goals}` |
+| usage_purpose             | TEXT[]   | Array von Verwendungszwecken                    |
+| logos                     | JSONB    | `{primary, white, black, favicon}` URLs        |
+| tags                      | TEXT[]   | Freie Schlagworte für Suche/Filter             |
+| created_at                | TIMESTAMP| Erstellungszeitpunkt                            |
+| updated_at                | TIMESTAMP| Letzte Änderung                                 |
+
+### Erweiterte Tabellen
+
+#### `public.ci_logos`
+| Feld           | Typ      | Beschreibung                           |
+|----------------|----------|----------------------------------------|
+| id             | UUID     | Primärschlüssel                        |
+| ci_template_id | UUID     | FK → ci_templates.id                   |
+| logo_type      | ENUM     | 'primary', 'white', 'black', 'favicon', 'action_special' |
+| file_asset_id  | UUID     | FK → file_asset.id                     |
+| is_inherited   | BOOLEAN  | Von Master-CI geerbt                   |
+| description    | TEXT     | Optional: Logo-Beschreibung            |
+| created_at     | TIMESTAMP| Erstellungszeitpunkt                   |
+
+#### `public.ci_settings`
+| Feld          | Typ      | Beschreibung                            |
+|---------------|----------|-----------------------------------------|
+| id            | UUID     | Primärschlüssel                         |
+| setting_type  | ENUM     | 'category', 'target_audience_config', 'usage_purpose' |
+| setting_key   | TEXT     | Einstellungsschlüssel                   |
+| setting_value | JSONB    | Einstellungswert (flexibel)             |
+| is_active     | BOOLEAN  | Aktiv/Inaktiv Status                    |
+| created_at    | TIMESTAMP| Erstellungszeitpunkt                    |
+| updated_at    | TIMESTAMP| Letzte Änderung                         |
+
+#### `public.ci_target_audiences`
+| Feld        | Typ      | Beschreibung                 |
+|-------------|----------|------------------------------|

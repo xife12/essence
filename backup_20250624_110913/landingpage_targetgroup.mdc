@@ -1,0 +1,138 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
+# Modul: Landingpage Scoring & Zielgruppen
+## Zweck
+Dieses Modul definiert die Zielgruppen im Fitness-, Wellness- und Gesundheitsbereich und verknüpft sie mit einem dynamischen Scoring-System für Landingpages. Es bildet die Grundlage für den automatisierten Qualitätscheck innerhalb des Landingpage-Builders und die spätere Kopplung mit Kampagnenzielen und Zielgruppenlogiken.
+
+---
+
+## Zielgruppen-Kategorien
+
+### 1. Muskelaufbau-Fokussierte
+- **Alter**: 18–35
+- **Ziele**: Körperform, Kraft, Performance
+- **Entscheidungsverhalten**: Schnell, leistungsorientiert
+- **Ansprache**: Direkt, pushend, visuell dominant
+
+### 2. Abnehmwillige
+- **Alter**: 25–50
+- **Ziele**: Gewicht reduzieren, gesünder leben
+- **Entscheidungsverhalten**: Informationsgetrieben, motiviert aber vorsichtig
+- **Ansprache**: Emotional, lösungsorientiert, alltagsnah
+
+### 3. Stressabbau & Wellness-Suchende
+- **Alter**: 25–45
+- **Ziele**: Work-Life-Balance, mentale Gesundheit, Regeneration
+- **Entscheidungsverhalten**: Vertrauensbasiert, suchend, reaktiv
+- **Ansprache**: Ruhig, wertschätzend, evidenzbasiert
+
+### 4. Reha- & Präventionsorientierte
+- **Alter**: 40–70+
+- **Ziele**: Gesundheit erhalten/wiederherstellen
+- **Entscheidungsverhalten**: Risiko-avers, beratungsorientiert
+- **Ansprache**: Seriös, verständlich, mit Qualitätssicherung
+
+### 5. Community-orientierte Gruppenfans
+- **Alter**: 30–70+
+- **Ziele**: Motivation durch Gemeinschaft, Spaß, soziale Zugehörigkeit
+- **Entscheidungsverhalten**: Begeisterungsfähig, erfahrungsgetrieben
+- **Ansprache**: Persönlich, inspirierend, integrativ
+
+---
+
+## Zielsetzungen von Landingpages
+
+1. **Leadgenerierung** (z. B. für Probetrainings, kostenlose Beratung, E-Books)
+2. **Mitgliedschaftsverkauf** (z. B. Verträge, Online-Programme, Buchungen)
+3. **Newsletter-Anmeldung** (z. B. Gesundheits-Tipps, Content-Kampagnen)
+
+---
+
+## Bewertungsbereiche (Scoring-Kategorien)
+
+Jede Landingpage wird anhand folgender Kernbereiche bewertet:
+
+| Bereich                | Beschreibung                                                                 |
+|------------------------|------------------------------------------------------------------------------|
+| `cta_score`            | Sichtbarkeit, Text und Platzierung der Handlungsaufforderung                |
+| `trust_score`          | Vertrauen durch Siegel, Testimonials, Experten, Datenschutz                  |
+| `price_score`          | Transparenz der Preise oder Betonung von „kostenlos“                         |
+| `seo_score`            | Sichtbarkeit durch Keywords, Meta-Tags, lokale Relevanz                      |
+| `mobile_score`         | Mobile Optimierung (Ladezeit, responsives Design, Touchfreundlichkeit)       |
+
+Skala: **0–10 Punkte**, wobei 10 für „kritisch wichtig, vollständig erforderlich“ steht.
+
+---
+
+## Scoring-Matrix
+
+### Beispiel: Zielgruppe = Abnehmwillige, Ziel = Leadgenerierung
+
+```json
+{
+  "target_group": "Abnehmwillige",
+  "goal": "lead",
+  "scoring": {
+    "cta_score": 10,
+    "trust_score": 8,
+    "price_score": 3,
+    "seo_score": 9,
+    "mobile_score": 9
+  }
+}
+```
+
+### Beispiel: Zielgruppe = Muskelaufbau, Ziel = Mitgliedschaftsverkauf
+
+```json
+{
+  "target_group": "Muskelaufbau-Fokussierte",
+  "goal": "sale",
+  "scoring": {
+    "cta_score": 10,
+    "trust_score": 8,
+    "price_score": 8,
+    "seo_score": 6,
+    "mobile_score": 9
+  }
+}
+```
+
+### Beispiel: Zielgruppe = Stressabbau, Ziel = Newsletter
+
+```json
+{
+  "target_group": "Stressabbau & Wellness-Suchende",
+  "goal": "newsletter",
+  "scoring": {
+    "cta_score": 8,
+    "trust_score": 9,
+    "price_score": 10,
+    "seo_score": 9,
+    "mobile_score": 10
+  }
+}
+```
+
+*Weitere Kombinationen sind im System hinterlegt oder können über eine erweiterbare JSON-Logik generiert werden.*
+
+---
+
+## Verknüpfung mit Kampagnenmodul
+
+- **Zielgruppe und Zielsetzung** werden im Kampagnenplaner festgelegt.
+- Beim Erstellen oder Bewerten einer Landingpage wird automatisch die passende **Scoring-Matrix** geladen.
+- Das System prüft die umgesetzten Bereiche und gibt eine **Qualitätsbewertung + Handlungsempfehlung** aus (z. B. „Trust-Score zu niedrig – füge Testimonials hinzu“).
+
+---
+
+## Weiteres Vorgehen
+
+- **Integration in den Landingpage-Builder** inkl. UI-Hinweisen für Einsteiger
+- **Erweiterung um Gewichtung für neue Blöcke** (z. B. Kursplan, Countdown, Feature-Modul)
+- **Gamification-Logik** optional für Motivation der Ersteller (Badges, Scores etc.)
+

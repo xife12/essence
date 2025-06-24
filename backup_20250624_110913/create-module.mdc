@@ -1,0 +1,282 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Modul: Kursplan
+
+## Zweck
+Das Kursplan-Modul dient der zentralen Verwaltung und Darstellung von wiederkehrenden und temporären Kursen, inklusive Kurszeiten, Kursräumen, Kategorien und Standortzuordnung. Kurse können auf Landingpages angezeigt und dort individuell gefiltert dargestellt werden.
+
+---
+
+## 🗄️ Datenbankstruktur
+
+### Tabelle: `public.course_categories`
+| Feld        | Typ      | Beschreibung                    |
+|-------------|----------|---------------------------------|
+| id          | UUID     | Primärschlüssel                 |
+| name        | TEXT     | Kategoriename (z.B. "Yoga")     |
+| description | TEXT     | Optional: Beschreibung          |
+| icon        | TEXT     | Icon oder Emoji                 |
+| color       | TEXT     | Hex-Farbe für UI-Darstellung    |
+| sort_order  | INTEGER  | Reihenfolge                     |
+| is_visible  | BOOLEAN  | Sichtbarkeit                    |
+| created_at  | TIMESTAMP| Erstellt                        |
+| updated_at  | TIMESTAMP| Aktualisiert                    |
+
+### Tabelle: `public.course_rooms`
+| Feld              | Typ      | Beschreibung                    |
+|-------------------|----------|---------------------------------|
+| id                | UUID     | Primärschlüssel                 |
+| name              | TEXT     | Raumname (z.B. "Studio 1")     |
+| location          | TEXT     | Standort/Kursplan-Zuordnung     |
+| max_capacity      | INTEGER  | Maximale Kapazität              |
+| description       | TEXT     | Optional: Beschreibung          |
+| is_active         | BOOLEAN  | Aktiv/Inaktiv                   |
+| category_ids      | UUID[]   | Zugewiesene Kategorien          |
+| created_at        | TIMESTAMP| Erstellt                        |
+| updated_at        | TIMESTAMP| Aktualisiert                    |
+
+### Tabelle: `public.courses`
+| Feld              | Typ      | Beschreibung                    |
+|-------------------|----------|---------------------------------|
+| id                | UUID     | Primärschlüssel                 |
+| name              | TEXT     | Kursname                        |
+| description       | TEXT     | Kursbeschreibung                |
+| category_id       | UUID     | FK → course_categories.id       |
+| trainer_id        | UUID     | FK → staff.id                   |
+| room_id           | UUID     | FK → course_rooms.id            |
+| max_participants  | INTEGER  | Max. Teilnehmerzahl             |
+| current_participants | INTEGER | Aktuelle Teilnehmerzahl      |
+| schedule_plan     | TEXT     | Kursplan-Zuordnung              |
+| is_public         | BOOLEAN  | Öffentlich anzeigen             |
+| is_special        | BOOLEAN  | Temporärer Kurs (Kursspezial)   |
+| created_at        | TIMESTAMP| Erstellt                        |
+| updated_at        | TIMESTAMP| Aktualisiert                    |
+
+### Tabelle: `public.course_schedules`
+| Feld        | Typ      | Beschreibung                         |
+|-------------|----------|--------------------------------------|
+| id          | UUID     | Primärschlüssel                      |
+| course_id   | UUID     | FK → courses.id                      |
+| day_of_week | INTEGER  | Wochentag (0=Sonntag, 1=Montag, ...) |
+| start_time  | TIME     | Startzeit                            |
+| end_time    | TIME     | Endzeit                              |
+| special_date| DATE     | Für Kursspezial: spezifisches Datum  |
+| is_active   | BOOLEAN  | Aktiv/Inaktiv                        |
+| created_at  | TIMESTAMP| Erstellt                             |
+
+---
+
+## 🎯 UI-Struktur & Navigation
+
+### Hauptnavigation (app/(protected)/kursplan/)
+```
+kursplan/
+├── page.tsx                 # 📅 Kursübersicht (Wochenansicht)
+├── neu/
+│   └── page.tsx            # ➕ Neuer Kurs (bereits UI vorhanden!)
+├── kategorien/
+│   └── page.tsx            # 🗂 Kurskategorien verwalten
+├── raeume/
+│   └── page.tsx            # 🏠 Kursräume verwalten
+├── einstellungen/
+│   └── page.tsx            # ⚙️ Kursplan-Einstellungen
+└── [id]/
+    ├── page.tsx            # Kurs-Details
+    └── bearbeiten/
+        └── page.tsx        # Kurs bearbeiten
+```
+
+### Komponenten-Struktur
+```
+app/components/kursplan/
+├── KursplanWeekView.tsx     # Wochenübersicht mit Zeitraster
+├── KursCard.tsx             # Einzelne Kurskarte
+├── KursFormModal.tsx        # Kurs erstellen/bearbeiten
+├── CategoryManager.tsx      # Kategorien-Verwaltung
+├── RoomManager.tsx          # Räume-Verwaltung
+├── KursFilter.tsx           # Filter-Komponente
+└── ScheduleMatrix.tsx       # Wochentag-Zeit-Matrix
+```
+
+---
+
+## 🎨 Kursübersicht (Wochenplan)
+
+### Darstellung
+- **Spalten:** Montag–Sonntag
+- **Zeilen:** Uhrzeit-Raster (06:00–22:00, 30-Min-Schritte)
+- **Kurskarten enthalten:**
+  - Kursname
+  - Kurskategorie (mit Icon/Farbe)
+  - Raumname
+  - Max. Teilnehmerzahl
+  - Auslastungsbalken (z.B. 70% belegt)
+
+### Filter & Steuerung
+- **Filteroptionen:**
+  - Kategorie (Dropdown)
+  - Raum (Dropdown)
+  - Trainer (Dropdown)
+  - Standort/Kursplan-Zuordnung (Dropdown)
+- **Steuerung:**
+  - Wochenumschaltung (Zurück/Weiter)
+  - "Nur öffentliche Kurse" (Toggle)
+  - "Kursspezials anzeigen" (Toggle)
+
+---
+
+## 📝 Kurs anlegen/bearbeiten (bereits UI vorhanden!)
+
+### Bestehende UI-Felder (entspricht Spezifikation):
+- ✅ **Kursname** (Textfeld)
+- ✅ **Beschreibung** (Freitext)
+- ✅ **Kategorie** (Dropdown)
+- ✅ **Trainer** (Dropdown aus Mitarbeitermodul)
+- ✅ **Raum/Ort** (Dropdown)
+- ✅ **Max. Teilnehmer** (Zahlenfeld)
+- ✅ **Aktuelle Anzahl** (Zahlenfeld)
+- ✅ **Öffentlich anzeigen** (Toggle)
+- ✅ **Kursspezial** (Checkbox → Datumsauswahl)
+- ✅ **Wochenmatrix** (Montag-Sonntag mit Uhrzeiten)
+
+### Backend-Integration erforderlich:
+- API-Anbindung für Speichern/Laden
+- Validierung der Uhrzeiten
+- Überschneidungs-Prüfung bei Räumen/Trainern
+
+---
+
+## 🗂 Kurskategorien-Verwaltung
+
+### UI-Komponenten:
+- **Übersichtstabelle:** Name, Icon, Farbe, Sichtbarkeit, Reihenfolge
+- **Modal "Neue Kategorie":**
+  - Name (Pflichtfeld)
+  - Beschreibung (optional)
+  - Icon-Picker (Emoji/Lucide Icons)
+  - Farb-Picker (Hex-Werte)
+  - Sichtbarkeit (Toggle)
+- **Drag & Drop:** Reihenfolge ändern
+- **Aktionen:** Bearbeiten, Löschen (mit Abhängigkeits-Check)
+
+---
+
+## 🏠 Kursräume-Verwaltung
+
+### UI-Komponenten:
+- **Übersichtstabelle:** Name, Standort, Kapazität, Kategorien, Status
+- **Modal "Neuer Raum":**
+  - Raumname (Pflichtfeld)
+  - Standort/Kursplan-Zuordnung (Dropdown)
+  - Max. Kapazität (Zahlenfeld)
+  - Beschreibung (optional)
+  - Kategorie-Zuweisungen (Multi-Select)
+  - Aktiv-Status (Toggle)
+- **Aktionen:** Bearbeiten, Deaktivieren
+
+---
+
+## 🔗 API-Struktur
+
+### API-Dateien:
+```typescript
+lib/api/
+├── courses.ts              # CRUD für Kurse
+├── courseCategories.ts     # Kategorien-API
+├── courseRooms.ts          # Räume-API
+└── courseSchedules.ts      # Zeitplan-API
+```
+
+### API-Methoden:
+```typescript
+// courses.ts
+export const CoursesAPI = {
+  getAll: () => Promise<Course[]>
+  getById: (id: string) => Promise<Course>
+  getWeekSchedule: (date: Date) => Promise<WeekSchedule>
+  create: (data: CreateCourseData) => Promise<Course>
+  update: (id: string, data: UpdateCourseData) => Promise<Course>
+  delete: (id: string) => Promise<void>
+  checkConflicts: (scheduleData: ScheduleData) => Promise<Conflict[]>
+}
+```
+
+---
+
+## 🎯 Landingpage-Integration
+
+### Kursplan-Block (bereits implementiert):
+- **Canvas-Renderer:** Zeigt gefilterte Kurse an
+- **Konfigurierbar nach:**
+  - Anzahl Tage (1-7)
+  - Kurskategorie (Filter)
+  - Kursplan-Zuordnung (Standort)
+  - Layout-Preset (Weekly Grid, Category Filter, etc.)
+
+### Block-Presets:
+- `weekly-grid` - Vollständige Wochenansicht
+- `category-filter` - Nach Kategorien gefiltert
+- `next-course` - Nächster Kurs hervorgehoben
+- `compact-cards` - Kompakte Karten-Darstellung
+- `tabbed-view` - Tabbed nach Kategorien
+
+---
+
+## 🔒 Berechtigungen
+
+| Rolle        | Berechtigung                              |
+|--------------|-------------------------------------------|
+| Admin        | Vollzugriff auf alle Kursplan-Funktionen |
+| Studioleiter | Kurse anlegen/bearbeiten, Kategorien/Räume verwalten |
+| Mitarbeiter  | Nur eigene Kurse einsehen, keine Bearbeitung |
+
+---
+
+## ⚡ Besonderheiten & Validierungen
+
+### Kurs-Logik:
+- Ein Kurs kann **mehrfach pro Woche** stattfinden
+- **Zeitüberschneidungen** werden validiert (Raum/Trainer)
+- **Kursspezials** haben spezifische Daten statt Wochentage
+- **Auslastung** wird live berechnet
+
+### Validierungen:
+- Startzeit < Endzeit
+- Max. Teilnehmer > 0
+- Keine Doppelbelegung von Räumen
+- Trainer-Verfügbarkeit prüfen
+- Kursspezial-Daten in der Zukunft
+
+### UX-Features:
+- **Live-Updates** bei Änderungen
+- **Drag & Drop** für Zeitänderungen
+- **Konflikterkennung** mit Vorschlägen
+- **Mobile-Responsive** Wochenansicht
+
+---
+
+## 🚀 Implementierungsreihenfolge
+
+1. **Datenbank-Migration** ausführen
+2. **API-Layer** implementieren  
+3. **Kursübersicht (Wochenplan)** erstellen
+4. **Bestehende UI** mit Backend verbinden
+5. **Kategorien/Räume-Verwaltung** implementieren
+6. **Landingpage-Block** finalisieren
+7. **Mobile-Optimierung** & Testing
+
+---
+
+## 📋 Status: Bereit für Implementierung
+
+- ✅ **UI-Design:** Vollständig spezifiziert
+- ✅ **Datenbankschema:** Definiert  
+- ✅ **API-Struktur:** Geplant
+- ✅ **Komponenten-Architektur:** Strukturiert
+- 🔄 **Implementation:** Bereit zu starten
+
+**Geschätzte Entwicklungszeit:** 3-4 Wochen
+**Priorität:** Hoch (Landingpage-Integration bereits aktiv)

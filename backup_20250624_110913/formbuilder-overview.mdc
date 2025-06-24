@@ -1,0 +1,120 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Formbuilder (✅ VOLLSTÄNDIG IMPLEMENTIERT)
+
+---
+
+## Zweck
+
+Das Formbuilder-Modul ermöglicht die Erstellung, Verwaltung und Auswertung individueller Formulare mit einem visuellen Drag & Drop Builder. Formulare können in Landingpages, Kampagnen oder als eigenständige Leads-Erfassungstools eingesetzt werden. Der Builder unterstützt bedingte Logik, Validierungen, Multi-Step-Formulare und automatische Lead-Generierung.
+
+---
+
+## ✅ AKTUELLER IMPLEMENTIERUNGSSTAND
+
+### **Phase 1 - Basis-Infrastruktur (ABGESCHLOSSEN)**
+- ✅ Datenbankstruktur (forms, form_fields, form_submissions)
+- ✅ API-Layer (FormsAPI, FormFieldsAPI, FormSubmissionsAPI)
+- ✅ Routing-Struktur für alle Formular-Seiten
+- ✅ Basis-Komponenten (FieldLibrary, FormCanvas, FieldConfig)
+
+### **Phase 2 - Dashboard & Navigation (ABGESCHLOSSEN)**
+- ✅ Formular-Dashboard mit Übersichtstabelle
+- ✅ Formular-Erstellung Wizard
+- ✅ Suchfunktion und Filterung nach Typ/Status
+- ✅ CRUD-Operationen (Erstellen, Bearbeiten, Löschen, Duplizieren)
+- ✅ Einheitliche Navigation zwischen allen Formular-Seiten
+
+### **Phase 3 - Builder-System (ABGESCHLOSSEN)**
+- ✅ **Drag & Drop Builder** - Vollständig funktional mit präziser Positionierung
+- ✅ **18+ Feldtypen** - Alle Standard- und Spezialfelder implementiert
+- ✅ **Feld-Konfiguration** - Umfassende Einstellungsmöglichkeiten
+- ✅ **Live-Vorschau** - Echtzeitvorschau mit Desktop/Mobile-Toggle
+- ✅ **Multi-Step Support** - Mehrseitige Formulare mit Navigation
+
+### **Phase 4 - Einstellungen & Analytics (ABGESCHLOSSEN)**
+- ✅ **5-Tab Einstellungsseite** - Allgemein, Design, Verhalten, Benachrichtigungen, Erweitert
+- ✅ **Analytics-Dashboard** - KPIs, Charts, Submissions-Tabelle mit Filterung
+- ✅ **CSV-Export** - Vollständiger Datenexport mit korrektem Escaping
+- ✅ **Formular-Status-Management** - Aktiv/Inaktiv, Veröffentlichung
+
+### **Phase 5 - Erweiterte Features (IMPLEMENTIERT)**
+- ✅ **Responsive Design** - Mobile-optimiert, Touch-freundlich
+- ✅ **Field Width Control** - full, half, third Layout-Optionen
+- ✅ **Dynamic Fields** - Kampagnen-Angebote, Vertragsarten, Preisrechner
+- ✅ **Spezialfelder** - Unterschrift, Bewertung, Adresse, Einverständniserklärung
+- ✅ **Einheitliche Navigation** - FormNavigation-Komponente für alle Seiten
+
+---
+
+## Datenbankstruktur
+
+### Tabelle: public.forms
+
+| Feld               | Typ        | Beschreibung                         |
+|--------------------|------------|--------------------------------------|
+| id                 | UUID       | Primärschlüssel                      |
+| name               | TEXT       | Interner Formularname                |
+| title              | TEXT       | Öffentlicher Titel                   |
+| description        | TEXT       | Beschreibung des Formulars           |
+| slug               | TEXT       | URL-Pfad (z. B. "kontakt-form")      |
+| is_active          | BOOLEAN    | Aktiv/Inaktiv Status                 |
+| is_multi_step      | BOOLEAN    | Mehrseitiges Formular                |
+| campaign_id        | UUID       | Verknüpfung zur Kampagne             |
+| ci_template_id     | UUID       | Styling aus CI-Preset                |
+| success_message    | TEXT       | Erfolgsmeldung nach Absendung        |
+| redirect_url       | TEXT       | Weiterleitung nach Absendung         |
+| notification_email | TEXT       | E-Mail für Benachrichtigungen        |
+| auto_lead_creation | BOOLEAN    | Automatische Lead-Erstellung         |
+| form_type          | ENUM       | 'lead_capture', 'contact', 'survey', 'registration', 'booking', 'feedback' |
+| submit_limit       | INTEGER    | Max. Absendeanzahl pro Nutzer        |
+| created_at         | TIMESTAMP  | Erstellt                             |
+| updated_at         | TIMESTAMP  | Letzte Änderung                      |
+
+### Tabelle: public.form_fields
+
+| Feld             | Typ      | Beschreibung                              |
+|------------------|----------|-------------------------------------------|
+| id               | UUID     | Primärschlüssel                           |
+| form_id          | UUID     | Referenz auf forms.id                     |
+| field_type       | ENUM     | Typ des Formularfelds                     |
+| step             | INTEGER  | Schritt-Nummer (für Multi-Step)          |
+| position         | INTEGER  | Reihenfolge innerhalb des Schritts        |
+| label            | TEXT     | Feldbezeichnung                           |
+| placeholder      | TEXT     | Platzhaltertext                           |
+| field_name       | TEXT     | Eindeutiger Feldname                      |
+| is_required      | BOOLEAN  | Pflichtfeld                               |
+| validation_rules | JSONB    | Validierungsregeln                        |
+| options          | JSONB    | Optionen für Select/Radio/Checkbox       |
+| default_value    | TEXT     | Standardwert                              |
+| conditional_logic| JSONB    | Bedingte Anzeige-Logik                    |
+| field_width      | TEXT     | Layout-Breite ('full', 'half', 'third')  |
+| help_text        | TEXT     | Hilfetext                                 |
+| created_at       | TIMESTAMP| Erstellt                                  |
+| updated_at       | TIMESTAMP| Aktualisiert                              |
+
+### Tabelle: public.form_submissions
+
+| Feld             | Typ      | Beschreibung                              |
+|------------------|----------|-------------------------------------------|
+| id               | UUID     | Primärschlüssel                           |
+| form_id          | UUID     | Referenz auf forms.id                     |
+| submission_data  | JSONB    | Übermittelte Formulardaten                |
+| ip_address       | TEXT     | IP-Adresse des Absenders                  |
+| user_agent       | TEXT     | Browser-Information                       |
+| lead_id          | UUID     | Automatisch erstellter Lead (optional)    |
+| created_at       | TIMESTAMP| Absendezeitpunkt                          |
+
+### ENUMS: field_type (✅ ALLE IMPLEMENTIERT)
+
+```text
+'text', 'email', 'phone', 'number', 'textarea', 'select', 'radio', 'checkbox', 
+'checkbox_group', 'date', 'time', 'file_upload', 'heading', 'paragraph', 
+'divider', 'consent', 'rating', 'slider', 'signature', 'address',
+'campaign_offers', 'contract_types', 'pricing_calculator'
+```
+
+### ENUMS: form_type

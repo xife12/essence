@@ -1,0 +1,39 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: "Ergänzt oder korrigiert fehlende oder unpassende globs: Einträge in .mdc-Dateien"
+alias: "@globs-fix"
+globs:
+  - "**/.cursor/rules/**/*.mdc"
+  - "**/*.mdc"
+---
+
+## Zweck:
+Diese Regel sorgt dafür, dass jede Rule-Datei klar angibt, **für welchen Dateipfad sie gelten soll** – über das `globs:`-Feld.
+
+## Vorgehen bei jeder `.mdc`-Datei:
+
+1. **Wenn kein `globs:` vorhanden ist:**
+   - Prüfe den Speicherort
+   - Erstelle automatisch eine sinnvolle `globs:`-Angabe basierend auf dem Modulpfad
+     - z. B. bei `modules/email/.cursor/rules/email-ui.mdc` →  
+       → `globs: ["modules/email/**"]`
+
+2. **Wenn `globs:` vorhanden, aber zu breit oder nichtssagend ist (z. B. `**/*.mdc`):**
+   - Präzisiere den Pfad auf Modul- oder Themenebene
+   - Vermeide Überschneidungen mit anderen Rules
+
+3. **Wenn eine `.mdc`-Datei in `.cursor/rules/` liegt, aber keiner Modulstruktur folgt:**
+   - Kennzeichne als globale Rule
+   - Empfohlene globs z. B.:
+     - `"**/components/**/*.tsx"` (für UI)
+     - `"supabase/**/*.sql"` (für Datenbank)
+     - `"types/**/*.ts"` (für TypeScript-Typen)
+     - `"**/*.mdc"` (nur wenn wirklich modulübergreifend!)
+
+## Ergebnis:
+- Füge die Globs direkt in den YAML-Header ein
+- Dokumentiere die Änderung optional in einer `rules_updated.md`

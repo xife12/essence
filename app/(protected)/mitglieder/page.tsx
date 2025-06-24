@@ -194,12 +194,7 @@ export default function MitgliederPage() {
           member_number: paymentMember.member_number,
           created_at: paymentMember.created_at,
           // Payment members don't have regular memberships yet
-          // But we can show their payment status
-          paymentStatus: paymentMember.member_accounts?.[0] ? {
-            balance: paymentMember.member_accounts[0].current_balance,
-            iban: paymentMember.iban,
-            paymentGroup: paymentMember.payment_groups?.name
-          } : undefined
+          // But we can show their payment status if needed
         };
         combinedMembers.push(member);
       }
@@ -488,13 +483,29 @@ export default function MitgliederPage() {
             <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all">
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                  <FileText className="w-6 h-6 text-blue-600" />
+                  <Upload className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
               <div>
-                <h4 className="font-medium text-gray-900">PDF-Upload für Mitglieder</h4>
+                <h4 className="font-medium text-gray-900">Einzelimport (PDF)</h4>
                 <p className="text-sm text-gray-600">
-                  Magicline-Verträge hochladen und automatisch Mitglieder erstellen
+                  Einfacher PDF-Upload für schnelle Mitglieder-Erstellung
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/mitglieder/dual-import" className="group">
+            <div className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                  <FileText className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900">Dual-Import (Pro)</h4>
+                <p className="text-sm text-gray-600">
+                  Vertrag + Kontoauszug mit vollautomatischer Beitragskalender-Generierung
                 </p>
               </div>
             </div>

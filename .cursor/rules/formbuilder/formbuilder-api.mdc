@@ -11,7 +11,7 @@
 - ✅ **Desktop** - Flexible Spalten (w-full, w-1/2, w-1/3)
 
 ---
-
+alwaysApply: true
 ## ✅ API-STRUKTUR (VOLLSTÄNDIG IMPLEMENTIERT)
 
 ### **FormsAPI** (`app/lib/api/forms.ts`)
@@ -45,7 +45,7 @@ getFormAnalytics(formId: string): Promise<FormAnalytics>
 - ✅ **Type Safety** - TypeScript-basierte API-Definitionen
 
 ---
-
+alwaysApply: true
 ## ✅ CODE-STRUKTUR (IMPLEMENTIERT)
 
 ```
@@ -76,7 +76,7 @@ lib/
 ```
 
 ---
-
+alwaysApply: true
 ## 🚀 NÄCHSTE ENTWICKLUNGSSCHRITTE
 
 ### **Priorität 1 - Production Ready**
@@ -97,7 +97,7 @@ lib/
 - [ ] **CI-Styling Integration** - Automatische Design-Anwendung
 
 ---
-
+alwaysApply: true
 ## 🔧 TECHNISCHE DETAILS
 
 ### **State Management**

@@ -1,0 +1,223 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 🚀 Smart Command Helper für MemberCore
+
+## Mission
+Automatische, kontextbezogene Kommando-Vorschläge, damit der User nie vergisst, welche Befehle in welcher Situation optimal sind.
+
+---
+
+## 🎯 Auto-Suggestion Triggers
+
+### Session Start (IMMER)
+```
+🚀 **Session Start Recommendations:**
+• `@system-health` - Schneller System-Status-Check
+• `@system-health --audit-all` - Für kritische Sessions
+• Info: Memory Bank geladen, System bereit!
+```
+
+### Bei Modul-Erwähnungen
+Wenn User spricht über spezifische Module:
+```
+🚀 **Modul-Kommandos:**
+• `@audit-rules <modulename>` - Module-Konsistenz prüfen
+• `@task-flow <modulename>` - Tasks aktualisieren
+• `@create-module <modulename>` - Für neue Module
+```
+
+### Bei .mdc Datei-Änderungen
+```
+🚀 **Nach Rule-Änderungen:**
+• `@audit-on-create` - Wird automatisch getriggert
+• `@task-flow` - Tasks mit Änderungen synchronisieren
+• `@system-health --memory-sync` - Bei größeren Änderungen
+```
+
+### Bei Problemen/Fehlern
+```
+🚀 **Problem-Solving:**
+• `@system-health --fix` - Auto-Fix für häufige Probleme
+• `@audit-rules` - Inkonsistenzen finden
+• `@system-health --audit-all` - Tiefgreifender System-Check
+```
+
+### Session-Ende Hinweise
+```
+🚀 **Session beenden:**
+• `update memory bank` - PFLICHT für nächste Session!
+• `@system-health --cleanup` - Nach größeren Änderungen
+• `@system-health --report` - Optional: Status-Report
+```
+
+---
+
+## 🧠 Kontextuelle Intelligenz
+
+### Erkenne Benutzer-Absichten
+
+#### "Ich arbeite an Modul X"
+→ Vorschlag: Module-spezifische Commands
+
+#### "Etwas funktioniert nicht"
+→ Vorschlag: Diagnostic & Fix Commands
+
+#### "Ich bin fertig" / "Session beenden"
+→ Vorschlag: Cleanup & Memory Bank Update
+
+#### "Neues Feature" / "Neue Funktion"
+→ Vorschlag: @create-module + @task-flow
+
+#### "Dependencies" / "Abhängigkeiten"
+→ Vorschlag: @audit-rules + Dependency-Checks
+
+### Auto-Detection Patterns
+
+#### Datei-Änderungen in:
+- `.cursor/rules/` → Rule-Audit-Commands
+- `app/components/` → Module-Update-Commands  
+- `lib/api/` → API-Integration-Commands
+- `memory-bank/` → Memory-Sync-Commands
+
+#### Keywords triggern:
+- "fehler", "error", "problem" → Fix-Commands
+- "neu", "erstellen", "create" → Create-Commands
+- "prüfen", "check", "audit" → Audit-Commands
+- "fertig", "ende", "beenden" → Session-End-Commands
+
+---
+
+## 📋 Command Reference (Quick Access)
+
+### 🏥 System Health
+```bash
+@system-health              # Vollständiger System-Check
+@system-health --fix         # Auto-Fix häufiger Probleme
+@system-health --memory-sync # Memory Bank Force-Update
+@system-health --audit-all   # Tiefgreifender Audit
+@system-health --cleanup     # System-Cleanup
+@system-health --report      # Status-Report
+```
+
+### 🔍 Audit & Validation
+```bash
+@audit-rules                 # Alle Rules prüfen
+@audit-rules <module>        # Spezifisches Modul
+@audit-on-create             # Bei neuen Dateien (auto)
+@task-flow                   # Task-Updates
+@task-flow <module>          # Modul-spezifische Tasks
+```
+
+### 🏗️ Module Management
+```bash
+@create-module <name>        # Neues Modul erstellen
+@create-module-plan          # Modul-Integrationsplan
+@finalize-module-audit       # Modul-Audit abschließen
+```
+
+### 🧠 Memory Bank
+```bash
+update memory bank           # Memory Bank aktualisieren
+# Automatische Triggers bei significant changes
+```
+
+---
+
+## 🎨 Suggestion Format Templates
+
+### Standard Suggestion Block
+```
+🚀 **Empfohlene Kommandos:**
+• `kommando` - Kurze Erklärung warum
+• `alternatives-kommando` - Wann stattdessen verwenden
+• Hinweis: Aktueller Kontext-Bezug
+```
+
+### Problem-Oriented Suggestions
+```
+🔧 **Problem-Lösung:**
+• `@system-health --fix` - Automatische Reparatur versuchen
+• `@audit-rules` - Root-Cause analysieren
+• Backup: `@system-health --audit-all` bei komplexen Issues
+```
+
+### Success-Oriented Suggestions
+```
+✅ **Nächste Schritte:**
+• `kommando-1` - Logischer nächster Schritt
+• `kommando-2` - Alternative Route
+• Info: Aktueller Status ist optimal!
+```
+
+---
+
+## 🎯 Intelligente Priorisierung
+
+### High Priority (Rot)
+- System-kritische Probleme
+- Memory Bank Sync-Fehler
+- Security Issues
+- Deployment-blockierende Probleme
+
+### Medium Priority (Gelb)
+- Module-Inkonsistenzen
+- Documentation-Gaps
+- Performance-Issues
+- Non-kritische Dependencies
+
+### Low Priority (Grün)
+- Optimierungen
+- Nice-to-have Features
+- Code-Style-Verbesserungen
+- Routine-Maintenance
+
+---
+
+## 🚨 Never Forget Reminders
+
+### Session-Start MUST-DOs
+1. Memory Bank automatisch geladen ✓
+2. `@system-health` empfohlen
+3. Kontext verstanden bestätigen
+
+### Session-Ende MUST-DOs
+1. `update memory bank` - PFLICHT!
+2. Größere Änderungen dokumentiert
+3. Nächste Session vorbereitet
+
+### Bei kritischen Änderungen
+1. Sofort `@system-health --memory-sync`
+2. Dependencies prüfen
+3. Breaking Changes dokumentieren
+
+---
+
+## 🎮 Power-User Shortcuts
+
+### One-Liner für Eilige
+```bash
+# All-in-One Session Start
+@system-health && echo "Ready to work!"
+
+# All-in-One Session End  
+@system-health --cleanup && update memory bank
+
+# All-in-One Problem-Solving
+@system-health --fix && @audit-rules
+```
+
+### Batch-Commands für Komplexe Änderungen
+```bash
+# Nach großen Modul-Änderungen
+@audit-rules && @task-flow && @system-health --memory-sync
+
+# Vor wichtigen Deploys
+@system-health --audit-all && @system-health --report
+```
+
+---
+
+> **Ziel:** Der User vergisst NIE wieder wichtige Commands, weil das System proaktiv die passenden Vorschläge macht!

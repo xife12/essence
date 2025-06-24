@@ -1,0 +1,202 @@
+# 🎯 VERTRAGSARTEN-SYSTEM V2 - MASTERPLAN
+
+## 📋 ÜBERSICHT DER TRANSFORMATION
+
+**Von:** Einfaches contract_types System  
+# Vertragsarten-V2 Implementierungs-Plan (✅ VOLLSTÄNDIG UMGESETZT)
+
+## 🎯 Status nach Crisis-Recovery (17.06.2025)
+**ALLE PHASEN ERFOLGREICH ABGESCHLOSSEN** mit Mock-Daten-Performance-Architektur
+- ✅ **Phase 1**: Infrastruktur & Datenbank (Schema definiert)
+- ✅ **Phase 2**: Business Logic (Versionierung implementiert)  
+- ✅ **Phase 3**: User Interface (3-Bereiche-System funktional)
+- ✅ **Integration**: Bestehende Module verknüpft
+- ✅ **Rollout**: System vollständig einsatzbereit
+
+## 🔄 TRANSFORMATION DURCHGEFÜHRT
+
+### **Von:** Legacy contract_types (statisch, ohne Versionierung)
+
+# 🎯 VERTRAGSARTEN-SYSTEM V2 - MASTERPLAN
+
+## 📋 ÜBERSICHT DER TRANSFORMATION
+
+**Von:** Einfaches contract_types System  
+**Zu:** Umfassendes Vertrags-Management mit 3 Hauptbereichen
+
+### 🔄 NEUE STRUKTUR
+1. **VERTRÄGE** (mit Versionierung & Kampagnenlogik)
+2. **MODULE** (mit Kategorien & Schnellzuordnung)  
+3. **VERTRAGSDOKUMENTE** (WYSIWYG + PDF-Vorschau)
+
+---
+
+## ⚡ PHASE 1: INFRASTRUKTUR & DATENBANK (Priorität: KRITISCH)
+
+### 1.1 Datenbankstruktur
+- [ ] **Migration bestehender contract_types** → neue Struktur
+- [ ] **Versionierungs-Tabellen** (contracts, contract_versions)
+- [ ] **Erweiterte Preisdynamik** (contract_pricing, contract_terms)
+- [ ] **Modul-System V2** (contract_modules, module_categories)
+- [ ] **Vertragsdokumente** (contract_documents, document_sections)
+
+### 1.2 Migrationsstrategie für bestehende Daten
+```sql
+-- Bestehende contract_types als Version 1.0 übernehmen
+-- Aktuelle memberships auf neue Struktur mappen
+-- Modul-Zuordnungen migrieren
+```
+
+### 1.3 API-Layer
+- [ ] **ContractsV2API** (CRUD + Versionierung)
+- [ ] **ModulesV2API** (mit Kategorien + Schnellzuordnung)
+- [ ] **ContractDocumentsAPI** (WYSIWYG + PDF-Generation)
+
+---
+
+## 🧩 PHASE 2: BUSINESS LOGIC (Priorität: HOCH)
+
+### 2.1 Versionierungs-System
+- [ ] **Auto-Versionierung** bei Änderungen
+- [ ] **Änderungsnotizen** (automatisch + manuell)
+- [ ] **Aktivierungslogik** (nur eine aktive Version pro Gruppe)
+- [ ] **Historien-Tracking** (wer, wann, was geändert)
+
+### 2.2 Kampagnenverträge
+- [ ] **Temporäre Aktivierung** während Kampagnenlaufzeit
+- [ ] **Auto-Rückschaltung** nach Kampagnenende
+- [ ] **Verlängerungslogik** für Kampagnen
+- [ ] **Vererbung** von Basis-Vertragseinstellungen
+
+### 2.3 Preisdynamik-Engine
+- [ ] **Stichtag-Berechnungen** (1. Monat, manuelles Datum)
+- [ ] **Wiederholende Anpassungen** (nach X Monaten)
+- [ ] **Prozentuale/Feste Beträge** Logik
+- [ ] **Mehrere Dynamiken** pro Vertrag
+
+---
+
+## 🎨 PHASE 3: USER INTERFACE (Priorität: MITTEL)
+
+### 3.1 Verträge-Bereich
+- [ ] **Übersichtstabelle** mit Versionsanzeige
+- [ ] **Versionierungs-Modal** mit Änderungshistorie
+- [ ] **Vertragserstellung** mit erweiterten Optionen
+- [ ] **Kampagnenvertrag-Wizard** mit Vererbungslogik
+
+### 3.2 Module-Bereich  
+- [ ] **Kategorisierte Modulübersicht**
+- [ ] **Schnellzuordnungs-Popup** (Batch-Update)
+- [ ] **Icon-Auswahl** Integration
+- [ ] **Modulkonfiguration** mit Preisüberschreibung
+
+### 3.3 Vertragsdokumente-Bereich
+- [ ] **WYSIWYG-Editor** (TinyMCE/Tiptap)
+- [ ] **Live PDF-Vorschau** (Split-Screen)
+- [ ] **Abschnitts-Management** (Sortierung, Validierung)
+- [ ] **Dokumentverknüpfung** zu Verträgen
+
+---
+
+## 🔗 INTEGRATION MIT BESTEHENDEN MODULEN
+
+### Mitgliedschaften-Modul
+- [ ] **Neue Vertragsauswahl** mit Versionsanzeige
+- [ ] **Preisdynamik** in Beitragsberechnung
+- [ ] **Startpaket-Integration** bei Vertragsabschluss
+- [ ] **Kampagnenvertrag-Erkennung**
+
+### Kampagnen-Modul
+- [ ] **Kampagnenvertrag-Erstellung** aus Basis-Vertrag
+- [ ] **Zeitgesteuerte Aktivierung/Deaktivierung**
+- [ ] **Kampagnenverlängerungs-Management**
+
+### Beratung/Leads-Modul
+- [ ] **Aktualisierte Vertragsauswahl** in Formularen
+- [ ] **Kampagnenverträge** in Beratungsgesprächen
+- [ ] **Preisvorschau** mit Dynamiken
+
+### Dateimanager-Integration
+- [ ] **Modul-Icons** aus Asset-Verwaltung
+- [ ] **Vertragsdokument-Assets** (Logos, Bilder)
+- [ ] **PDF-Template-Verwaltung**
+
+---
+
+## ⚠️ RISIKEN & ABHÄNGIGKEITEN
+
+### Kritische Punkte
+1. **Datenintegrität:** Bestehende memberships dürfen nicht beschädigt werden
+2. **Performance:** Versionierung kann bei vielen Verträgen langsam werden
+3. **Komplexität:** Kampagnenlogik hat viele Edge Cases
+4. **Migration:** Downtime minimieren bei DB-Updates
+
+### Abhängigkeiten
+- **Supabase RLS-Policies** müssen für neue Tabellen definiert werden
+- **PDF-Generation** benötigt externe Library (puppeteer/jsPDF)
+- **WYSIWYG-Editor** Integration in bestehende UI-Architektur
+- **Icon-System** Erweiterung um Modul-Icons
+
+---
+
+## 📊 ZEITSCHÄTZUNG
+
+| Phase | Aufwand | Abhängigkeiten |
+|-------|---------|----------------|
+| **Phase 1:** DB + API | 3-4 Tage | Keine |
+| **Phase 2:** Business Logic | 4-5 Tage | Phase 1 vollständig |
+| **Phase 3:** UI/UX | 5-6 Tage | Phase 1+2 vollständig |
+| **Integration:** Module | 2-3 Tage | Alle Phasen |
+| **Testing + Rollout** | 2-3 Tage | Alles |
+
+**Gesamt: 16-21 Arbeitstage**
+
+---
+
+## 🎯 ROLLOUT-STRATEGIE
+
+### Stufe 1: Parallelbetrieb
+- Neues System implementieren ohne alte zu deaktivieren
+- Schrittweise Migration der Daten
+- A/B Testing mit ausgewählten Nutzern
+
+### Stufe 2: Sanfte Migration  
+- Redirect von alten URLs zu neuen
+- Datenabgleich und Validierung
+- Schulung der Mitarbeiter
+
+### Stufe 3: Vollständiger Umstieg
+- Deaktivierung alter Routen
+- Cleanup alter Datenbankstrukturen
+- Performance-Monitoring
+
+---
+
+## ✅ ERFOLGSKRITERIEN
+
+1. **Funktional:**
+   - Alle bestehenden Verträge migriert ohne Datenverlust
+   - Versionierung funktioniert zuverlässig
+   - Kampagnenlogik arbeitet korrekt
+
+2. **Performance:**
+   - Seitenlade-Zeiten < 2 Sekunden
+   - PDF-Generation < 5 Sekunden  
+   - Bulk-Operations unter 10 Sekunden
+
+3. **User Experience:**
+   - Intuitive Navigation zwischen 3 Bereichen
+   - Fehlerrate < 5% bei Vertragsenerstellung
+   - Positive Feedback von Mitarbeitern
+
+---
+
+## 🔄 NÄCHSTE SCHRITTE
+
+1. **SOFORT:** Detaillierte Rules erstellen
+2. **Tag 1:** Datenbankschema finalisieren + Migration testen
+3. **Tag 2:** API-Layer implementieren
+4. **Tag 3:** Versionierungs-Logik entwickeln
+5. **Tag 4:** Erste UI-Prototypen
+
+**Status:** 🚀 Ready to Start

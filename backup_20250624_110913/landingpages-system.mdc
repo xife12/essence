@@ -1,0 +1,60 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Landingpage-System – Logiken & Verknüpfungen
+
+## Dynamische Logiken
+
+* CI-Preset wirkt auf Farben, Buttons, Schrift global
+* Formular-Kontext erkennt Angebot & Vertrag automatisch
+* Kampagnenbindung übernimmt Countdown-Zeitraum, Aktionen, Preise
+* Live-Designvorschläge passend zu Inhalten und Einstellungen
+
+---
+
+## Validierungslogik
+
+* slug eindeutig
+* Jeder Block: gültiger block_type, layout, preset
+* form_id nur bei Formularblock
+* Position >= 0, keine Duplikate je Landingpage
+* QR-Code nur bei is_active = true
+
+---
+
+## Verknüpfungen
+
+| Zielmodul      | Bedeutung                               |
+| -------------- | --------------------------------------- |
+| Kampagnen      | campaign_id/strand_id, Zeit, Aktionen |
+| Dateimanager   | Bilder, Icons als file_asset           |
+| Leads          | Formularauswertung                      |
+| Canva          | QR-Code, visuelle Vorlagen              |
+| CI-Preset      | Styling, Buttons, Farben                |
+| Vertragsmodul  | Preise, Dienstleistungen, Features      |
+| Kursplan-Modul | Separates Modul, eingebettet als Block  |
+| Gamification   | Verknüpft als Submodul                  |
+
+---
+
+## Cursor-Hinweis
+
+* Jede Landingpage = Sammlung von Blöcken (layout, preset, content_json)
+* Presets & Layouts via ENUM-Validierung und JSON-Struktur
+* Drag-n-Drop: position + block_type + preset steuern Darstellung
+* Dynamische Vorschlagslogik auf Basis der Inhalte
+
+---
+
+## Exportierbare Elemente
+
+* Vorschau als PNG/SVG
+* QR-Code für Canva
+* JSON-Export für Cursor/API
+
+
+
+
+

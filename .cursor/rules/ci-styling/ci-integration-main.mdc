@@ -8,7 +8,7 @@
 ```
 
 ---
-
+alwaysApply: true
 ## 🔄 Routing-Struktur
 
 ### **Pfad-Definitionen**
@@ -29,7 +29,7 @@
 ```
 
 ---
-
+alwaysApply: true
 ## 🎨 Design-Tokens & Styling
 
 ### **Farbsystem**
@@ -52,7 +52,7 @@
 ```
 
 ---
-
+alwaysApply: true
 ## 🚨 Error Handling & Logging
 
 ### **Console-Logging Strategie**
@@ -80,7 +80,7 @@
 ```
 
 ---
-
+alwaysApply: true
 ## 🔗 Integration mit anderen Modulen
 
 ### **Dateimanager-Verknüpfung**
@@ -99,7 +99,7 @@
 - Live-Vorschau mit CI-Einstellungen
 
 ---
-
+alwaysApply: true
 ## 📋 Validation Rules
 
 ### **Datenbank-Constraints**

@@ -1,0 +1,95 @@
+### Delete-Confirmation Modal
+
+#### **Modal-Design**
+```tsx
+- Overlay: Schwarzer Hintergrund (50% Transparenz)
+- Modal: Weißer Container mit abgerundeten Ecken
+- Icon-Bereich: Roter Kreis mit Trash-Icon
+- Titel: "Style löschen"
+- Warnung: "Diese Aktion kann nicht rückgängig gemacht werden"
+- Style-Name wird hervorgehoben
+```
+
+#### **Button-Bereich**
+```tsx
+- "Abbrechen": Grauer Button (schließt Modal)
+- "Löschen": Roter Button mit Loading-Spinner
+- Beide Buttons werden während Löschvorgang deaktiviert
+- Loading-Text: "Löschen..." mit Spinner
+```
+
+---
+
+## 🔧 API-Struktur (`app/lib/api/ci-templates.ts`)
+
+### **CITemplatesAPI Objekt**
+
+#### **CRUD-Operationen**
+```tsx
+- getAll(): Promise<CITemplate[]> - Alle Templates laden
+- getMasterCIs(): Promise<CITemplate[]> - Nur Master-CIs
+- getSubCIs(parentId): Promise<CITemplate[]> - Sub-CIs einer Master-CI
+- getById(id): Promise<CITemplate | null> - Einzelnes Template
+- create(template): Promise<CITemplate> - Neues Template erstellen
+- update(id, template): Promise<CITemplate> - Template aktualisieren
+- delete(id): Promise<void> - Template löschen (mit Logging)
+- duplicate(id, newName): Promise<CITemplate> - Template duplizieren
+```
+
+#### **Logo-Management**
+```tsx
+- getLogos(templateId): Promise<CILogo[]> - Logos eines Templates
+- addLogo(logo): Promise<CILogo> - Logo hinzufügen
+- updateLogo(id, logo): Promise<CILogo> - Logo aktualisieren
+- deleteLogo(id): Promise<void> - Logo löschen
+```
+
+### **CI-Logos Tabelle (`public.ci_logos`)**
+```sql
+CREATE TABLE public.ci_logos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ci_template_id UUID REFERENCES ci_templates(id) ON DELETE CASCADE,
+  logo_type TEXT CHECK (logo_type IN ('primary', 'white', 'black', 'favicon', 'action_special')),
+  file_asset_id UUID REFERENCES file_asset(id) ON DELETE SET NULL,
+  is_inherited BOOLEAN DEFAULT false,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+**Logo-Typen:**
+- `primary` - Haupt-Logo (farbig)
+- `white` - Logo für dunkle Hintergründe  
+- `black` - Logo für helle Hintergründe
+- `favicon` - Icon für Browser-Tabs
+- `action_special` - Spezial-Logo für Aktionen/Events
+
+#### **Einstellungs-Management**
+```tsx
+- getSettings(type?): Promise<CISetting[]> - System-Einstellungen
+- saveSetting(key, value): Promise<CISetting> - Einstellung speichern
+- updateSetting(type, key, value): Promise<CISetting> - Einstellung aktualisieren
+```
+
+#### **Utility-Funktionen**
+```tsx
+- getInheritedSettings(templateId): Promise<CITemplate> - Vererbung von Master-CI
+- calculateContrast(color1, color2): number - AA-Konformität prüfen
+- exportBrandGuidelines(templateId): Promise<Blob> - PDF-Export (geplant)
+```
+
+---
+
+## 🛠️ State Management
+
+### **Haupt-States**
+```tsx
+- styles: CITemplate[] - Alle Nicht-Master Designs
+- masterStyle: CITemplate | null - Das Master-Design
+- isLoading: boolean - Globaler Loading-Zustand
+- showDeleteModal: boolean - Modal-Sichtbarkeit
+- styleToDelete: CITemplate | null - Zu löschendes Design
+```
+
+### **Filter-States**
+```tsx

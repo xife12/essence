@@ -1,0 +1,77 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Mitglieder-Verträge & Status-System
+
+## Restlaufzeit-Ampelsystem
+
+- **Grün**: Mehr als 50% der Vertragslaufzeit verbleibend
+- **Gelb**: Weniger als 50% der Laufzeit und mehr als 30 Tage bis zur Kündigungsfrist
+- **Rot**: Innerhalb der Kündigungsfrist (30 Tage vor Vertragsende)
+- Die verbleibenden Tage werden nummerisch angezeigt
+- Info-Icon mit Tooltip erklärt die Bedeutung der Farben
+
+---
+
+## Mitgliedschaftszähler
+
+- Badge neben dem Namen zeigt die Anzahl der früheren Mitgliedschaften
+- **Blau**: Neukunde (erste Mitgliedschaft)
+- **Lila**: Bestandskunde (mindestens eine Verlängerung)
+- **Lila mit Zähler**: Langjähriger Kunde (mehrfache Verlängerungen)
+
+---
+
+## Vertragsstatus & Logik
+
+- **Erweiterter Vertragsstatus**:
+  - `active`: Laufender Vertrag (aktuell aktiv)
+  - `planned`: Zukünftiger Vertrag (Startdatum in der Zukunft)
+  - `cancelled`: Gekündigter Vertrag
+  - `suspended`: Temporär stillgelegter Vertrag
+  - `completed`: Abgelaufener Vertrag (automatische Erkennung)
+
+- **Automatische Statusüberprüfung**:
+  - Beim Laden werden `planned`-Verträge mit aktuellem/vergangenem Startdatum auf `active` gesetzt
+  - Abgelaufene Verträge werden automatisch auf `completed` gesetzt
+
+---
+
+## Vertragsverlängerung
+
+- **Intelligente Vertragsverlängerung**:
+  - Der alte Vertrag bleibt `active` bis zum Start des neuen Vertrags
+  - Enddatum des alten Vertrags wird automatisch auf den Tag vor dem Start des neuen Vertrags gesetzt
+  - Der neue Vertrag erhält den Status `planned`, wenn sein Startdatum in der Zukunft liegt
+
+- **Überlappungserkennung**:
+  - Bei Überschneidungen von Vertragslaufzeiten wird eine Warnung angezeigt
+  - Bestätigung der Überlappung passt das Enddatum des aktuellen Vertrags automatisch an
+
+---
+
+## Erweitertes Kündigungsformular
+
+- **Kündigungsarten**:
+  - Fristgerechte Kündigung (reguläres Vertragsende)
+  - Kündigung zu einem benutzerdefinierten Datum (individuelle Terminwahl)
+  - Fristlose Kündigung (sofortige Beendigung)
+- **Zusätzliche Felder**:
+  - "Kündigung zum" (Datumseingabe für fristgerechte Kündigung)
+  - Bei fristloser Kündigung wird das Enddatum auf das aktuelle Datum gesetzt
+  - Bei benutzerdefinierter Kündigung wird ein Datumsfeld zur Auswahl des Kündigungstermins angezeigt
+
+---
+
+## Vertragsaktionen
+
+- **Vertrag stilllegen**:
+  - Temporäres Aussetzen eines Vertrags
+  - Die Vertragslaufzeit wird automatisch um die Dauer der Stilllegung verlängert
+  - Begründung und Stilllegungsdatum werden erfasst
+
+- **Vertrag reaktivieren**:
+  - Vorzeitige Reaktivierung passt die Restlaufzeit automatisch an
+  - Das Enddatum wird basierend auf der tatsächlichen Stilllegungsdauer neu berechnet

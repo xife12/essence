@@ -25,7 +25,7 @@
 - Mitarbeiter sehen nur ihre eigenen Berechtigungen
 
 ---
-
+alwaysApply: true
 ## ⏱️ Stundenerfassung & Urlaub
 
 ### Tabelle: `staff_hours`
@@ -50,7 +50,7 @@
 - `StundenTabelle`: Monatsübersicht
 
 ---
-
+alwaysApply: true
 ## 🔗 Integration mit anderen Modulen
 
 ### Dateimanager-Modul:

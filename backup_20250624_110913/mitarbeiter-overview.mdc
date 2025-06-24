@@ -1,0 +1,72 @@
+---
+description: "Mitarbeiter-Verwaltung: Rollen, Berechtigungen und Dateimanager-Zugriffe"
+alias: "@mitarbeiter"
+globs:
+  - "app/(protected)/mitarbeiter/**"
+  - "components/mitarbeiter/**"
+  - "lib/api/staff.ts"
+---
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Mitarbeiterverwaltung (aktualisiert)
+
+## Tabellen: `public.staff`, `auth.users`, `public.staff_hours`, `public.staff_file_permissions`
+
+### Mitarbeiter-Basisdaten
+- `id`: UUID (FK → auth.users.id)
+- `rolle`: Enum: admin, studioleiter, mitarbeiter
+- `created_at`, `updated_at`
+- (aus auth.users): `email`, optional `first_name`, `last_name`
+
+## UI-Struktur: Tab-System
+Die Mitarbeiterverwaltung ist in **2 Tabs** unterteilt:
+
+### Tab 1: Übersicht
+- Tabelle: Name, E-Mail, Rolle, Letzter Login
+- Filterbar nach Rolle
+- Suchfunktion nach Name/E-Mail
+- Aktionen: Bearbeiten, Deaktivieren
+
+### Tab 2: Dateimanager-Rechte
+- **Admin-Oberfläche** zur Verwaltung der Dateimanager-Berechtigungen
+- Berechtigungsmatrix pro Mitarbeiter
+- Live-Updates der Berechtigungen
+- Rollenbasierte Sichtbarkeit
+
+## Mitarbeiter anlegen
+- Nur durch Admin oder Studioleiter
+- Modal mit Feldern:
+  - Vorname, Nachname
+  - E-Mail-Adresse
+  - Rolle (Dropdown)
+- Nach Speichern:
+  - Einladung via Supabase E-Mail-Auth
+  - Benutzer erscheint in Liste sobald bestätigt
+  - **Automatische Dateimanager-Berechtigungen** je nach Rolle
+
+## Rollen & Berechtigungen
+| Rolle       | Beschreibung                                           | Dateimanager-Rechte |
+|-------------|--------------------------------------------------------|---------------------|
+| Admin       | Vollzugriff auf alle Module + Systemeinstellungen      | Automatisch: all_files + Admin-Dateien |
+| Studioleiter | Darf Mitarbeiter verwalten (außer Admins), Stunden pflegen | Automatisch: all_files + Admin-Dateien |
+| Mitarbeiter | Nur Leads/Beratung bearbeiten, keine Adminfunktionen   | Konfigurierbar: none/own_files/all_files |
+
+## Sichtbarkeit & Sicherheit
+- Login via Supabase Auth (E-Mail + Passwort)
+- 2FA optional aktivierbar
+- Nur sichtbare Passwörter durch Rollenzuordnung
+- Deaktivieren statt Löschen (Auditfähig)
+- Historie bleibt bestehen
+
+---
+
+## 🔒 Dateimanager-Berechtigungsverwaltung
+
+### Tabelle: `staff_file_permissions`
+- `id`: UUID
+- `staff_id`: FK → staff (UNIQUE)
+- `upload_permission`: ENUM ('none', 'own_files', 'all_files')
+- `can_see_admin_files`: BOOLEAN

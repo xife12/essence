@@ -18,7 +18,7 @@
 ```
 
 ---
-
+alwaysApply: true
 ## 🎯 Master-CI System
 
 ### **Master-Design Konzept**
@@ -45,7 +45,7 @@
 ```
 
 ---
-
+alwaysApply: true
 ## 📱 Responsive Design
 
 ### **Breakpoints**
@@ -63,7 +63,7 @@
 - **Modal**: Responsive max-width mit mx-4 margin
 
 ---
-
+alwaysApply: true
 ## 🔍 Filter & Search Logic
 
 ### **Filter-Implementierung**

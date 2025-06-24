@@ -1,0 +1,505 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+alias: "@health-audit"
+description: Führt ein vollständiges Audit über Regeln, Projektstruktur, Navigation, DB und Umsetzungskonsistenz durch.
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - ".cursor/rules/Health-audit/*.mdc"
+  - "app/**/*"
+  - "supabase/schema.sql"
+---
+
+# 🧠 Intelligentes Health-Audit-System mit automatischer Rule-Synchronisation
+
+## 🎯 Mission
+**PRÄVENTIVE REGEL-KONSISTENZ** durch automatische Prüfung und direkte Integration von Änderungen:
+- **Vor jeder Modul-Arbeit**: Automatische `alwaysApply: true` Validierung
+- **Während der Entwicklung**: Live-Synchronisation von Code → Rules
+- **Nach Änderungen**: Direkte Einpflegung nicht dokumentierter Features
+
+---
+
+## 🚨 KRITISCHE PRÜFPUNKTE (IMMER ZUERST)
+
+### **1. alwaysApply-Compliance Check**
+**VOR JEDER MODUL-BEARBEITUNG AUTOMATISCH AUSFÜHREN:**
+
+```typescript
+const ALWAYS_APPLY_CHECK = {
+  async checkModuleRules(moduleName: string): Promise<ComplianceReport> {
+    const moduleRules = await findRulesForModule(moduleName);
+    const violations: AlwaysApplyViolation[] = [];
+    
+    for (const rule of moduleRules) {
+      const yamlHeader = await parseYAMLHeader(rule.path);
+      
+      if (!yamlHeader.alwaysApply) {
+        violations.push({
+          file: rule.path,
+          issue: 'MISSING_ALWAYS_APPLY',
+          severity: 'CRITICAL',
+          autoFix: () => addAlwaysApplyHeader(rule.path)
+        });
+      }
+      
+      if (!yamlHeader.alias || !yamlHeader.description) {
+        violations.push({
+          file: rule.path,
+          issue: 'INCOMPLETE_YAML_HEADER',
+          severity: 'HIGH',
+          autoFix: () => completeYAMLHeader(rule.path, moduleName)
+        });
+      }
+    }
+    
+    return {
+      moduleName,
+      compliant: violations.length === 0,
+      violations,
+      autoFixesAvailable: violations.filter(v => v.autoFix).length
+    };
+  }
+};
+```
+
+### **2. Modul-Arbeit Trigger-System**
+**AUTOMATISCHE PRÜFUNG BEI:**
+- Öffnen von Dateien in `/app/(protected)/[modulname]/`
+- Änderungen an API-Files in `/app/lib/api/[modulname].ts`
+- Neue Komponenten in `/app/components/[modulname]/`
+- Supabase-Schema-Änderungen mit Modul-Bezug
+
+### **3. Sofortige Regel-Korrektur**
+**BEI VIOLATIONS:**
+```typescript
+const AUTO_FIX_SYSTEM = {
+  async fixAlwaysApplyViolations(violations: AlwaysApplyViolation[]): Promise<void> {
+    for (const violation of violations) {
+      switch (violation.issue) {
+        case 'MISSING_ALWAYS_APPLY':
+          await addToYAMLHeader(violation.file, 'alwaysApply: true');
+          break;
+          
+        case 'INCOMPLETE_YAML_HEADER':
+          await generateCompleteHeader(violation.file);
+          break;
+          
+        case 'WRONG_GLOBS_PATTERN':
+          await fixGlobsPattern(violation.file);
+          break;
+      }
+      
+      console.log(`✅ AUTO-FIX: ${violation.file} - ${violation.issue}`);
+    }
+  }
+};
+```
+
+---
+
+## 🔄 LIVE-SYNCHRONISATION SYSTEM
+
+### **Code-zu-Rule-Monitoring**
+**ERKENNT UND INTEGRIERT AUTOMATISCH:**
+
+```typescript
+const LIVE_SYNC_MONITOR = {
+  // Neue Komponenten automatisch dokumentieren
+  async detectNewComponents(moduleName: string): Promise<ComponentChange[]> {
+    const moduleComponents = await scanComponents(`app/components/${moduleName}/`);
+    const documentedComponents = await extractComponentsFromRules(moduleName);
+    
+    const newComponents = moduleComponents.filter(
+      comp => !documentedComponents.includes(comp.name)
+    );
+    
+    for (const newComp of newComponents) {
+      await integrateComponentIntoRule(moduleName, newComp);
+    }
+    
+    return newComponents;
+  },
+  
+  // API-Änderungen direkt in Rules einpflegen
+  async syncAPIChanges(moduleName: string): Promise<APIChange[]> {
+    const apiFile = `app/lib/api/${moduleName}.ts`;
+    const currentAPI = await analyzeAPIStructure(apiFile);
+    const documentedAPI = await extractAPIFromRules(moduleName);
+    
+    const changes = compareAPIStructures(currentAPI, documentedAPI);
+    
+    for (const change of changes) {
+      await updateAPIInRule(moduleName, change);
+    }
+    
+    return changes;
+  },
+  
+  // Neue Features automatisch dokumentieren
+  async detectUndocumentedFeatures(moduleName: string): Promise<FeatureGap[]> {
+    const codeFeatures = await extractFeaturesFromCode(moduleName);
+    const ruleFeatures = await extractFeaturesFromRules(moduleName);
+    
+    const undocumented = codeFeatures.filter(
+      feature => !ruleFeatures.some(rf => rf.matches(feature))
+    );
+    
+    for (const feature of undocumented) {
+      await addFeatureToRule(moduleName, feature);
+    }
+    
+    return undocumented;
+  }
+};
+```
+
+### **Automatische Rule-Updates**
+**DIREKTE INTEGRATION OHNE MANUAL-INTERVENTION:**
+
+```typescript
+const RULE_INTEGRATION_ENGINE = {
+  async integrateComponentIntoRule(moduleName: string, component: Component): Promise<void> {
+    const ruleFile = await findUIRuleForModule(moduleName);
+    const componentSection = generateComponentDocumentation(component);
+    
+    await appendToRuleSection(ruleFile, 'UI-Komponenten', componentSection);
+    
+    console.log(`✅ INTEGRATED: ${component.name} → ${ruleFile}`);
+  },
+  
+  async updateAPIInRule(moduleName: string, apiChange: APIChange): Promise<void> {
+    const ruleFile = await findAPIRuleForModule(moduleName);
+    
+    switch (apiChange.type) {
+      case 'NEW_ENDPOINT':
+        await addEndpointToRule(ruleFile, apiChange.endpoint);
+        break;
+      case 'MODIFIED_TYPES':
+        await updateTypesInRule(ruleFile, apiChange.types);
+        break;
+      case 'NEW_VALIDATION':
+        await addValidationToRule(ruleFile, apiChange.validation);
+        break;
+    }
+    
+    console.log(`✅ API-UPDATE: ${apiChange.type} → ${ruleFile}`);
+  },
+  
+  async addFeatureToRule(moduleName: string, feature: Feature): Promise<void> {
+    const ruleFile = await findMainRuleForModule(moduleName);
+    const featureDocumentation = generateFeatureDocumentation(feature);
+    
+    await insertIntoRuleSection(ruleFile, 'Features', featureDocumentation);
+    
+    console.log(`✅ FEATURE-ADD: ${feature.name} → ${ruleFile}`);
+  }
+};
+```
+
+---
+
+## 📊 MODUL-SPEZIFISCHE HEALTH-CHECKS
+
+### **Vertragsarten-V2 Spezial-Monitoring**
+```typescript
+const VERTRAGSARTEN_MONITOR = {
+  async checkV2Implementation(): Promise<HealthReport> {
+    return {
+      alwaysApplyCompliance: await checkAllV2RulesForAlwaysApply(),
+      mockDataConsistency: await validateMockDataDocumentation(),
+      versioningSystemDocs: await checkVersioningSystemRules(),
+      crisisRecoveryIntegration: await validateCrisisRecoveryDocumentation(),
+      performanceMetrics: await checkPerformanceDocumentation()
+    };
+  },
+  
+  async autoFixV2Issues(issues: V2Issue[]): Promise<void> {
+    for (const issue of issues) {
+      switch (issue.type) {
+        case 'MISSING_MOCK_DATA_DOCS':
+          await addMockDataDocumentation(issue.ruleFile);
+          break;
+        case 'OUTDATED_PERFORMANCE_METRICS':
+          await updatePerformanceMetrics(issue.ruleFile);
+          break;
+        case 'MISSING_CRISIS_RECOVERY_STATUS':
+          await addCrisisRecoveryStatus(issue.ruleFile);
+          break;
+      }
+    }
+  }
+};
+```
+
+### **Formbuilder Health-Monitoring**
+```typescript
+const FORMBUILDER_MONITOR = {
+  async checkImplementationStatus(): Promise<HealthReport> {
+    return {
+      fieldTypesDocumented: await validateFieldTypesInRules(),
+      apiEndpointsUpdated: await checkFormAPIDocumentation(),
+      componentStructure: await validateFormComponentRules(),
+      validationRules: await checkValidationDocumentation()
+    };
+  }
+};
+```
+
+---
+
+## 🚀 AUTOMATISCHER WORKFLOW
+
+### **Pre-Work Health-Check (IMMER AUSFÜHREN)**
+```typescript
+const PRE_WORK_CHECK = async (moduleName: string) => {
+  console.log(`🔍 PRE-WORK HEALTH-CHECK: ${moduleName}`);
+  
+  // 1. alwaysApply Compliance prüfen
+  const compliance = await ALWAYS_APPLY_CHECK.checkModuleRules(moduleName);
+  if (!compliance.compliant) {
+    console.log(`🚨 COMPLIANCE VIOLATIONS DETECTED: ${compliance.violations.length}`);
+    await AUTO_FIX_SYSTEM.fixAlwaysApplyViolations(compliance.violations);
+    console.log(`✅ AUTO-FIXED: All compliance violations resolved`);
+  }
+  
+  // 2. Rule-Code-Sync prüfen
+  const syncStatus = await checkRuleCodeSync(moduleName);
+  if (syncStatus.outOfSync) {
+    console.log(`🔄 SYNC REQUIRED: ${syncStatus.gaps.length} gaps detected`);
+    await LIVE_SYNC_MONITOR.syncAllChanges(moduleName);
+    console.log(`✅ SYNCED: All changes integrated into rules`);
+  }
+  
+  // 3. Module-spezifische Checks
+  const moduleHealth = await runModuleSpecificChecks(moduleName);
+  if (moduleHealth.issues.length > 0) {
+    await runModuleAutoFixes(moduleName, moduleHealth.issues);
+  }
+  
+  console.log(`✅ PRE-WORK CHECK COMPLETE: ${moduleName} ready for development`);
+};
+```
+
+### **During-Work Monitoring (KONTINUIERLICH)**
+```typescript
+const DURING_WORK_MONITOR = {
+  async watchForChanges(moduleName: string): Promise<void> {
+    // File System Watcher für Live-Sync
+    const watcher = watchFiles(`app/**/${moduleName}/**/*`);
+    
+    watcher.on('change', async (filePath) => {
+      if (isComponentFile(filePath)) {
+        await LIVE_SYNC_MONITOR.detectNewComponents(moduleName);
+      }
+      
+      if (isAPIFile(filePath)) {
+        await LIVE_SYNC_MONITOR.syncAPIChanges(moduleName);
+      }
+      
+      if (isNewFeature(filePath)) {
+        await LIVE_SYNC_MONITOR.detectUndocumentedFeatures(moduleName);
+      }
+    });
+  }
+};
+```
+
+### **Post-Work Validation (NACH CHANGES)**
+```typescript
+const POST_WORK_VALIDATION = async (moduleName: string) => {
+  console.log(`🔍 POST-WORK VALIDATION: ${moduleName}`);
+  
+  // 1. Finale Rule-Konsistenz prüfen
+  const finalCompliance = await ALWAYS_APPLY_CHECK.checkModuleRules(moduleName);
+  if (!finalCompliance.compliant) {
+    throw new Error(`POST-WORK COMPLIANCE FAILED: ${moduleName}`);
+  }
+  
+  // 2. Vollständige Dokumentation validieren
+  const docCompleteness = await validateDocumentationCompleteness(moduleName);
+  if (docCompleteness.missing.length > 0) {
+    await autoCompleteDocumentation(moduleName, docCompleteness.missing);
+  }
+  
+  // 3. Health-Score berechnen
+  const healthScore = await calculateModuleHealthScore(moduleName);
+  
+  console.log(`✅ POST-WORK COMPLETE: ${moduleName} Health Score: ${healthScore}/100`);
+  
+  return {
+    moduleName,
+    healthScore,
+    compliant: finalCompliance.compliant,
+    fullyDocumented: docCompleteness.missing.length === 0
+  };
+};
+```
+
+---
+
+## 📋 HEALTH-AUDIT REPORT GENERATION
+
+### **Automatischer Report nach jedem Audit**
+```typescript
+const REPORT_GENERATOR = {
+  async generateHealthReport(moduleName?: string): Promise<HealthReport> {
+    const timestamp = new Date().toISOString().split('T')[0];
+    const reportPath = `.cursor/rules/audit/health-reports/${timestamp}_health-audit-${moduleName || 'all'}.md`;
+    
+    const report = {
+      timestamp,
+      module: moduleName || 'ALL_MODULES',
+      compliance: await checkAllModulesCompliance(),
+      syncStatus: await checkAllModulesSyncStatus(),
+      healthScores: await calculateAllHealthScores(),
+      autoFixesApplied: await getAutoFixesLog(),
+      recommendations: await generateRecommendations()
+    };
+    
+    await writeMarkdownReport(reportPath, report);
+    
+    return report;
+  }
+};
+```
+
+---
+
+## 🎯 ANWENDUNG IN DER PRAXIS
+
+### **Workflow für Modul-Bearbeitung:**
+1. **Trigger**: User beginnt Arbeit an Modul (z.B. "Vertragsarten")
+2. **Auto-Check**: `PRE_WORK_CHECK("vertragsarten")` läuft automatisch
+3. **Auto-Fix**: Alle Compliance-Violations werden sofort behoben
+4. **Live-Monitoring**: Während der Arbeit kontinuierliche Synchronisation
+5. **Auto-Integration**: Neue Features werden direkt in Rules eingetragen
+6. **Post-Validation**: Nach Abschluss finale Konsistenz-Prüfung
+
+### **Beispiel-Trigger für Vertragsarten:**
+```bash
+# Automatisch beim Öffnen von Vertragsarten-Dateien:
+@health-audit vertragsarten --pre-work-check
+# → Prüft alwaysApply, behebt Violations, synct Code→Rules
+
+# Während der Entwicklung:
+@health-audit vertragsarten --live-monitor
+# → Kontinuierliche Integration neuer Änderungen
+
+# Nach Abschluss:
+@health-audit vertragsarten --post-validation
+# → Finale Konsistenz-Prüfung und Health-Score
+```
+
+---
+
+## 🔗 INTEGRATION MIT SYSTEM-HEALTH-ORCHESTRATOR
+
+Das Health-Audit-System ist vollständig in den System-Health-Orchestrator integriert und wird automatisch bei allen `@system-health` Aufrufen mit ausgeführt.
+
+> **ZIEL**: Null-Toleranz für `alwaysApply: false` und 100% automatische Synchronisation zwischen Code und Rules ohne manuelle Intervention.
+
+# 🧠 Vollständiges Cursor Audit: Projekt- & Regelprüfung
+
+Dieses Audit beschreibt einen umfassenden Prüfprozess für das gesamte Projekt (nicht nur `.mdc`-Dateien). Es soll regelmäßig oder gezielt ausgeführt werden können und deckt sowohl strukturelle Probleme, doppelte Features, Regel-Konflikte als auch UI-Fehler und verwaiste Komponenten ab.
+
+## 📌 Ziel
+- Duplikate, verwaiste Regeln, Routingfehler
+- DB-Struktur und Regelabgleich
+- Modul-Duplikate und UI-Inkonsistenzen
+- Differenzanalyse: Regelinhalt vs. Implementierung
+
+## ✅ Prüfbereiche
+
+### 1. `.mdc`-Rules
+- globs, description, alias vorhanden?
+- Länge > 300 Zeilen → split?
+- Richtiger Pfad?
+- Mehrthemen-Regeln? (DB + UI gemischt)
+
+### 2. Navigation
+- Navigationspunkte ohne Regel?
+- Menü vs. Route vs. Regel verknüpft?
+
+### 3. Komponenten
+- doppelte Komponenten?
+- unbenutzte Komponenten?
+- mehrfach referenzierte Libraries?
+
+### 4. Datenbankabgleich
+- Tabellen ohne `.mdc`-Regel?
+- RLS / FK / ENUM stimmen?
+- Felder in Regel ≠ Supabase?
+
+### 5. Regel/Umsetzungsabgleich
+- Was steht in der Regel, aber fehlt im Code?
+- Was ist im Code, aber in keiner Regel?
+- Was ist abgeschlossen, aber in Regel nicht finalisiert?
+
+# Modul-Verknüpfungsprüfung
+
+Für jedes Modul `modules/*.mdc`:
+→ Extrahiere `dependencies` (andere Module)
+→ Prüfe Existenz und Konsistenz der referenzierten Module
+→ Logge Fehler in `audits/dependencies.log.md`
+→ Erzeuge Task-Ergänzung in `tasks/<modulename>.md` bei Fehler
+
+## 📝 Beispielreport
+
+```markdown speichern in .cursor/rules/audit/Health-audit/TT_MM_health-audit-report.md
+# 🔍 MemberCore Health Audit Report – <DATUM>
+# 🔍 MemberCore Vollaudit – <DATUM>
+
+## Zusammenfassung
+- Regeln geprüft: 24
+- Komponenten gescannt: 183
+- Routen geprüft: 39
+- Datenbanktabellen: 18
+- Probleme gefunden: 12
+
+---
+
+## 📄 Doppelte Komponenten
+- `LandingPageHeader.tsx` vs `LandingPageHeaderV2.tsx`
+- `EmailSettings.tsx` vs `EmailSetup.tsx`
+
+## ❗️ Verwaiste Regeln
+- `beratung-ui.mdc` wird nirgends verwendet
+
+## ⚠️ Navigation ohne Regelbindung
+- `kursplan/neu` ist im Menü, aber keine Regel `kursplan-ui.mdc`
+
+## 🧬 DB-Regelkonflikte
+- Tabelle `contract_bonuses` fehlt in Rules
+- Regel `vertragstypen-db.mdc` referenziert Spalte `bonus_id`, die in Supabase nicht existiert
+
+## 🔄 Regel-Implementierungs-Diskrepanz
+- `formular-mitgliedschaft-ui.mdc` beschreibt 5 Felder – Komponente `Mitgliedschaftsformular.tsx` hat nur 2
+- `PremiumBanner.tsx` wird verwendet, aber ist in keiner `.mdc` definiert
+
+## 🧠 Agent-Aufgaben
+- [ ] 📌 `EmailSettings.tsx` doppelt vorhanden – was ist gültig?
+- [ ] 📌 `kursplan/neu` ist verlinkt, aber Regel fehlt → gemeinsam definieren?
+- [ ] 📌 Tabelle `contract_bonuses` → neue Regel anlegen?
+- [ ] 📌 `PremiumBanner.tsx` ohne Regel → Agent fragt: "Soll ich eine Regel erzeugen?"
+...
+
+## 🔄 Regel-Implementierungs-Diskrepanz
+- `formular-mitgliedschaft-ui.mdc` beschreibt 5 Felder – Komponente hat nur 2
+- `PremiumBanner.tsx` ist im Code, aber ohne `.mdc`-Definition
+
+Beispiel-Dateienstruktur nach Umsetzung:
+
+/modules/*Modulname*/
+  vertragsmodul.mdc
+  *modulname*/tasks/
+    task_vertragsmodul.md
+  audits/
+    vertragsmodul.mdc
+/rules/templates/
+  module_task.md
+

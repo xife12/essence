@@ -1,5 +1,5 @@
 ---
-
+alwaysApply: true
 ## 🎯 Performance Optimierungen
 
 ### **Loading-Strategien**
@@ -15,5 +15,5 @@
 - Minimale Datenübertragung durch selective Queries
 
 ---
-
+alwaysApply: true
 Dieses vollständig implementierte CI-Styling-Modul bietet eine professionelle, benutzerfreundliche Oberfläche für Corporate Identity Management mit robusten Backend-Funktionen und modernem UI/UX-Design.

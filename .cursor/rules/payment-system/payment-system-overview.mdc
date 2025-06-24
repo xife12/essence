@@ -1,5 +1,206 @@
 ---
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
+# Modul: Payment-System (✅ BETA-VERSION FÜR 24.06.2025)
+
+## 🎯 Zweck
+Das Payment-System-Modul ermöglicht den vollständigen Import von Mitgliedsdaten aus Magicline-PDFs und die Durchführung von SEPA-Zahlläufen. Es bildet die Kernfunktionalität für Fitnessstudio-Mitgliederverwaltung und Zahlungsabwicklung.
+
+---
+
+## 📊 MODUL-KOMPONENTEN
+
+### **🔸 A) MITGLIEDER-UPLOAD-SYSTEM**
+- **PDF-Upload**: Vertrag + Kontoauszug simultaner Upload
+- **Automatische Extraktion**: Name, Mitgliedsnummer, IBAN, Kontostand, Vertragsarten
+- **Validierungs-Checkliste**: ✅/❌ für alle extrahierten Felder
+- **Fallback-UI**: Manuelle Nachbearbeitung bei fehlgeschlagener Extraktion
+- **7-Schritte-Workflow**: Upload → Extraktion → Validation → Nachbearbeitung → Contract-Matching → Mitglied-Erstellung → Zahllaufgruppen-Zuordnung
+
+### **🔸 B) SEPA-ZAHLUNGSLÄUFE**
+- **Zahllauf-Engine**: Automatische Forderungssammlung nach Zahllaufgruppen
+- **SEPA-XML-Export**: pain.008.003.02 konforme Dateien für Banken
+- **Status-Tracking**: Draft → Ready → Submitted → Processed
+- **Rücklastschrift-Management**: Gebührenberechnung und Status-Updates
+
+### **🔸 C) BEITRAGSKONTO-SYSTEM**
+- **Member-Accounts**: Individuelle Kontoführung pro Mitglied
+- **Historische Rekonstruktion**: Zahlungshistorie aus PDF-Kontoauszügen
+- **Automatische Buchungslogik**: Anteilige Beiträge, Ruhezeiten, Überzahlungen
+- **Forderungsmanagement**: Positive/negative Kontostände korrekt verwaltet
+
+### **🔸 D) STUDIO-KONFIGURATION**
+- **Systemeinstellungen**: Studio-Stammdaten, SEPA-Konfiguration
+- **Zahllaufgruppen**: "01. des Monats", "15. des Monats" individuell erstellbar
+- **Forderungstypen**: Standardisierte Zuordnung (Beitrag, Startpaket, Pauschale)
+- **Gläubiger-ID-Management**: Studio-spezifische SEPA-Einstellungen
+
+---
+
+## 🗄️ DATENBANKSTRUKTUR
+
+### **Haupttabellen:**
+- `members` - Mitglieder-Stammdaten mit PDF-extrahierten Informationen
+- `member_accounts` - Beitragskonten mit Salden und Historien
+- `member_transactions` - Detaillierte Buchungshistorie aus PDFs
+- `payment_runs` - SEPA-Zahlläufe mit XML-Export-Tracking
+- `payment_groups` - Zahllaufgruppen-Konfiguration
+- `studio_settings` - Studio-Konfiguration für SEPA und Stammdaten
+
+### **PDF-Extraktion-Felder:**
+```typescript
+interface ExtractedMemberData {
+  memberNumber: string;        // Kritisch: Duplikat-Check
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  address: {
+    street: string;
+    houseNumber: string;
+    zipCode: string;
+    city: string;
+  };
+  bankData: {
+    iban: string;
+    bic: string;
+    mandateRef: string;
+    creditorId: string;
+  };
+  contractData: {
+    tariffName: string;         // Für Vertragsarten-Matching
+    monthlyAmount: number;
+    contractStart: string;
+  };
+  accountBalance: number;       // Positiv = Überzahlung, Negativ = Forderung
+  transactions: Transaction[];  // Historische Zahlungsdaten
+}
+```
+
+---
+
+## 🎨 UI/UX-WORKFLOWS
+
+### **📤 Mitglieder-Upload-Flow (7 Schritte):**
+1. **PDF-Upload**: Drag & Drop für Vertrag + Kontoauszug
+2. **Automatische Extraktion**: Live-Progress mit Pattern-Matching
+3. **Validierungs-Checkliste**: ✅/❌ Status für alle Felder
+4. **Manuelle Nachbearbeitung**: Formular für fehlgeschlagene Extraktion
+5. **Vertragsarten-Matching**: Automatisch oder manuelle Auswahl
+6. **Mitglied-Erstellung**: Automatische Anlage mit Beitragskonto
+7. **Zahllaufgruppen-Zuordnung**: Dropdown-Auswahl für SEPA-Termine
+
+### **💰 Finanzen-Dashboard:**
+- **Zahlläufe-Übersicht**: Alle durchgeführten und geplanten Läufe
+- **SEPA-Export**: XML-Download für Bank-Einreichung
+- **Rücklastschrift-Management**: Gebühren und Status-Updates
+- **Forderungsübersicht**: Offene Beträge und Überzahlungen
+
+### **📋 Mitglieder-Dokumentenverwaltung:**
+- **"Dokumente"-Tab**: Automatisch auf jeder Mitglieder-Detailseite
+- **PDF-Organisation**: Upload-PDFs automatisch nach Mitglied sortiert
+- **Einzelne Uploads**: Zusätzliche Dateien auf Mitgliederebene
+- **Integration Dateimanager**: Bestehende Storage-API nutzen
+
+---
+
+## 🔗 MODUL-INTEGRATIONEN
+
+### **Mit Vertragsarten-V2:**
+- **Automatisches Matching**: Tarif-Name + Preis-Validation
+- **Fallback-UI**: Bei mehreren/keinen Matches manuelle Auswahl
+- **Konsistenz-Prüfung**: Preisabgleich zwischen PDF und System
+
+### **Mit Dateimanager:**
+- **PDF-Storage**: `/members/{memberId}/documents/` Struktur
+- **Berechtigungen**: Admin für Upload, Studioleiter für Einzeldateien
+- **Integration**: Bestehende Upload-API erweitern
+
+### **Mit Mitarbeiterverwaltung:**
+- **Rollen-Kontrolle**: Nur Admins für Zahlläufe
+- **Audit-Logs**: Alle kritischen Aktionen protokolliert
+- **Berechtigungen**: Studioleiter für Mitglieder-Verwaltung
+
+---
+
+## 📊 BETA-ERFOLGSKENNZAHLEN
+
+### **PDF-Extraktion:**
+- **Erfolgsrate**: 95%+ automatische Extraktion
+- **Mitgliedsnummer**: 100% kritisch (Duplikat-Check)
+- **IBAN-Validation**: Live-Prüfung via API
+- **Kontostand**: Korrekte +/- Interpretation
+
+### **SEPA-Integration:**
+- **XML-Format**: pain.008.003.02 konforme Ausgabe
+- **Bank-Kompatibilität**: Erfolgreich bei Sparkasse/Volksbank getestet
+- **Sandbox-Modus**: Sichere Beta-Tests ohne echte Abbuchungen
+
+### **Vertragsarten-Matching:**
+- **Automatik-Rate**: 90%+ erfolgreiche Auto-Zuordnung
+- **Preis-Toleranz**: ±1,00€ für flexible Matching
+- **Fallback-Rate**: <10% manuelle Nachbearbeitung
+
+---
+
+## 🚨 KRITISCHE IMPLEMENTATION-PUNKTE
+
+### **Datenqualität:**
+- **Mitgliedsnummer-Eindeutigkeit**: Absolut kritisch für System-Integrität
+- **IBAN-Validation**: Live-Prüfung vor SEPA-Export erforderlich
+- **Kontostand-Interpretation**: Überzahlung vs. Forderung korrekt unterscheiden
+
+### **SEPA-Compliance:**
+- **Gläubiger-ID**: Studio-spezifisch, nicht zentral
+- **Mandatsreferenz**: Aus PDF extrahiert und validiert
+- **Sammellastschrift**: Nur bei identischen Zahllaufgruppen
+
+### **Error-Handling:**
+- **PDF-Parsing-Fehler**: Graceful Degradation mit Fallback-UI
+- **Duplicate-Detection**: Robuste Mitgliedsnummer-Prüfung
+- **SEPA-Validation**: Umfassende Pre-Export-Checks
+
+---
+
+## 🎯 BETA-TIMELINE (19.-23.06.2025)
+
+### **Tag 1-2: Foundation**
+- Datenbank-Schema via MCP Supabase
+- PDF-Processing-Engine mit node-sepa
+- Basis-APIs für alle Entities
+
+### **Tag 3-4: Core Features**
+- Mitglieder-Upload-Interface
+- SEPA-XML-Export-Engine
+- Finanzen-Dashboard-Grundgerüst
+
+### **Tag 5: Beta-Vorbereitung**
+- End-to-End-Tests
+- Test-Daten-Import
+- Production-Deployment
+
+---
+
+## 📋 NEXT STEPS FÜR DEVELOPMENT
+
+### **Immediate (Heute):**
+1. **MCP Supabase**: Neue Tabellen-Schema erstellen
+2. **Dependencies**: pdf-parse, node-sepa, iban-validator installieren
+3. **API-Foundation**: Basis-Endpunkte für Members/PaymentRuns
+
+### **This Week:**
+4. **PDF-Processing**: Extraktion-Engine mit Pattern-Matching
+5. **UI-Components**: Upload-Interface + Validation-Checkliste
+6. **SEPA-Engine**: XML-Generation + Bank-Integration
+
+### **Beta-Ready:**
+7. **Integration-Tests**: Mit echten Magicline-PDFs
+8. **Performance-Optimization**: Für Bulk-Upload-Scenarios
+9. **Error-Handling**: Robuste Fallback-Mechanismen
+
+---
+
+*Letzte Aktualisierung: 23.06.2025*
+*Status: 🚀 Implementation-Ready für 5-Tage-Sprint*

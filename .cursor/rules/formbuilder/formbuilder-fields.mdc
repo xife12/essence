@@ -2,7 +2,7 @@
 - ✅ **Selection Highlighting** - Aktives Feld visuell hervorgehoben
 
 ---
-
+alwaysApply: true
 ## ✅ FELDTYPEN-IMPLEMENTIERUNG (18+ FELDER)
 
 ### **Standard Input Fields** ✅
@@ -35,7 +35,7 @@
 - **pricing_calculator** - Interaktive Preisberechnung
 
 ---
-
+alwaysApply: true
 ## ✅ ANALYTICS & AUSWERTUNG (IMPLEMENTIERT)
 
 ### **KPI-Dashboard** (`/formulare/[id]/auswertung`)
@@ -56,5 +56,5 @@
 - ✅ **JSONB-Handling** - Korrekte Konvertierung von Submission-Daten
 
 ---
-
+alwaysApply: true
 ## ✅ RESPONSIVE DESIGN (IMPLEMENTIERT)

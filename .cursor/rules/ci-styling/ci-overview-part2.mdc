@@ -9,7 +9,7 @@
 | created_at  | TIMESTAMP| Erstellungszeitpunkt         |
 
 ---
-
+alwaysApply: true
 ## 🎨 UI/UX Implementierung
 
 ### Dashboard-Layout (`app/(protected)/ci-styling/page.tsx`)

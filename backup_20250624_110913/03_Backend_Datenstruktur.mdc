@@ -1,0 +1,101 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+alias: "@backend-datenstruktur"
+description: "Backend-Logik: Rollenmodell, Auth, Validierungen und Systemarchitektur"
+globs:
+  - "app/lib/**/*"
+  - "middleware.ts"
+  - "supabase/**/*"
+---
+
+# Backend-Logik und Datenstruktur
+
+## Rollenmodell
+
+| Rolle        | Berechtigung                                                                 |
+|--------------|------------------------------------------------------------------------------|
+| Admin        | Vollzugriff auf alle Module und Systemeinstellungen                         |
+| Studioleiter | Darf Mitarbeiter verwalten, Passwörter anlegen, Stunden erfassen, keine Systemeinstellungen |
+| Mitarbeiter  | Kann Leads & Beratungen bearbeiten, eigene Stunden einsehen und erfassen     |
+
+---
+
+## Authentifizierung
+
+- Supabase Auth mit E-Mail + Passwort
+- Optional: Zwei-Faktor-Authentifizierung (2FA)
+- Nur eingeloggte Nutzer erhalten Zugriff auf geschützte Routen
+- Automatischer Logout bei Inaktivität (token refresh handling)
+
+---
+
+## Validierungen (global)
+
+- Keine parallelen aktiven Mitgliedschaften erlaubt
+- Vertragsart muss aktiv sein
+- Laufzeit muss zur Vertragsart passen
+- Nur berechtigte Rollen dürfen kritische Aktionen ausführen  
+  z. B. Passwort löschen, Mitarbeiter deaktivieren, Rechtematrix ändern
+
+---
+
+## Prozesse
+
+### Lead-Abschluss
+
+- Statuswechsel eines Leads auf `converted` erzeugt automatisch ein neues Mitglied
+- Optional: vorgeschlagene Vertragsart aus Beratung übernehmen
+
+### Vertragsverlängerung
+
+- Verlängerung eines Vertrags erzeugt:
+  - Neue Mitgliedschaft mit Bezug (`predecessor_id`) zur vorherigen
+  - Alte Mitgliedschaft wird auf `cancelled` gesetzt (wirksam ab neuem Startdatum)
+
+### Beratungsgespräche
+
+- Gespräche sind Leads zugeordnet
+- Ergebnis `contract_signed` kann direkt Mitglied erzeugen
+- `planned_contract_type_id` kann automatisch vorbelegt werden
+
+---
+
+## ⏱️ Stundenerfassung & Rechtestruktur
+
+### Tabelle: `public.staff_hours`
+
+| Spalte     | Typ       | Beschreibung                             |
+|------------|-----------|------------------------------------------|
+| id         | UUID      | Primärschlüssel                          |
+| staff_id   | UUID      | FK → staff                               |
+| date       | DATE      | Datum der Arbeitszeit                    |
+| hours      | DECIMAL   | Gearbeitete Stunden                      |
+| reason     | TEXT      | Optional: BGM-Termin, Urlaub, Krankheit  |
+| created_at | TIMESTAMP | Zeitstempel der Erfassung                |
+
+### Rechte und Verhalten
+
+- Mitarbeiter dürfen **nur eigene Stunden** erfassen und einsehen
+- Studioleiter/Admin können **alle Stunden einsehen und bearbeiten**
+- Urlaub & Krankheit können als `reason` markiert oder über eigene Felder abgebildet werden
+
+### Validierung
+
+- Stunden dürfen nur **tageweise** erfasst werden
+- Kein Überschreiben vergangener Monate ohne Adminrechte
+- Monatslimit (optional) kann geprüft werden
+
+---
+
+## Sicherheit
+
+- Jede API ist durch Supabase Policies abgesichert
+- Supabase RLS (Row-Level-Security) trennt Zugriffe je nach Rolle
+- Schreibrechte sind immer rollen- und ownership-basiert abgesichert
+
+##Datenbankstruktur siehe [datenbankstruktur.mdc](mdc:.cursor/rules/datenbankstruktur.mdc)
+

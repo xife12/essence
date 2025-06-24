@@ -1,0 +1,259 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Audit: Kursplan-Modul Implementation
+
+## 📋 Prüf-Checkliste
+
+### ✅ **Phase 1: Datenbank & Backend (Kritisch)**
+
+#### Datenbank-Migration
+- [ ] **course_categories** Tabelle existiert
+  - [ ] Alle Felder gemäß Schema (id, name, description, icon, color, sort_order, is_visible, timestamps)
+  - [ ] UUID Primary Key mit gen_random_uuid()
+  - [ ] NOT NULL Constraints auf name, is_visible
+  - [ ] Default-Werte für sort_order (0) und is_visible (true)
+
+- [ ] **course_rooms** Tabelle existiert
+  - [ ] Alle Felder gemäß Schema (id, name, location, max_capacity, description, is_active, category_ids, timestamps)
+  - [ ] category_ids als UUID[] Array-Type
+  - [ ] max_capacity > 0 Constraint
+  - [ ] Default is_active = true
+
+- [ ] **courses** Tabelle existiert
+  - [ ] Alle Felder gemäß Schema (12 Spalten + timestamps)
+  - [ ] Foreign Key Constraints zu course_categories, staff, course_rooms
+  - [ ] max_participants >= current_participants Constraint
+  - [ ] Default-Werte für is_public (true), is_special (false)
+
+- [ ] **course_schedules** Tabelle existiert
+  - [ ] Alle Felder gemäß Schema
+  - [ ] Foreign Key zu courses mit ON DELETE CASCADE
+  - [ ] day_of_week zwischen 0-6 Constraint
+  - [ ] start_time < end_time Constraint
+  - [ ] Unique Index auf (course_id, day_of_week, start_time) für reguläre Kurse
+
+#### RLS Policies
+- [ ] Alle Tabellen haben Row Level Security aktiviert
+- [ ] Read-Policies für alle Rollen (public courses für alle, private für berechtigte)
+- [ ] Write-Policies nur für Admin/Studioleiter
+- [ ] Trainer können nur eigene Kurse einsehen/bearbeiten
+
+---
+
+### ✅ **Phase 2: API-Layer (Kritisch)**
+
+#### API-Dateien existieren:
+- [ ] `lib/api/courses.ts` - Vollständige CRUD-Operationen
+- [ ] `lib/api/courseCategories.ts` - Kategorien-Verwaltung
+- [ ] `lib/api/courseRooms.ts` - Räume-Verwaltung  
+- [ ] `lib/api/courseSchedules.ts` - Zeitplan-Management
+
+#### API-Funktionen implementiert:
+```typescript
+// courses.ts
+- [ ] getAll(filters?) → Course[]
+- [ ] getById(id) → Course
+- [ ] getWeekSchedule(date) → WeekSchedule
+- [ ] create(data) → Course
+- [ ] update(id, data) → Course
+- [ ] delete(id) → void
+- [ ] checkConflicts(scheduleData) → Conflict[]
+- [ ] getPublicCourses() → Course[] (für Landingpages)
+```
+
+#### Error Handling & Validierung:
+- [ ] Alle API-Calls haben try-catch Error Handling
+- [ ] Input-Validierung bei create/update
+- [ ] Conflict-Detection für Raum/Trainer-Überschneidungen
+- [ ] Rollback bei fehlgeschlagenen Multi-Table-Operationen
+
+---
+
+### ✅ **Phase 3: UI-Struktur (Erforderlich)**
+
+#### Verzeichnis-Struktur:
+```
+- [ ] app/(protected)/kursplan/page.tsx (Wochenübersicht)
+- [ ] app/(protected)/kursplan/neu/page.tsx (existiert, Backend-Integration erforderlich)
+- [ ] app/(protected)/kursplan/kategorien/page.tsx
+- [ ] app/(protected)/kursplan/raeume/page.tsx  
+- [ ] app/(protected)/kursplan/einstellungen/page.tsx
+- [ ] app/(protected)/kursplan/[id]/page.tsx (Details)
+- [ ] app/(protected)/kursplan/[id]/bearbeiten/page.tsx
+```
+
+#### Komponenten-Bibliothek:
+```
+- [ ] app/components/kursplan/KursplanWeekView.tsx
+- [ ] app/components/kursplan/KursCard.tsx
+- [ ] app/components/kursplan/KursFormModal.tsx
+- [ ] app/components/kursplan/CategoryManager.tsx
+- [ ] app/components/kursplan/RoomManager.tsx
+- [ ] app/components/kursplan/KursFilter.tsx
+- [ ] app/components/kursplan/ScheduleMatrix.tsx
+```
+
+---
+
+### ✅ **Phase 4: Funktionalität (Kritisch)**
+
+#### Kursübersicht (Wochenplan):
+- [ ] **Zeitraster-Darstellung** (06:00-22:00, 30-Min-Schritte)
+- [ ] **Kurskarten** zeigen alle erforderlichen Informationen
+- [ ] **Drag & Drop** zum Verschieben von Kursen
+- [ ] **Wochennavigation** (Zurück/Weiter)
+- [ ] **Filter-Funktionen** (Kategorie, Raum, Trainer, Standort)
+- [ ] **Responsive Design** für Mobile/Tablet
+
+#### Kurs anlegen/bearbeiten:
+- [ ] **Bestehende UI** mit Backend verbunden
+- [ ] **Validierung** aller Eingabefelder
+- [ ] **Wochentag-Matrix** speichert Zeiten korrekt
+- [ ] **Kursspezial-Modus** funktioniert (Datumsauswahl)
+- [ ] **Conflict-Detection** bei Überschneidungen
+- [ ] **Auto-Save** oder Bestätigung bei Änderungen
+
+#### Kategorien-Verwaltung:
+- [ ] **CRUD-Operationen** vollständig
+- [ ] **Icon-Picker** funktional (Emoji + Lucide)
+- [ ] **Farb-Picker** mit Hex-Input
+- [ ] **Drag & Drop** Sortierung
+- [ ] **Abhängigkeits-Check** vor Löschung
+
+#### Räume-Verwaltung:
+- [ ] **CRUD-Operationen** vollständig
+- [ ] **Kapazitäts-Validierung** (> 0)
+- [ ] **Kategorie-Zuweisungen** (Multi-Select)
+- [ ] **Standort-Management**
+
+---
+
+### ✅ **Phase 5: Integration (Wichtig)**
+
+#### Landingpage-Block:
+- [ ] **Kursplan-Block** im Builder funktional
+- [ ] **Preset-Auswahl** verfügbar (5+ Presets)
+- [ ] **Filter-Konfiguration** im Wizard
+- [ ] **Live-Daten** aus Kursplan-API
+- [ ] **Mobile-Responsive** Rendering
+
+#### Mitarbeiter-Integration:
+- [ ] **Trainer-Dropdown** lädt aus staff-Tabelle
+- [ ] **Berechtigungen** korrekt implementiert
+- [ ] **Trainer können nur eigene Kurse** bearbeiten
+
+#### Supabase Storage (optional):
+- [ ] **Kurs-Bilder** Upload-Funktionalität
+- [ ] **Icon-Storage** für Kategorien
+
+---
+
+### ✅ **Phase 6: UX & Performance (Wichtig)**
+
+#### User Experience:
+- [ ] **Loading States** bei API-Calls
+- [ ] **Error Messages** benutzerfreundlich
+- [ ] **Success Notifications** nach Aktionen
+- [ ] **Confirmation Dialogs** vor kritischen Aktionen (Löschen)
+- [ ] **Keyboard Navigation** möglich
+
+#### Performance:
+- [ ] **Lazy Loading** für große Kursplan-Ansichten
+- [ ] **Caching** von Kategorien/Räumen
+- [ ] **Debounced Search** in Filtern
+- [ ] **Optimistic Updates** wo möglich
+
+#### Mobile Optimierung:
+- [ ] **Touch-freundliche** Größen (min 44px)
+- [ ] **Horizontal Scroll** für Wochenansicht
+- [ ] **Stack-Layout** auf schmalen Bildschirmen
+- [ ] **Pull-to-Refresh** Funktionalität
+
+---
+
+### ✅ **Phase 7: Sicherheit & Validierung (Kritisch)**
+
+#### Datenschutz:
+- [ ] **Keine sensiblen Daten** in Client-State
+- [ ] **HTTPS-only** API-Calls
+- [ ] **Input Sanitization** gegen XSS
+
+#### Berechtigungen:
+- [ ] **Rollen-basierte** Zugriffskontrolle
+- [ ] **Server-side Validation** aller Inputs
+- [ ] **Rate Limiting** bei API-Endpoints
+
+#### Business Rules:
+- [ ] **Keine Doppelbuchungen** von Räumen
+- [ ] **Trainer-Konflikte** werden erkannt
+- [ ] **Max. Teilnehmer** kann nicht überschritten werden
+- [ ] **Kursdauer** mindestens 15 Minuten
+
+---
+
+## 🚨 **Kritische Fehler (Sofort beheben)**
+
+### ❌ **Backend-Fehler:**
+- Fehlende Datenbank-Tabellen
+- Falsche Foreign Key Constraints
+- Keine RLS Policies
+- API-Endpoints nicht erreichbar
+
+### ❌ **UI-Fehler:**
+- Bestehende "Neuer Kurs" UI nicht mit Backend verbunden
+- Wochenplan-Zeitraster nicht funktional
+- Mobile-Ansicht völlig unbrauchbar
+- Keine Error-Behandlung bei fehlgeschlagenen API-Calls
+
+### ❌ **Integration-Fehler:**
+- Landingpage-Block zeigt keine echten Daten
+- Trainer-Dropdown leer/fehlerhaft
+- Kategorie-Farben werden nicht angezeigt
+- Berechtigungen nicht implementiert
+
+---
+
+## ✅ **Success Metrics**
+
+### Funktionalität:
+- [ ] **Admin kann Kurse verwalten** ohne Errors
+- [ ] **Wochenplan zeigt alle Kurse** korrekt an
+- [ ] **Landingpage-Block** zeigt Live-Daten
+- [ ] **Mobile-Nutzung** ohne Probleme möglich
+
+### Performance:
+- [ ] **Seitenladezeit** < 2 Sekunden
+- [ ] **API-Response** < 500ms für Standard-Queries
+- [ ] **Smooth Scrolling** in Wochenansicht
+
+### User Experience:
+- [ ] **Intuitive Navigation** ohne Schulung möglich
+- [ ] **Fehlerbehandlung** hilft bei Problemlösung
+- [ ] **Responsive Design** auf allen Geräten
+
+---
+
+## 📊 **Audit-Bewertung**
+
+### **Phase-Completion-Rate:**
+- Phase 1 (Backend): ___% abgeschlossen
+- Phase 2 (API): ___% abgeschlossen  
+- Phase 3 (UI): ___% abgeschlossen
+- Phase 4 (Funktionalität): ___% abgeschlossen
+- Phase 5 (Integration): ___% abgeschlossen
+- Phase 6 (UX): ___% abgeschlossen
+- Phase 7 (Sicherheit): ___% abgeschlossen
+
+### **Gesamt-Status:**
+- 🔴 **Nicht startklar** (< 60% kritische Phasen)
+- 🟡 **Bedingt einsatzbereit** (60-85% kritische Phasen)
+- 🟢 **Produktionsbereit** (> 85% alle Phasen)
+
+---
+
+**Nächste Schritte:** ___________________
+**Geschätzte Zeit bis Completion:** _____ Wochen
+**Risiko-Level:** Niedrig/Mittel/Hoch

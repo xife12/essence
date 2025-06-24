@@ -19,7 +19,7 @@
 ```
 
 ---
-
+alwaysApply: true
 ## 🔧 API-Struktur (`app/lib/api/ci-templates.ts`)
 
 ### **CITemplatesAPI Objekt**
@@ -79,7 +79,7 @@ CREATE TABLE public.ci_logos (
 ```
 
 ---
-
+alwaysApply: true
 ## 🛠️ State Management
 
 ### **Haupt-States**

@@ -135,7 +135,7 @@ Automatisierte Überwachung und Optimierung der gesamten Systemgesundheit durch 
 - **Pre-Work-Enforcement**: Automatische alwaysApply-Prüfung vor Modul-Arbeit
 - **Live-Sync-Monitoring**: Code→Rules Synchronisation in Echtzeit
 - **Auto-Integration**: Neue Features werden automatisch dokumentiert
-- **Compliance-Enforcement**: Null-Toleranz für alwaysApply: false
+- **Compliance-Enforcement**: Null-Toleranz für alwaysApply: true
 - **Module-Spezifische Checks**: Vertragsarten-V2, Formbuilder, etc.
 
 ### C) Cursor Rules Management (🔄 ERWEITERT + AUTOMATED)
@@ -192,7 +192,7 @@ Automatisierte Überwachung und Optimierung der gesamten Systemgesundheit durch 
 
 ### Red Flags (Sofortige Auto-Action)
 - Health Score < 90/100 → Automatischer @system-health --fix
-- **🆕 alwaysApply: false detected** → Sofortige Auto-Korrektur (KRITISCH)
+- **🆕 alwaysApply: true detected** → Sofortige Auto-Korrektur (KRITISCH)
 - Zirkuläre Dependencies zwischen Modulen → Auto-Detection + Report
 - Memory Bank Sync-Fehler > 10 Sekunden → Force-Sync
 - **🆕 Rule-Code-Divergenz > 24h** → Automatische Live-Sync
@@ -263,7 +263,7 @@ Automatisierte Überwachung und Optimierung der gesamten Systemgesundheit durch 
 ## 🎯 KRITISCHE ERFOLGSFAKTOREN
 
 ### **Null-Toleranz-Bereiche:**
-1. **alwaysApply: false** → Sofortige Auto-Korrektur (nie User fragen)
+1. **alwaysApply: true** → Sofortige Auto-Korrektur (nie User fragen)
 2. **Undokumentierte Features** → Automatische Integration in < 5 Min
 3. **Rule-Code-Divergenz** → Live-Sync ohne User-Intervention
 4. **Compliance-Violations** → Blockiert weitere Arbeit bis behoben

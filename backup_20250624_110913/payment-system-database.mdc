@@ -1,0 +1,461 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Payment-System Datenbankstruktur
+
+## 🗄️ NEUE TABELLEN-SCHEMA
+
+### **1. members** (Mitglieder-Stammdaten)
+```sql
+CREATE TABLE public.members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_number TEXT UNIQUE NOT NULL, -- Aus PDF extrahiert (z.B. "3-302")
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  full_name TEXT GENERATED ALWAYS AS (first_name || ' ' || last_name) STORED,
+  birth_date DATE,
+  
+  -- Adresse
+  street TEXT,
+  house_number TEXT,
+  zip_code TEXT CHECK (zip_code ~ '^\d{5}$'),
+  city TEXT,
+  
+  -- Kontakt
+  email TEXT,
+  phone TEXT,
+  
+  -- Verknüpfungen
+  payment_group_id UUID REFERENCES payment_groups(id),
+  contract_type_id UUID REFERENCES contracts(id),
+  
+  -- Upload-Meta
+  uploaded_from_pdf BOOLEAN DEFAULT true,
+  pdf_contract_path TEXT, -- Pfad zum Original-Vertrag
+  pdf_statement_path TEXT, -- Pfad zum Original-Kontoauszug
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indizes für Performance
+CREATE INDEX idx_members_number ON members(member_number);
+CREATE INDEX idx_members_payment_group ON members(payment_group_id);
+CREATE INDEX idx_members_contract_type ON members(contract_type_id);
+```
+
+### **2. member_accounts** (Beitragskonten)
+```sql
+CREATE TABLE public.member_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_id UUID REFERENCES members(id) ON DELETE CASCADE,
+  
+  -- Kontostände
+  account_balance DECIMAL(10,2) DEFAULT 0.00, -- Positiv = Überzahlung, Negativ = Forderung
+  credit_limit DECIMAL(10,2) DEFAULT 0.00,
+  
+  -- SEPA-Daten
+  iban TEXT NOT NULL CHECK (iban ~ '^DE\d{20}$'),
+  bic TEXT CHECK (bic ~ '^[A-Z]{8,11}$'),
+  mandate_reference TEXT NOT NULL, -- Aus PDF extrahiert
+  mandate_signed_date DATE,
+  
+  -- Meta
+  last_transaction_date DATE,
+  last_payment_run_id UUID REFERENCES payment_runs(id),
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  
+  UNIQUE(member_id) -- Ein Konto pro Mitglied
+);
+
+CREATE INDEX idx_member_accounts_iban ON member_accounts(iban);
+CREATE INDEX idx_member_accounts_balance ON member_accounts(account_balance);
+```
+
+### **3. member_transactions** (Buchungshistorie)
+```sql
+CREATE TYPE transaction_type AS ENUM (
+  'beitrag',           -- Monatsbeitrag
+  'lastschrift',       -- SEPA-Einzug
+  'storno',           -- Stornierung/Gutschrift
+  'ruhezeit',         -- Pausierung
+  'verkauf',          -- Zusatzverkäufe
+  'startpaket',       -- Aufnahmegebühr
+  'gebuehr',          -- Rücklastschrift-Gebühren
+  'ueberzahlung',     -- Guthaben-Übertrag
+  'korrektur'         -- Manuelle Korrekturen
+);
+
+CREATE TABLE public.member_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_account_id UUID REFERENCES member_accounts(id) ON DELETE CASCADE,
+  
+  -- Transaktions-Details
+  transaction_date DATE NOT NULL,
+  transaction_type transaction_type NOT NULL,
+  amount DECIMAL(10,2) NOT NULL, -- Negativ = Belastung, Positiv = Gutschrift
+  description TEXT,
+  reference_number TEXT, -- Zahllauf-Position, Belegnummer etc.
+  
+  -- Verknüpfungen
+  payment_run_id UUID REFERENCES payment_runs(id), -- Bei SEPA-Transaktionen
+  contract_type_id UUID REFERENCES contracts(id), -- Zugehörige Vertragsart
+  
+  -- Meta
+  imported_from_pdf BOOLEAN DEFAULT false, -- Historische vs. neue Buchungen
+  balance_after DECIMAL(10,2), -- Kontostand nach dieser Transaktion
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_transactions_account ON member_transactions(member_account_id);
+CREATE INDEX idx_transactions_date ON member_transactions(transaction_date);
+CREATE INDEX idx_transactions_type ON member_transactions(transaction_type);
+CREATE INDEX idx_transactions_payment_run ON member_transactions(payment_run_id);
+```
+
+### **4. payment_runs** (SEPA-Zahlläufe)
+```sql
+CREATE TYPE payment_run_status AS ENUM (
+  'draft',      -- In Vorbereitung
+  'ready',      -- Bereit zum Export
+  'submitted',  -- An Bank übermittelt
+  'processed',  -- Von Bank verarbeitet
+  'failed',     -- Fehlgeschlagen
+  'cancelled'   -- Storniert
+);
+
+CREATE TABLE public.payment_runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Zahllauf-Details
+  run_date DATE NOT NULL,
+  collection_date DATE NOT NULL, -- Wann soll eingezogen werden
+  payment_group_id UUID REFERENCES payment_groups(id),
+  
+  -- Status & Verarbeitung
+  status payment_run_status DEFAULT 'draft',
+  sepa_file_path TEXT, -- Pfad zur generierten XML-Datei
+  sepa_message_id TEXT UNIQUE, -- Eindeutige SEPA-Message-ID
+  
+  -- Finanzielle Übersicht
+  total_amount DECIMAL(12,2) DEFAULT 0.00,
+  transaction_count INTEGER DEFAULT 0,
+  failed_transaction_count INTEGER DEFAULT 0,
+  
+  -- Bank-Details (aus Studio-Settings)
+  creditor_id TEXT NOT NULL,
+  creditor_name TEXT NOT NULL,
+  creditor_iban TEXT NOT NULL,
+  creditor_bic TEXT,
+  
+  -- Processing-Meta
+  submitted_at TIMESTAMP,
+  processed_at TIMESTAMP,
+  error_message TEXT,
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_payment_runs_date ON payment_runs(run_date);
+CREATE INDEX idx_payment_runs_status ON payment_runs(status);
+CREATE INDEX idx_payment_runs_group ON payment_runs(payment_group_id);
+```
+
+### **5. payment_groups** (Zahllaufgruppen)
+```sql
+CREATE TABLE public.payment_groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Gruppen-Details
+  name TEXT NOT NULL, -- "01. des Monats", "15. des Monats"
+  description TEXT,
+  collection_day INTEGER NOT NULL CHECK (collection_day BETWEEN 1 AND 31),
+  
+  -- Konfiguration
+  is_active BOOLEAN DEFAULT true,
+  auto_create_runs BOOLEAN DEFAULT false, -- Automatische Zahllauf-Erstellung
+  advance_days INTEGER DEFAULT 2, -- Vorlaufzeit in Tagen
+  
+  -- SEPA-Defaults
+  default_purpose_code TEXT DEFAULT 'CBFF', -- Customer Bill Payment
+  payment_method TEXT DEFAULT 'DD', -- Direct Debit
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Standard-Zahllaufgruppen anlegen
+INSERT INTO payment_groups (name, description, collection_day) VALUES
+('01. des Monats', 'Abbuchung zum Monatsbeginn', 1),
+('15. des Monats', 'Abbuchung zur Monatsmitte', 15),
+('Quartalsweise', 'Abbuchung alle 3 Monate zum 01.', 1);
+```
+
+### **6. studio_settings** (Studio-Konfiguration)
+```sql
+CREATE TABLE public.studio_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Studio-Stammdaten
+  studio_name TEXT NOT NULL,
+  studio_address TEXT,
+  studio_city TEXT,
+  studio_zip_code TEXT,
+  studio_phone TEXT,
+  studio_email TEXT,
+  
+  -- Steuerliche Daten
+  tax_id TEXT, -- Steuernummer
+  vat_id TEXT, -- USt-ID
+  
+  -- SEPA-Konfiguration
+  creditor_id TEXT UNIQUE NOT NULL, -- Gläubiger-ID
+  creditor_name TEXT NOT NULL, -- Für SEPA-XML
+  bank_name TEXT,
+  bank_iban TEXT NOT NULL CHECK (bank_iban ~ '^DE\d{20}$'),
+  bank_bic TEXT CHECK (bank_bic ~ '^[A-Z]{8,11}$'),
+  
+  -- SEPA-Defaults
+  default_collection_type TEXT DEFAULT 'RCUR', -- Recurring
+  default_sequence_type TEXT DEFAULT 'RCUR',
+  payment_info_id_prefix TEXT DEFAULT 'PMT',
+  
+  -- Gebühren-Konfiguration
+  return_debit_fee DECIMAL(5,2) DEFAULT 5.00, -- Rücklastschrift-Gebühr
+  
+  -- Meta
+  is_active BOOLEAN DEFAULT true,
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Ein Studio-Setting als Default
+INSERT INTO studio_settings (
+  studio_name, 
+  creditor_id, 
+  creditor_name, 
+  bank_iban
+) VALUES (
+  'Essence Sports- & Wellnessclub', 
+  'DE79GHS00002620069', 
+  'Essence Neunkirchen', 
+  'DE07592520460100425115'
+);
+```
+
+### **7. payment_run_items** (Einzelne SEPA-Transaktionen)
+```sql
+CREATE TABLE public.payment_run_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  payment_run_id UUID REFERENCES payment_runs(id) ON DELETE CASCADE,
+  member_account_id UUID REFERENCES member_accounts(id),
+  
+  -- Transaktions-Details
+  amount DECIMAL(10,2) NOT NULL,
+  purpose_text TEXT NOT NULL, -- "Monatsbeitrag März 2025"
+  end_to_end_id TEXT UNIQUE NOT NULL, -- Eindeutige End-to-End-ID
+  
+  -- SEPA-Specific
+  debtor_name TEXT NOT NULL,
+  debtor_iban TEXT NOT NULL,
+  debtor_bic TEXT,
+  mandate_reference TEXT NOT NULL,
+  mandate_signed_date DATE,
+  
+  -- Status
+  status TEXT DEFAULT 'pending', -- pending, processed, failed, returned
+  return_reason_code TEXT, -- Bei Rücklastschriften
+  return_date DATE,
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT NOW(),
+  processed_at TIMESTAMP
+);
+
+CREATE INDEX idx_payment_run_items_run ON payment_run_items(payment_run_id);
+CREATE INDEX idx_payment_run_items_account ON payment_run_items(member_account_id);
+CREATE INDEX idx_payment_run_items_status ON payment_run_items(status);
+```
+
+---
+
+## 🔗 FOREIGN KEY CONSTRAINTS & RELATIONSHIPS
+
+### **Referential Integrity:**
+```sql
+-- Members → Payment Groups (Many-to-One)
+ALTER TABLE members ADD CONSTRAINT fk_members_payment_group 
+  FOREIGN KEY (payment_group_id) REFERENCES payment_groups(id);
+
+-- Members → Contracts (Many-to-One)
+ALTER TABLE members ADD CONSTRAINT fk_members_contract_type 
+  FOREIGN KEY (contract_type_id) REFERENCES contracts(id);
+
+-- Member Accounts → Members (One-to-One)
+ALTER TABLE member_accounts ADD CONSTRAINT fk_member_accounts_member 
+  FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE;
+
+-- Transactions → Member Accounts (Many-to-One)
+ALTER TABLE member_transactions ADD CONSTRAINT fk_transactions_account 
+  FOREIGN KEY (member_account_id) REFERENCES member_accounts(id) ON DELETE CASCADE;
+
+-- Payment Runs → Payment Groups (Many-to-One)
+ALTER TABLE payment_runs ADD CONSTRAINT fk_payment_runs_group 
+  FOREIGN KEY (payment_group_id) REFERENCES payment_groups(id);
+```
+
+---
+
+## 🛡️ ROW LEVEL SECURITY (RLS)
+
+### **Security Policies:**
+```sql
+-- Aktiviere RLS für alle Tabellen
+ALTER TABLE members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE member_accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE member_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE studio_settings ENABLE ROW LEVEL SECURITY;
+
+-- Admin-Access für alle Tabellen
+CREATE POLICY "Admin full access members" ON members FOR ALL TO authenticated 
+  USING (EXISTS (SELECT 1 FROM staff WHERE staff.id = auth.uid() AND staff.rolle = 'admin'));
+
+CREATE POLICY "Admin full access accounts" ON member_accounts FOR ALL TO authenticated 
+  USING (EXISTS (SELECT 1 FROM staff WHERE staff.id = auth.uid() AND staff.rolle = 'admin'));
+
+-- Studioleiter: Lesen von Members/Accounts
+CREATE POLICY "Studioleiter read members" ON members FOR SELECT TO authenticated 
+  USING (EXISTS (SELECT 1 FROM staff WHERE staff.id = auth.uid() AND staff.rolle IN ('admin', 'studioleiter')));
+
+-- Mitarbeiter: Nur lesen, keine Zahlläufe
+CREATE POLICY "Mitarbeiter read members" ON members FOR SELECT TO authenticated 
+  USING (EXISTS (SELECT 1 FROM staff WHERE staff.id = auth.uid() AND staff.rolle IN ('admin', 'studioleiter', 'mitarbeiter')));
+
+-- Payment Runs: Nur Admins
+CREATE POLICY "Admin only payment runs" ON payment_runs FOR ALL TO authenticated 
+  USING (EXISTS (SELECT 1 FROM staff WHERE staff.id = auth.uid() AND staff.rolle = 'admin'));
+```
+
+---
+
+## 🔄 TRIGGERS & AUTOMATED FUNCTIONS
+
+### **Automatic Balance Updates:**
+```sql
+-- Funktion für automatische Kontostand-Updates
+CREATE OR REPLACE FUNCTION update_member_account_balance()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Update den Kontostand nach jeder Transaktion
+  UPDATE member_accounts 
+  SET 
+    account_balance = account_balance + NEW.amount,
+    last_transaction_date = NEW.transaction_date,
+    updated_at = NOW()
+  WHERE id = NEW.member_account_id;
+  
+  -- Setze balance_after in der Transaktion
+  NEW.balance_after = (
+    SELECT account_balance 
+    FROM member_accounts 
+    WHERE id = NEW.member_account_id
+  );
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger für automatische Balance-Updates
+CREATE TRIGGER trigger_update_balance 
+  BEFORE INSERT ON member_transactions
+  FOR EACH ROW 
+  EXECUTE FUNCTION update_member_account_balance();
+```
+
+### **Member Number Generation:**
+```sql
+-- Funktion für automatische Mitgliedsnummer-Generierung (Fallback)
+CREATE OR REPLACE FUNCTION generate_member_number()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.member_number IS NULL THEN
+    NEW.member_number = 'AUTO-' || EXTRACT(YEAR FROM NOW()) || '-' || 
+                       LPAD(nextval('member_number_seq')::TEXT, 4, '0');
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Sequence für Auto-Nummern
+CREATE SEQUENCE member_number_seq START 1000;
+
+-- Trigger für Member Number Generation
+CREATE TRIGGER trigger_generate_member_number 
+  BEFORE INSERT ON members
+  FOR EACH ROW 
+  EXECUTE FUNCTION generate_member_number();
+```
+
+---
+
+## 📊 VIEWS FÜR REPORTING
+
+### **Member Overview View:**
+```sql
+CREATE VIEW member_overview AS
+SELECT 
+  m.id,
+  m.member_number,
+  m.full_name,
+  m.email,
+  m.phone,
+  ma.account_balance,
+  ma.iban,
+  pg.name as payment_group_name,
+  c.name as contract_name,
+  c.payment_intervals->>0 as monthly_amount,
+  m.created_at
+FROM members m
+LEFT JOIN member_accounts ma ON m.id = ma.member_id
+LEFT JOIN payment_groups pg ON m.payment_group_id = pg.id
+LEFT JOIN contracts c ON m.contract_type_id = c.id;
+```
+
+### **Payment Run Summary View:**
+```sql
+CREATE VIEW payment_run_summary AS
+SELECT 
+  pr.id,
+  pr.run_date,
+  pr.collection_date,
+  pr.status,
+  pr.total_amount,
+  pr.transaction_count,
+  pg.name as payment_group_name,
+  COUNT(pri.id) as actual_transaction_count,
+  SUM(pri.amount) as actual_total_amount
+FROM payment_runs pr
+LEFT JOIN payment_groups pg ON pr.payment_group_id = pg.id
+LEFT JOIN payment_run_items pri ON pr.id = pri.payment_run_id
+GROUP BY pr.id, pg.name;
+```
+
+---
+
+*Letzte Aktualisierung: 23.06.2025*
+*Status: ✅ Ready for MCP Supabase Implementation*

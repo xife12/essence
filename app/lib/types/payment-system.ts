@@ -98,10 +98,17 @@ export interface ExtractedMemberData {
   email?: string;
   phone?: string;
   birthDate?: string;
+  address?: string;
   iban?: string;
   bic?: string;
+  bankName?: string;
   mandateReference?: string;
   contractStartDate?: string;
+  contractTariff?: string;
+  contractPrice?: number;
+  contractDuration?: string;
+  paymentInterval?: string;
+  setupFee?: number;
   tariff?: string;
   price?: number;
   
@@ -110,11 +117,27 @@ export interface ExtractedMemberData {
   accountBalance?: number;
   transactions?: ExtractedTransaction[];
   
+  // Enhanced Calendar Data
+  paidContributions?: ExtractedContribution[];
+  futureContributions?: ExtractedContribution[];
+  
   // Meta Data
   pdfType?: 'contract' | 'statement' | 'unknown';
   extractionConfidence?: number;
   errors?: string[];
   suggestions?: string[];
+}
+
+export interface ExtractedContribution {
+  date?: string;
+  startDate?: string;
+  endDate?: string;
+  amount?: number;
+  forderung?: number;
+  offen?: number;
+  type: string;
+  description: string;
+  status: 'paid' | 'future' | 'pending';
 }
 
 export interface ExtractedTransaction {

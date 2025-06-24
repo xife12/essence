@@ -31,7 +31,7 @@
 - Automatische Rückschaltung nach Kampagnenende
 
 ---
-
+alwaysApply: true
 ## ⚙️ VERSIONIERUNGS-LOGIK
 
 ### **Auto-Versionierung bei Änderungen**
@@ -118,7 +118,7 @@ const generateAutoChangeNote = (
 ```
 
 ---
-
+alwaysApply: true
 ## 🎪 KAMPAGNENVERTRÄGE
 
 ### **Kampagnenvertrag erstellen**
@@ -253,7 +253,7 @@ const extendCampaignContract = async (
 ```
 
 ---
-
+alwaysApply: true
 ## 🕒 HISTORIEN-TRACKING
 
 ### **Versionshistorie anzeigen**
@@ -313,7 +313,7 @@ const compareVersions = async (
 ```
 
 ---
-
+alwaysApply: true
 ## 🎨 UI-KOMPONENTEN
 
 ### **Versionierungs-Modal**
@@ -437,7 +437,7 @@ const ContractVersionSelector: React.FC<{
 ```
 
 ---
-
+alwaysApply: true
 ## ⚠️ EDGE CASES & VALIDIERUNG
 
 ### **Versionierungs-Regeln**
@@ -473,7 +473,7 @@ const validateVersioning = (contract: Contract): ValidationError[] => {
 ```
 
 ---
-
+alwaysApply: true
 ## 🚀 IMPLEMENTIERUNG PRIORITY
 
 1. **Basis-Versionierung** (Tabellen + grundlegende API)

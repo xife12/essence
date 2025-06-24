@@ -5,6 +5,11 @@ import Card from '@/app/components/ui/Card';
 import Badge from '@/app/components/ui/Badge';
 import { PaymentSystemAPI } from '@/app/lib/api/payment-system';
 import type { PaymentMember, MemberAccount, MemberTransaction, PaymentGroup } from '@/app/lib/types/payment-system';
+// NEU: Erweiterte Beitragskonto-Komponenten (24.06.2025)
+import BeitragskontoHeader from './BeitragskontoHeader';
+import BeitragskontoTable from './BeitragskontoTable';
+import BeitragskalenderView from './BeitragskalenderView';
+import BusinessLogicManager from './BusinessLogicManager';
 
 interface MemberPaymentCardProps {
   memberId: string;
@@ -345,6 +350,47 @@ export function MemberPaymentCard({
             </div>
           )}
         </div>
+
+        {/* Beitragskonto-System */}
+        <div className="space-y-4">
+          <BeitragskontoHeader 
+            memberId={memberId}
+            memberName={memberName}
+            showActions={isAdmin}
+            className="mt-6"
+          />
+          
+          <BeitragskontoTable 
+            memberId={memberId}
+            showHistorical={false}
+            maxRows={8}
+            className="mt-4"
+          />
+        </div>
+
+        {/* NEU: Beitragskalender-Ansicht */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Beitragskalender</h3>
+            <span className="text-sm text-gray-500">Geplante Zahlungen</span>
+          </div>
+          
+          <BeitragskalenderView 
+            memberId={memberId}
+            compact={true}
+            showAdminControls={false}
+          />
+        </div>
+
+        {/* Business Logic Manager - Nur für Admins */}
+        {isAdmin && (
+          <BusinessLogicManager
+            memberId={memberId}
+            memberName={memberName}
+            currentBalance={balance}
+            className="mt-6"
+          />
+        )}
       </div>
     </Card>
   );

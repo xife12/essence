@@ -1,0 +1,84 @@
+---
+description: "Aufgaben-System: Task-Management und Mitarbeiter-Workflows"
+alias: "@aufgaben"
+globs:
+  - "components/aufgaben/**"
+  - "lib/api/tasks.ts"
+---
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Modul: Aufgaben (Mitarbeiter-Task-System)
+
+### Zweck
+Definiert Aufgaben, die automatisch oder manuell aus Kampagnenaktionen, Systemvorgängen oder Planungen entstehen. Aufgaben können Mitarbeitern zugewiesen, nachverfolgt und dokumentiert werden. Verknüpfbar mit Dateien, Zeitpunkten und Feedbackfeldern.
+
+---
+
+### Entität: task_template
+
+| Feld           | Typ     | Beschreibung |
+|----------------|---------|--------------|
+| id             | UUID    | Primärschlüssel |
+| title          | TEXT    | Aufgabenbezeichnung (z. B. "Flyer auslegen") |
+| description    | TEXT    | Beschreibung / Anleitung |
+| auto_trigger   | TEXT    | ENUM-Logik: 'on_flyer_shipped', 'on_campaign_start', etc. |
+| default_module | TEXT    | Bezug: 'campaign', 'system', 'landingpage' etc. |
+| active         | BOOLEAN | Vorlage aktiv? |
+| created_at     | TIMESTAMP | Erstellt am |
+
+---
+
+### Entität: task_instance
+
+| Feld           | Typ     | Beschreibung |
+|----------------|---------|--------------|
+| id             | UUID    | Aufgabeninstanz |
+| template_id    | UUID    | Verknüpfung zur Vorlage |
+| campaign_id    | UUID    | (optional) Zugehörige Kampagne |
+| campaign_action_id | UUID | (optional) Zugehörige Aktion |
+| assigned_to    | UUID    | Mitarbeiter-ID |
+| due_date       | DATE    | Fälligkeitsdatum |
+| status         | ENUM    | 'open', 'in_progress', 'done', 'skipped' |
+| file_asset_id  | UUID    | (optional) Briefing / Anhang (z. B. Checkliste) |
+| feedback_field | TEXT    | Eingabefeld für Ergebnis (z. B. "Wie viele verteilt?") |
+| completed_at   | TIMESTAMP | Abschlusszeitpunkt |
+| created_at     | TIMESTAMP | Erstellt am |
+
+---
+
+### UI/UX Flows
+1. **Vorlage definieren:** Im Systembereich: „+ Neue Vorlage“ → Beschreibung, Auslöser (z. B. „Flyer geliefert“), Modul wählen
+2. **Automatisierte Aufgabe:** Sobald Trigger aus Kampagne eintritt → neue `task_instance` wird erzeugt mit Zuordnung, Due-Date, ggf. Datei
+3. **Mitarbeiteransicht:** Task erscheint im persönlichen Dashboard mit Beschreibung, Fälligkeitsdatum, optionaler Datei & Rückmeldefeld
+4. **Bearbeitung:** Mitarbeiter markiert Aufgabe als erledigt, trägt Feedback ein → Status = done
+5. **Monitoring:** Admin sieht Erfüllungsgrad pro Kampagne / Maßnahme
+
+---
+
+### Verknüpfungen
+- campaign → Rückmeldung je Kampagne (z. B. "Kampagne Rückenfit: 5 Tasks offen")
+- campaign_action → Trigger direkt aus Aktionen (z. B. Flyerstatus = shipped → Task generieren)
+- file_asset → Anhang: Checklisten, PDFs, Bilder, Canva-Designs
+- mitarbeiter → Zuordnung über assigned_to
+
+---
+
+### ENUMs
+- task_instance.status: 'open', 'in_progress', 'done', 'skipped'
+- task_template.auto_trigger: 'on_campaign_start', 'on_campaign_end', 'on_flyer_delivered', 'on_landingpage_published'
+
+---
+
+### Hinweise für Cursor
+Das Modul muss automatisch durch Trigger aus `campaign_action` reagieren (z. B. Änderung Status → erzeugt Aufgabe aus aktiver Vorlage). Aufgaben werden direkt an Mitarbeiter-ID geknüpft. Rückmeldungen fließen ins Monitoring der Kampagnenauswertung ein.
+
+---
+
+### Verknüpfte Module
+- `Kampagnen.mdc`: Aufgaben sind pro Kampagne filter- und auswertbar
+- `Dateimanager.mdc`: Dateianhänge pro Aufgabe verwaltbar
+- `Canva.mdc`: Designbriefings als Verknüpfung (file_asset)
+- `Dashboard_KPI`: Visualisierung offener/abgeschlossener Tasks pro Kampagne

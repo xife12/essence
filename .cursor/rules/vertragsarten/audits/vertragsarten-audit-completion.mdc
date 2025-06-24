@@ -1,7 +1,7 @@
 ---
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 # Vertragsarten Rules Audit Completion - 18.06.2025
 

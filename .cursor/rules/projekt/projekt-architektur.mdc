@@ -1,7 +1,7 @@
 ````
 
 ---
-
+alwaysApply: true
 ## Routing
 
 - Jede Route ist geschützt durch Auth → Nutzung von Supabase Session in Middleware
@@ -23,7 +23,7 @@ export async function middleware(req) {
 ````
 
 ---
-
+alwaysApply: true
 ## Verhalten von Cursor AI
 
 * Fehlerbehandlung:
@@ -43,7 +43,7 @@ export async function middleware(req) {
   * Keine Client-only Navigation verwenden
 
 ---
-
+alwaysApply: true
 ## Datenbeziehungen (Auszug)
 
 * `leads.campaign_id → campaigns.id`
@@ -53,7 +53,7 @@ export async function middleware(req) {
 * `consultations.planned_contract_type_id → contract_types.id`
 
 ---
-
+alwaysApply: true
 ## ToDo durch Cursor beim Projektstart
 
 * Projektstruktur wie oben erzeugen

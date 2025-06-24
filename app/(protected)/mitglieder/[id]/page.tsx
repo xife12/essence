@@ -21,6 +21,7 @@ import MemberForm, { MemberData } from '../../../components/mitglieder/MemberFor
 import MembershipForm from '../../../components/mitglieder/MembershipForm';
 import { MemberPaymentCard } from '@/app/components/payment-system/MemberPaymentCard';
 import { AccountCorrectionModal } from '@/app/components/payment-system/AccountCorrectionModal';
+import { BeitragskalenderGenerator } from '@/app/lib/services/beitragskalender-generator';
 import FileUpload from '../../../components/dateimanager/FileUpload';
 import { 
   getFileAssets, 
@@ -552,6 +553,34 @@ export default function MemberDetailPage() {
         setMember(updatedMember);
         // Speichere aktualisierte Daten in localStorage
         saveMemberToLocalStorage(updatedMember);
+        
+        // 🎯 AUTOMATISCHE BEITRAGSKALENDER-GENERIERUNG
+        // Generiere automatisch den Beitragskalender für die neue Mitgliedschaft
+        if (status === 'active' || status === 'planned') {
+          console.log('🔄 Generating Beitragskalender for new membership:', newMembership.id);
+          
+          // Prepare contract data for Beitragskalender generation
+          const contractData = {
+            id: newMembership.id,
+            start_date: data.start_date,
+            end_date: data.end_date,
+                         monthly_fee: 89.90, // Default fee - TODO: Add monthly_fee to CONTRACT_TYPES
+            payment_frequency: 'monthly'
+          };
+          
+          // Trigger automatic generation
+          BeitragskalenderGenerator.onMemberCreated(member.id, contractData)
+            .then(result => {
+              if (result.success) {
+                console.log('✅ Beitragskalender generated successfully');
+              } else {
+                console.warn('⚠️ Beitragskalender generation failed:', result.error);
+              }
+            })
+            .catch(error => {
+              console.error('❌ Beitragskalender generation error:', error);
+            });
+        }
       }
       
       setIsSaving(false);

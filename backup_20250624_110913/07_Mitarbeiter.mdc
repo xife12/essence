@@ -1,0 +1,100 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Mitarbeiterverwaltung
+
+## Tabellen
+
+### `public.staff`
+| Spalte       | Typ    | Beschreibung                                |
+|--------------|--------|---------------------------------------------|
+| id           | UUID   | FK → `auth.users.id`                         |
+| rolle        | ENUM   | `admin`, `studioleiter`, `mitarbeiter`       |
+| created_at   | TIMESTAMP | Zeitstempel bei Erstellung               |
+| updated_at   | TIMESTAMP | Zeitstempel bei letzter Änderung         |
+
+### `auth.users` (verknüpft)
+- email (Login)
+- optional: name, phone
+- Sicherheit: 2FA, Einladung, Token-Handling
+
+---
+
+## Übersicht
+
+- Tabelle zeigt:
+  - Name
+  - E-Mail
+  - Rolle
+  - Letzter Login (optional)
+  - Aktion: „Bearbeiten“ / „Deaktivieren“
+- Filter: nach Rolle (Dropdown)
+- Suche: nach Name oder E-Mail (unscharf)
+
+---
+
+## Mitarbeiter anlegen
+
+- Nur durch **Admin** oder **Studioleiter**
+- Modal:
+  - Name
+  - E-Mail-Adresse
+  - Rolle auswählen (`admin` deaktiviert für Studioleiter)
+- Einladung:
+  - automatische Einladung per Supabase E-Mail
+  - temporärer Zugang bis Passwort gesetzt wird
+
+---
+
+## Rollen & Rechte
+
+| Rolle        | Berechtigungen                                                        |
+|--------------|------------------------------------------------------------------------|
+| Admin        | Vollzugriff auf alle Module, Systemeinstellungen, Nutzerrechte         |
+| Studioleiter | Mitarbeiter verwalten, Stunden pflegen, keine Admins anlegen          |
+| Mitarbeiter  | Nur Leserechte auf Profil, Leads bearbeiten, Beratung verwalten       |
+
+- Rollenzuweisung nur durch Benutzer mit „höherer“ Berechtigung
+
+---
+
+## Bearbeitung
+
+- Rollenwechsel (nur von Nutzern mit höherer Rolle)
+- Deaktivieren (Soft-Delete):
+  - Eintrag bleibt erhalten
+  - Kein Login mehr möglich
+- Historie bleibt nachvollziehbar
+
+---
+
+## Sicherheit
+
+- Login über Supabase Auth (E-Mail + Passwort)
+- 2FA kann vom User aktiviert werden
+- Passwortverwaltung über Supabase
+- Keine Sicht auf Passwörter ohne explizite Freigabe
+
+---
+
+## Sichtbarkeit & Einschränkungen
+
+- Mitarbeiter sehen nur:
+  - eigene Daten (Profil, Rolle)
+  - eigene Stunden (sofern aktiviert)
+- Studioleiter:
+  - sehen alle außer Admins
+  - können eigene Mitarbeiter verwalten
+- Admins:
+  - sehen alle
+  - dürfen alles bearbeiten
+
+---
+
+## Einstellungen (erweiterbar)
+
+- Matrixbasierte Rechtematrix pro Rolle (z. B. sehen / bearbeiten / löschen für Passwörter)
+- Konfiguration: Wer darf Stunden erfassen?
+- Konfiguration: Wer darf neue Nutzer einladen?

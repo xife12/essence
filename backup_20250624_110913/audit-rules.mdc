@@ -1,0 +1,101 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: "Führt ein vollständiges Audit aller Rule-Dateien durch (Struktur, Globs, Inhalt, Projektsynchronität)"
+alias: "@audit-rules"
+globs:
+  - "**/.cursor/rules/**/*.mdc"
+  - "**/*.mdc"
+---
+## 🔍 Systemweite Regelprüfung für alle Rule-Dateien:
+
+### 🧠 Memory Bank Integration
+**Vor jedem Audit:**
+- ✅ Lese `memory-bank/activeContext.md` für aktuellen Arbeitsstand
+- ✅ Prüfe `memory-bank/progress.md` für Modul-Status
+- ✅ Update Memory Bank nach Audit-Completion
+
+### 📋 1. Position & Struktur prüfen  
+- Liegt die Datei im passenden Modulordner?
+- Befindet sie sich in einem `.cursor/rules/`-Ordner?
+- Passt die Datei zur Modulstruktur und Projektarchitektur?
+- **Neu:** Entspricht die Struktur Taskmaster-Prinzipien?
+
+### 🏷️ 2. Dateiname & Alias analysieren
+- Beginnt mit Modulnamen? (z. B. `email-ui.mdc`)
+- Thema klar erkennbar? (`-ui`, `-db`, `-validation`, etc.)
+- Keine generischen Namen wie `neu.mdc` oder `test.mdc`
+- **Alias konsistent:** `@modulename-feature` Format
+
+### 🎯 3. Globs validieren & optimieren
+- Ist `globs:` vorhanden und korrekt?
+- Deckt der `globs:`-Pfad den richtigen Kontext ab?
+- Ist der Glob zu weit oder zu eng gefasst?
+- **Neu:** Berücksichtigt Memory Bank und Taskmaster-Struktur?
+
+### 🔗 4. Dependencies vollständig prüfen
+- Sind `dependencies:` vorhanden?
+- Sind alle Abhängigkeiten aufgelistet und aktuell?
+- **Neu:** Dependencies mit Memory Bank `progress.md` abgleichen
+- **Neu:** Cross-Referenz mit Taskmaster-Tasks wenn verfügbar
+
+### 📝 5. Inhaltliche Trennschärfe & Qualität
+- Enthält die Datei nur **ein Thema** (UI, DB, Validation, Logik)?
+- Bei vermischten Themen → Vorschlag zur **Aufspaltung**
+- Ist die Datei zu lang/komplex → Aufteilung empfehlen
+- **Neu:** Entspricht Content Taskmaster-Best-Practices?
+
+### 🔄 6. Projektsynchronität mit aktuellem Stand
+- Vergleiche Inhalt der Rule mit dem aktuellen Projektstand:
+  - Code-Struktur in `app/` und `lib/`
+  - Supabase-Tabellen und Migrations
+  - Komponenten und APIs
+- Falls Diskrepanzen → **ergänze Regelpunkte automatisch**
+- **Neu:** Sync mit Memory Bank `systemPatterns.md`
+
+### 🧹 7. Verweise & Redundanzen eliminieren
+- Gibt es überlappende Regeln für denselben Bereich?
+- Falls ja → konsolidieren oder saubere Referenzierung
+- **Neu:** Check auf Memory Bank Redundanzen
+
+### ⚡ 8. Meta-Vervollständigung & Standards
+- Wenn `description:` fehlt → automatisch aus Dateiname + Inhalt generieren
+- Wenn `globs:` fehlt → anhand Speicherort ergänzen
+- **Dependencies ergänzen** → Anhand Datenbankstruktur und Projektstruktur
+- **Taskmaster-Kompatibilität** → Struktur für AI-Task-Management optimieren
+
+### 📊 9. Health-Score Integration
+- Jedes Modul erhält Health-Score (1-100)
+- Kritische Issues markieren (Security, Performance, Dependencies)
+- **Memory Bank Status** in Score einbeziehen
+- **Taskmaster Integration Level** bewerten
+
+---
+
+## 🎯 Post-Audit Actions
+
+### Automatische Generierung:
+Für jedes geprüfte Modul erstelle:
+```
+.cursor/rules/<modulname>/audit/
+├── TT_MM_audit-plan_<modulname>.md     # Audit-Planung
+├── TT_MM_Audit_Completion_<modulname>.md # Audit-Ergebnis
+└── health-score.json                   # Maschinenlesbare Metriken
+```
+
+### Memory Bank Update:
+- Update `memory-bank/activeContext.md` mit Audit-Ergebnissen
+- Sync `memory-bank/progress.md` mit neuen Task-Status
+- Dokumentiere kritische Findings in Memory Bank
+
+### Taskmaster Integration:
+- Sync Findings mit `.taskmaster/tasks.json` wenn verfügbar
+- Generiere Improvement-Tasks für niedrige Health-Scores
+- Research-backed Recommendations für komplexe Issues
+
+---
+
+> **Ziel:** Alle Regeln sind thematisch sauber, vollständig, auf dem aktuellen Stand des Projekts, Memory Bank-synchronisiert und Taskmaster-kompatibel.

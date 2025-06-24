@@ -19,7 +19,7 @@ Vollständige Integration des neuen Vertragsarten V2 Systems in das bestehende M
 Vollständige Integration des neuen Vertragsarten V2 Systems in das bestehende MemberCore Projekt. Dieses System erweitert die Funktionalität um moderne Versionierung, modulare Struktur und erweiterte Verwaltungsoptionen.
 
 ---
-
+alwaysApply: true
 ## 📍 Projektstruktur
 
 ### **Frontend-Routen**
@@ -64,7 +64,7 @@ contract_document_sections       # Dokumentabschnitte
 ```
 
 ---
-
+alwaysApply: true
 ## 🔗 Navigation Integration
 
 ### **Sidebar-Eintrag**
@@ -80,7 +80,7 @@ contract_document_sections       # Dokumentabschnitte
 - **Migration**: Schrittweise Übernahme der Daten möglich
 
 ---
-
+alwaysApply: true
 ## 🗄️ Datenbank-Integration
 
 ### **Erforderliche Tabellen** (SQL-Migration)
@@ -97,7 +97,7 @@ contract_document_sections       # Dokumentabschnitte
 - **Views**: Rückwärtskompatibilität zum Legacy-System
 
 ---
-
+alwaysApply: true
 ## 🔧 Technische Integration
 
 ### **API-Layer**
@@ -132,7 +132,7 @@ import type {
 - **RLS-Policies**: Berücksichtigt User-Rollen (admin, studioleiter, mitarbeiter)
 
 ---
-
+alwaysApply: true
 ## 🎯 Features & Funktionalität
 
 ### **Hauptübersicht (3-Tab-System)**
@@ -154,7 +154,7 @@ import type {
 - **Beratung**: Conversion zu V2-Verträgen
 
 ---
-
+alwaysApply: true
 ## 🚀 Setup & Deployment
 
 ### **Development Setup**
@@ -173,7 +173,7 @@ import type {
 - **Vollständige Validierung**: Alle API-Endpunkte und Datenbank-Verbindungen
 
 ---
-
+alwaysApply: true
 ## 📋 Checkliste für Go-Live
 
 ### **✅ Technische Integration**
@@ -202,7 +202,7 @@ import type {
 - [ ] Legacy-Migration geplant
 
 ---
-
+alwaysApply: true
 ## 🔄 Migration Strategy
 
 ### **Phase 1: Parallelbetrieb**
@@ -221,7 +221,7 @@ import type {
 - Legacy-Links weiterleiten
 
 ---
-
+alwaysApply: true
 ## 📚 Weiterführende Dokumentation
 
 - **Technical Docs**: `SUPABASE_INTEGRATION_V2.md`
@@ -229,5 +229,5 @@ import type {
 - **Module Details**: Siehe Rules in `.cursor/rules/vertragsarten/`
 
 ---
-
+alwaysApply: true
 **Das Vertragsarten V2 System ist vollständig integriert und produktionsbereit! 🚀**

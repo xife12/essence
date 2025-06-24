@@ -1,7 +1,7 @@
 ---
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 # Audit: Vertragsarten-V2 Dokumenten-System (✅ VOLLSTÄNDIG IMPLEMENTIERT)
 

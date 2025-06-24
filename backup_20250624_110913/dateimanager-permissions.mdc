@@ -1,0 +1,245 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Dateimanager-Berechtigungssystem
+
+## Zweck
+Das Berechtigungssystem kontrolliert den Zugriff auf Dateien im Dateimanager basierend auf Mitarbeiterrollen und individuellen Permissions. Es implementiert Row-Level-Security (RLS) für granulare Zugriffskontrolle.
+
+---
+
+## Tabelle: staff_file_permissions
+
+### **Schema:**
+```sql
+CREATE TABLE public.staff_file_permissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  staff_id UUID UNIQUE REFERENCES public.staff(id) ON DELETE CASCADE,
+  upload_permission TEXT CHECK (upload_permission IN ('none', 'own_files', 'all_files')) DEFAULT 'none',
+  can_see_admin_files BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+### **Upload-Berechtigungen:**
+| Permission | Beschreibung | Icon | Verhalten |
+|---|---|---|---|
+| `none` | Keine Upload-Berechtigung | ❌ | Kann keine Dateien hochladen oder sehen |
+| `own_files` | Nur eigene Dateien | 📁 | Kann eigene Dateien hochladen und verwalten |
+| `all_files` | Alle Dateien | 🛡️ | Kann alle (sichtbaren) Dateien verwalten |
+
+### **Admin-Dateien-Zugriff:**
+- **Admin/Studioleiter:** Automatisch `can_see_admin_files = true`
+- **Mitarbeiter:** Optional aktivierbar über Toggle
+
+---
+
+## Berechtigungslogik
+
+### **Automatische Zuweisungen:**
+```typescript
+// Bei Rollenerstellung/änderung
+const assignDefaultPermissions = (rolle: 'admin' | 'studioleiter' | 'mitarbeiter') => {
+  switch (rolle) {
+    case 'admin':
+    case 'studioleiter':
+      return {
+        upload_permission: 'all_files',
+        can_see_admin_files: true
+      };
+    case 'mitarbeiter':
+    default:
+      return {
+        upload_permission: 'none',
+        can_see_admin_files: false
+      };
+  }
+};
+```
+
+### **RLS-Policies:**
+```sql
+-- Datei-Upload-Policy
+CREATE POLICY "staff_can_upload_based_on_permissions" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM staff_file_permissions sfp
+      JOIN staff s ON s.id = sfp.staff_id
+      WHERE s.id = auth.uid()
+      AND (
+        sfp.upload_permission = 'all_files' OR
+        (sfp.upload_permission = 'own_files' AND bucket_id = 'user-uploads')
+      )
+    ) OR
+    EXISTS (
+      SELECT 1 FROM staff s
+      WHERE s.id = auth.uid()
+      AND s.rolle IN ('admin', 'studioleiter')
+    )
+  );
+```
+
+---
+
+## UI-Komponenten
+
+### **FilePermissionsTab**
+- **Berechtigungsmatrix-Tabelle**
+- **Live-Updates:** Änderungen werden sofort gespeichert
+- **Farbkodierung:** 
+  - 🔴 Rot (keine Berechtigung)
+  - 🔵 Blau (eigene Dateien)
+  - 🟢 Grün (alle Dateien)
+
+### **Upload-Permission-Dropdown**
+```typescript
+const permissionOptions = [
+  { value: 'none', label: 'Keine Berechtigung', icon: '❌', color: 'red' },
+  { value: 'own_files', label: 'Nur eigene Dateien', icon: '📁', color: 'blue' },
+  { value: 'all_files', label: 'Alle Dateien', icon: '🛡️', color: 'green' }
+];
+```
+
+### **Admin-Files-Toggle**
+- **Ein-Klick-Toggle** für Admin-Dateien-Zugriff
+- **Nur für Mitarbeiter** sichtbar (Admin/Studioleiter automatisch aktiv)
+- **Visueller Indikator** für aktuelle Berechtigung
+
+---
+
+## API-Endpunkte
+
+### **Permissions Management:**
+```typescript
+// Alle Berechtigungen abrufen
+getStaffFilePermissions(): Promise<StaffFilePermission[]>
+
+// Berechtigungen aktualisieren
+updateStaffFilePermissions(
+  staffId: string, 
+  permissions: {
+    upload_permission: 'none' | 'own_files' | 'all_files';
+    can_see_admin_files: boolean;
+  }
+): Promise<void>
+
+// Aktuelle Nutzer-Berechtigungen prüfen
+getCurrentUserPermissions(): Promise<StaffFilePermission>
+
+// Upload-Berechtigung validieren
+canUserUploadFiles(): Promise<boolean>
+
+// Admin-Dateien-Berechtigung prüfen
+canUserSeeAdminFiles(): Promise<boolean>
+```
+
+---
+
+## Validierungslogik
+
+### **Frontend-Validierung:**
+- **Nur berechtigte Nutzer** sehen Upload-Buttons
+- **File-Grid** filtert Dateien basierend auf Berechtigung
+- **Admin-Only-Bereiche** werden ausgeblendet
+
+### **Backend-Validierung:**
+- **RLS-Policies** erzwingen DB-Level-Sicherheit
+- **API-Layer** validiert Berechtigungen vor Operationen
+- **File-Access** wird bei jedem Request geprüft
+
+### **Automatische Updates:**
+```typescript
+// Bei Rollenänderung
+const updatePermissionsOnRoleChange = async (staffId: string, newRole: string) => {
+  const defaultPermissions = assignDefaultPermissions(newRole);
+  await updateStaffFilePermissions(staffId, defaultPermissions);
+};
+```
+
+---
+
+## Integration
+
+### **Verknüpfte Module:**
+- **Mitarbeiterverwaltung:** Rollenbasierte Rechtezuweisung
+- **Dateimanager:** Upload- und Anzeige-Kontrolle  
+- **Storage-System:** Supabase Storage Policies
+- **Authentication:** User-Session und Rolle-Mapping
+
+### **Workflow bei Berechtigungsänderung:**
+1. **Admin/Studioleiter** ändert Berechtigung in FilePermissionsTab
+2. **API-Call** aktualisiert `staff_file_permissions`
+3. **RLS-Policies** werden sofort aktiv
+4. **UI aktualisiert** verfügbare Aktionen
+5. **Storage-Access** wird neu validiert
+
+---
+
+## Sicherheitsfeatures
+
+### **Row-Level-Security:**
+- **Granulare Kontrolle** auf Datei-Ebene
+- **Automatische Filterung** basierend auf Nutzer-ID
+- **Fail-Safe:** Deny by default
+
+### **Admin-Overrides:**
+- **Admins** können alle Berechtigungen überschreiben
+- **Studioleiter** können Mitarbeiter-Rechte verwalten
+- **Audit-Log** für Berechtigungsänderungen
+
+### **File-Kategorisierung:**
+```sql
+-- Verschiedene Bereiche mit unterschiedlichen Zugriffsleveln
+- user-uploads/        -- Mitarbeiter-eigene Dateien
+- admin-files/         -- Administrative Dokumente  
+- campaign-assets/     -- Kampagnen-spezifische Medien
+- public-templates/    -- Öffentliche Vorlagen
+```
+
+---
+
+## Error-Handling
+
+### **Permission-Denied-Scenarios:**
+- **Upload verweigert:** User-friendly Fehlermeldung
+- **File nicht sichtbar:** Graceful Ausblendung
+- **Access-Log:** Sicherheitsrelevante Zugriffe protokollieren
+
+### **Recovery-Mechanismen:**
+- **Admin-Notfallzugriff** auf alle Dateien
+- **Permission-Reset** für problemhafte Accounts
+- **Backup-Restore** von Berechtigungseinstellungen
+
+---
+
+## Monitoring & Compliance
+
+### **Audit-Funktionen:**
+- **Zugriffs-Logs** für sensitive Dateien
+- **Permission-Changes** werden protokolliert
+- **Compliance-Reports** für Admin-Reviews
+
+### **Metriken:**
+- Upload-Aktivität pro Nutzer
+- Permission-Utilization-Rate
+- Failed-Access-Attempts
+
+---
+
+## Zukünftige Erweiterungen
+
+### **Geplante Features:**
+- **Zeitbasierte Berechtigungen** (Ablaufzeiten)
+- **Projekt-spezifische Ordner** mit eigenen Rechten
+- **Bulk-Permission-Management** für Teams
+- **Integration mit externen Identity-Providern**
+- **Fine-grained Permissions** (Read/Write/Delete getrennt)
+
+---
+
+*Letzte Aktualisierung: 17.06.2025*
+*Status: ✅ Vollständig implementiert*

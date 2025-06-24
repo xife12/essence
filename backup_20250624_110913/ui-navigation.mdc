@@ -1,0 +1,21 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# UI/UX Navigation & Layout
+
+## Navigation
+
+* Sidebar:
+  * Fixiert links, 240px breit
+  * Collapsible (64px)
+  * Aktives Item: Hintergrund: `#E0F2FE`, Icon/Text: `#3B82F6`
+* Gruppierung:
+  * **Operativ:** Dashboard, Leads, Beratung, Mitglieder, Verträge
+  * **Marketing:** Kampagnen
+  * **Verwaltung:** Passwortmanager, Mitarbeiter, Einstellungen
+* Topbar:
+  * Höhe: 64px
+  * Links: Hamburger-Menü, Suchfeld
+  * Rechts: Notification-Bell, Avatar (Dropdown mit Profil / Logout)

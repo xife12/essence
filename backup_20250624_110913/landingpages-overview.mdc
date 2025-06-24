@@ -1,0 +1,99 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Modul: Landingpages
+
+## Zweck
+
+Das Landingpage-Modul ermöglicht die Erstellung, Gestaltung und Verwaltung modularer Zielseiten mit einem visuellen Builder. Jede Seite ist tief mit anderen Modulen wie Kampagnen, Formularen, Verträgen, CI-Presets, Kursplan und Analyse-Tools verknüpft. Der Builder basiert auf Blöcken mit klar definierten Layout- und Design-Presets.
+
+---
+
+## Datenbankstruktur
+
+### Tabelle: public.landingpage
+
+| Feld               | Typ        | Beschreibung                         |
+|--------------------|------------|--------------------------------------|
+| id                 | UUID       | Primärschlüssel                      |
+| title              | TEXT       | Interner Name der Seite              |
+| slug               | TEXT       | URL-Pfad (z. B. "rueckenfit")        |
+| language           | TEXT       | Sprachkennung (z. B. "de", "en")     |
+| tags               | TEXT[]     | Kategorisierung (frei wählbar)       |
+| headline           | TEXT       | Hauptüberschrift (optional)          |
+| subheadline        | TEXT       | Unterzeile (optional)                |
+| description        | TEXT       | SEO-Beschreibung                     |
+| is_active          | BOOLEAN    | Veröffentlicht oder Entwurf          |
+| preview_image      | TEXT       | Vorschaubild für Übersicht           |
+| tracking_pixel_id  | TEXT       | Meta-/Google-Pixel o. Ä.             |
+| campaign_id        | UUID       | Verknüpfung zur Kampagne             |
+| campaign_strand_id | UUID       | Optional: Feiner Zielgruppenpfad     |
+| ci_preset_id       | UUID       | Verknüpfung zu Styling-Presets       |
+| qr_code_url        | TEXT       | Automatisch generierter QR           |
+| form_id            | UUID       | Verknüpftes Formular                 |
+| redirect_url       | TEXT       | Zielseite nach Formabsendung         |
+| created_at         | TIMESTAMP  | Erstellt                             |
+| updated_at         | TIMESTAMP  | Letzte Änderung                      |
+
+### Tabelle: public.landingpage_block
+
+| Feld             | Typ      | Beschreibung                              |
+|------------------|----------|-------------------------------------------|
+| id               | UUID     | Primärschlüssel                           |
+| landingpage_id   | UUID     | Referenz auf landingpage.id               |
+| block_type       | ENUM     | Siehe Block-Typen                         |
+| position         | INTEGER  | Reihenfolge auf der Seite                 |
+| layout           | TEXT     | Spaltenanzahl, z. B. "1-col", "2-col"     |
+| preset           | TEXT     | Visuelles Preset (z. B. "Card Wide")      |
+| content_json     | JSONB    | Strukturierte Inhalte & Parameter         |
+| file_asset_id    | UUID     | Optional verknüpftes Bild/Icon            |
+| created_at       | TIMESTAMP| Erstellt                                  |
+| updated_at       | TIMESTAMP| Aktualisiert                              |
+
+### ENUMS: block_type
+
+```text
+'header', 'text', 'image', 'form', 'button', 'testimonial', 'video', 'headline', 'spacer',
+'pricing', 'feature', 'countdown', 'service', 'courseplan', 'gamification',
+'cta', 'faq', 'contact', 'team', 'trust_logos', 'statistics', 'blog_preview', 'icon', 'gallery'
+```
+
+---
+
+## UI/UX-Workflow
+
+1. **Landingpage erstellen:** Titel, Slug, Sprache, Tags angeben
+2. **Startoption:** Leere Canvas oder Vorlage (Template)
+3. **Builder (Split-Ansicht):**
+   * Links: Blockbibliothek + globale Einstellungen
+   * Mitte: Live-Canvas (Drag & Drop, Vorschau)
+   * Rechts: Block-Konfiguration (Inhalt, Layout, Preset)
+4. **Verknüpfung mit Kampagne/CI:** visuell angezeigt
+5. **QR-Code:** nach Liveschaltung generierbar
+6. **Vorschau:** Mobil/Tablet/Desktop
+7. **Veröffentlichung:** is_active = true
+
+---
+
+## Globale Einstellungen
+
+* Titel, Slug, Sprache, Tags
+* Kampagne, Strang, CI-Styling-Preset
+* Veröffentlichung, Zeitsteuerung, Passwortschutz
+* SEO: Meta-Titel, Beschreibung, OG-Bild
+* Tracking: Pixel, Events, Ziele
+* QR-Code: bei Liveschaltung generiert
+
+---
+
+## Submodul-Verknüpfungen
+
+* CI-Styling-Presets: Farben, Fonts, Buttons
+* Formular-Builder: Popup/Inline, Kontextprüfung, Leadquelle
+* Kampagnenmodul: Zeitraum, Aktionen, Landingpages
+* Vertragsmodul: Preise, Laufzeiten, USPs, Dienstleistungsliste
+* Kursplan-Modul: separat gepflegt, aber Block im Builder
+* Gamification-Modul: Fortschritt, Wheel, Sofortgewinn
+* Testimonials: kuratiert & filterbar

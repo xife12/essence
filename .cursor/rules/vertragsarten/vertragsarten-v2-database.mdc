@@ -35,7 +35,7 @@
 ```
 
 ---
-
+alwaysApply: true
 ## 🏗️ HAUPTTABELLEN
 
 ### **1. contracts (Haupt-Verträge mit Versionierung)**
@@ -187,7 +187,7 @@ CREATE TABLE public.contract_flat_rates (
 ```
 
 ---
-
+alwaysApply: true
 ## 🧩 MODUL-SYSTEM
 
 ### **6. contract_modules (Module mit Kategorien)**
@@ -265,7 +265,7 @@ CREATE TABLE public.contract_module_assignments (
 ```
 
 ---
-
+alwaysApply: true
 ## 📄 VERTRAGSDOKUMENTE
 
 ### **9. contract_documents (WYSIWYG-Dokumente)**
@@ -342,7 +342,7 @@ CREATE TABLE public.contract_document_assignments (
 ```
 
 ---
-
+alwaysApply: true
 ## 🔗 BEZIEHUNGS-VIEWS
 
 ### **Rückwärtskompatibilität für bestehende Abfragen**
@@ -368,7 +368,7 @@ WHERE c.is_active = true;
 ```
 
 ---
-
+alwaysApply: true
 ## 📊 PERFORMANCE-OPTIMIERUNGEN
 
 ### **Weitere Indizes**
@@ -399,7 +399,7 @@ CREATE TRIGGER update_modules_updated_at BEFORE UPDATE ON contract_modules FOR E
 ```
 
 ---
-
+alwaysApply: true
 ## 🔒 RLS-POLICIES
 
 ```sql
@@ -421,7 +421,7 @@ USING (auth.jwt() ->> 'role' IN ('admin', 'studioleiter'));
 ```
 
 ---
-
+alwaysApply: true
 ## 🚀 MIGRATION-REIHENFOLGE
 
 1. **Tabellen erstellen** (contracts, contract_modules, etc.)
