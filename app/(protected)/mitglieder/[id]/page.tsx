@@ -29,6 +29,8 @@ import {
   getFileAssetById 
 } from '../../../lib/api/file-asset';
 import type { FileAsset } from '../../../lib/types/file-asset';
+import SetupTestMember from '../../../components/debug/SetupTestMember';
+import CleanBeitragskalender from '../../../components/debug/CleanBeitragskalender';
 
 // Dummy-Daten für die Entwicklung
 const DUMMY_MEMBERS = [
@@ -143,41 +145,7 @@ const DUMMY_MEMBERS = [
   },
 ];
 
-// Dummy-Vertragsarten
-const CONTRACT_TYPES = [
-  {
-    id: '1',
-    name: 'Premium',
-    terms: [12, 24],
-    has_group_discount: true,
-    group_discount_rate: 10,
-    extras: [
-      { id: 'extra-1', name: 'Sauna', price: 9.99 },
-      { id: 'extra-2', name: 'Getränke-Flatrate', price: 19.99 },
-      { id: 'extra-3', name: 'Handtuchservice', price: 4.99 }
-    ],
-    campaigns: ['Sommerspezial 2023', 'Neujahrsangebot']
-  },
-  {
-    id: '2',
-    name: 'Standard',
-    terms: [6, 12, 24, 36],
-    has_group_discount: true,
-    group_discount_rate: 5,
-    extras: [
-      { id: 'extra-1', name: 'Sauna', price: 14.99 },
-      { id: 'extra-3', name: 'Handtuchservice', price: 4.99 }
-    ],
-    campaigns: ['Frühbucher-Rabatt']
-  },
-  {
-    id: '3',
-    name: 'Basis',
-    terms: [12],
-    has_group_discount: false,
-    extras: []
-  },
-];
+
 
 type MembershipStatus = 'active' | 'cancelled' | 'completed' | 'suspended' | 'planned';
 
@@ -369,6 +337,74 @@ export default function MemberDetailPage() {
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
   const [showContractUpload, setShowContractUpload] = useState(false);
   
+  // Echte Vertragstypen aus der Datenbank
+  const [contractTypes, setContractTypes] = useState<any[]>([]);
+  const [loadingContractTypes, setLoadingContractTypes] = useState(true);
+
+  // Lade echte Vertragstypen aus der Datenbank
+  useEffect(() => {
+    const loadContractTypes = async () => {
+      try {
+        console.log('🔄 Loading contract types from database...');
+        
+        const response = await fetch('/api/contracts-v2');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          // Transformiere Datenbank-Format zu Frontend-Format
+          const transformedContracts = data.data.map((contract: any) => ({
+            id: contract.id,
+            name: contract.name,
+            terms: contract.terms || [12, 24], // Fallback wenn keine Terms geladen
+            has_group_discount: contract.group_discount_enabled || false,
+            group_discount_rate: contract.group_discount_value || 0,
+            extras: [], // Wird später erweitert
+            campaigns: contract.campaign_name ? [contract.campaign_name] : []
+          }));
+          
+          setContractTypes(transformedContracts);
+          console.log('✅ Contract types loaded:', transformedContracts.length);
+        } else {
+          console.warn('⚠️ No contract types loaded, using fallback');
+          // Fallback zu Basis-Dummy-Daten wenn API fehlschlägt
+          setContractTypes([
+            {
+              id: '1',
+              name: 'Standard',
+              terms: [12, 24],
+              has_group_discount: false,
+              group_discount_rate: 0,
+              extras: [],
+              campaigns: []
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error('❌ Error loading contract types:', error);
+        // Fallback zu Basis-Dummy-Daten bei Fehler
+        setContractTypes([
+          {
+            id: '1',
+            name: 'Standard',
+            terms: [12, 24],
+            has_group_discount: false,
+            group_discount_rate: 0,
+            extras: [],
+            campaigns: []
+          }
+        ]);
+      } finally {
+        setLoadingContractTypes(false);
+      }
+    };
+
+    loadContractTypes();
+  }, []);
+  
   useEffect(() => {
     // Simuliere API-Aufruf, um Mitgliedsdaten zu laden
     setIsLoading(true);
@@ -519,7 +555,7 @@ export default function MemberDetailPage() {
     setTimeout(() => {
       if (member) {
         // Finde den ausgewählten Vertragstyp
-        const selectedContractType = CONTRACT_TYPES.find(ct => ct.id === data.contract_type_id);
+        const selectedContractType = contractTypes.find(ct => ct.id === data.contract_type_id);
         
         // Prüfe, ob das Startdatum in der Zukunft liegt
         const startDate = new Date(data.start_date);
@@ -564,7 +600,7 @@ export default function MemberDetailPage() {
             id: newMembership.id,
             start_date: data.start_date,
             end_date: data.end_date,
-                         monthly_fee: 89.90, // Default fee - TODO: Add monthly_fee to CONTRACT_TYPES
+            monthly_fee: 89.90, // Default fee - TODO: Add monthly_fee to CONTRACT_TYPES
             payment_frequency: 'monthly'
           };
           
@@ -580,6 +616,38 @@ export default function MemberDetailPage() {
             .catch(error => {
               console.error('❌ Beitragskalender generation error:', error);
             });
+
+          // 🆕 AUTOMATISCHE BEITRAGSKONTO-ERSTELLUNG
+          // Erstelle automatisch ein Beitragskonto für das neue Mitglied über MCP
+          console.log('🔄 Creating member account for:', member.id);
+          
+          // Erstelle member_account direkt über API call
+          fetch('/api/payment-system/create-member-account', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              member_id: member.id,
+              iban: 'DE89370400440532013000', // Placeholder IBAN
+              mandate_reference: `MNDT-${member.id.substring(0, 8)}-${Date.now()}`,
+              mandate_date: new Date().toISOString().split('T')[0],
+              current_balance: 0.00,
+              account_holder: `${member.first_name} ${member.last_name}`,
+              is_active: true
+            })
+          })
+          .then(response => response.json())
+          .then(result => {
+            if (result.success) {
+              console.log('✅ Member account created successfully via API');
+            } else {
+              console.warn('⚠️ Member account creation failed:', result.error);
+            }
+          })
+          .catch(error => {
+            console.error('❌ Member account creation error:', error);
+          });
         }
       }
       
@@ -1316,6 +1384,14 @@ export default function MemberDetailPage() {
                 </div>
               </div>
             </Card>
+            
+            {/* Debug: Test-Mitglied Setup */}
+            {member.id === '550e8400-e29b-41d4-a716-446655440000' && (
+              <>
+                <SetupTestMember />
+                <CleanBeitragskalender memberId={member.id} />
+              </>
+            )}
           </div>
           
           <div className="md:col-span-2">
@@ -1980,9 +2056,9 @@ export default function MemberDetailPage() {
         <MembershipForm
           onSubmit={handleAddMembership}
           onCancel={() => setIsAddMembershipModalOpen(false)}
-          isLoading={isSaving}
+          isLoading={isSaving || loadingContractTypes}
           memberId={member.id}
-          contractTypes={CONTRACT_TYPES}
+          contractTypes={contractTypes}
         />
       </Modal>
 
@@ -2021,7 +2097,7 @@ export default function MemberDetailPage() {
                 // Status wird in processExtendMembership automatisch gesetzt
                 status: 'active' as MembershipStatus,
               }}
-              contractTypes={CONTRACT_TYPES}
+              contractTypes={contractTypes}
             />
           </div>
         )}

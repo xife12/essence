@@ -3,7 +3,7 @@ description: "Taskmaster-kompatibles Template für Modul-Tasks mit PRD-Referenz 
 globs: 
   - ".cursor/rules/**/tasks/*.md"
   - ".taskmaster/tasks/*.md"
-alwaysApply: false
+alwaysApply: true
 dependencies:
   - "@task-flow"
   - "@audit-rules"

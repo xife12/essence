@@ -10,40 +10,44 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 API Route: Starting getAllContracts...');
     
-    // Lade alle Verträge: aktive und Kampagnenverträge
-    const { data: activeContracts, error: activeError } = await supabase
+    // 🔧 FIX: Lade alle relevanten Verträge in einem Query
+    const { data: allContracts, error } = await supabase
       .from('contracts')
       .select('*')
-      .eq('is_active', true)
+      .or('is_active.eq.true,is_campaign_version.eq.true')
       .order('created_at', { ascending: false });
-      
-    const { data: campaignContracts, error: campaignError } = await supabase
-      .from('contracts')
-      .select('*')
-      .eq('is_campaign_version', true)
-      .order('created_at', { ascending: false });
-      
-    // Kombiniere beide Listen
-    const contracts = [...(activeContracts || []), ...(campaignContracts || [])];
-    const error = activeError || campaignError;
 
-    console.log('📊 Raw contracts loaded:', contracts?.length || 0);
+    console.log('📊 Raw contracts loaded:', allContracts?.length || 0);
     
     if (error) {
       console.error('❌ Supabase error:', error);
       throw error;
     }
 
-    // Gruppiere nach contract_group_id ABER behalte sowohl Basis- als auch Kampagnenverträge
-    const contractGroups = new Map();
-    const separateCampaignContracts = [];
+    // 🔧 FIX: Deduplication basierend auf contract ID (nicht group)
+    const uniqueContracts = new Map();
     
-    contracts?.forEach(contract => {
+    allContracts?.forEach(contract => {
+      const contractId = contract.id;
+      
+      // Überspringe, wenn wir diese contract ID bereits haben
+      if (uniqueContracts.has(contractId)) {
+        return;
+      }
+      
+      uniqueContracts.set(contractId, contract);
+    });
+
+    // 🔧 FIX: Für gruppierte Verträge (normale Versionen) nur die neueste behalten
+    const contractGroups = new Map();
+    const campaignContracts = [];
+    
+    Array.from(uniqueContracts.values()).forEach(contract => {
       if (contract.is_campaign_version) {
-        // Kampagnenverträge separat sammeln
-        separateCampaignContracts.push(contract);
+        // Kampagnenverträge direkt hinzufügen
+        campaignContracts.push(contract);
       } else {
-        // Normale Verträge gruppieren (nur neueste Version)
+        // Normale Verträge gruppieren und nur neueste Version behalten
         const groupId = contract.contract_group_id || contract.id;
         const existing = contractGroups.get(groupId);
         
@@ -53,9 +57,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Kombiniere normale Verträge + alle Kampagnenverträge
-    const latestContracts = [...Array.from(contractGroups.values()), ...separateCampaignContracts];
-    console.log('✅ Latest contracts:', latestContracts.length);
+    // 🔧 FIX: Kombiniere normale + Kampagnenverträge ohne Duplikate
+    const latestContracts = [...Array.from(contractGroups.values()), ...campaignContracts];
+    
+    console.log('✅ Latest contracts (deduplicated):', latestContracts.length);
+    console.log('🔍 Contract IDs:', latestContracts.map(c => c.id));
 
     return NextResponse.json({ 
       success: true, 

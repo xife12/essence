@@ -1,5 +1,70 @@
 ---
-description:
-globs:
-alwaysApply: false
+description: 
+globs: 
+alwaysApply: true
 ---
+# Modul: Zahllaufgruppen-Management (🆕 NEU - 24.06.2025)
+
+## 🎯 Zweck
+Dashboard zur Verwaltung von SEPA-Zahllaufgruppen mit präziser Forderungstypen-Filterung und automatisierter SEPA-XML-Generation.
+
+## 📊 DASHBOARD-STRUKTUR
+
+### **🔸 ROUTE & NAVIGATION**
+- **Primäre Route**: `/payment-system/zahllaufgruppen`
+- **Navigation**: Finanzen → Zahllaufgruppen
+- **Berechtigung**: Finanzen-Admin, Studio-Manager
+
+### **🔸 LISTEN-DARSTELLUNG**
+```typescript
+interface ZahllaufgruppeEntry {
+  id: string;
+  name: string;
+  status: 'aktiv' | 'inaktiv';
+  faelligkeit: string; // ISO Date
+  forderungstypen: ('startpaket' | 'beiträge' | 'pauschale' | 'gebühren')[];
+  letzter_lauf: string | null; // ISO Date
+  naechster_lauf: string | null; // ISO Date
+  mitglieder_anzahl: number;
+  gesamtbetrag: number;
+}
+```
+
+## 🛠️ ZAHLLAUFGRUPPEN-EINSTELLUNGEN
+
+### **🔸 EINSTELLUNGS-MODAL**
+```typescript
+interface ZahllaufgruppenSettings {
+  name: string;                    // Text-Input
+  forderungstypen: {               // Checkboxen
+    startpaket: boolean;
+    beiträge: boolean;
+    pauschale: boolean;
+    gebühren: boolean;
+  };
+  faelligkeit: string;             // Datumauswahl
+  status: 'aktiv' | 'inaktiv';     // Toggle
+  beschreibung?: string;           // Optional
+}
+```
+
+## 🔗 INTEGRATION PAYMENT-RUNS
+```typescript
+// Zahllaufgruppen werden automatisch bei SEPA-Generation verwendet
+interface PaymentRunIntegration {
+  zahllaufgruppe_id: string;
+  forderungstypen_filter: string[];
+  automatische_zuordnung: boolean;
+  sepa_xml_generation: boolean;
+}
+```
+
+## 📊 SUCCESS METRICS
+- **CRUD-Funktionalität**: 100% Zahllaufgruppen-Management
+- **Filter-Genauigkeit**: 100% korrekte Forderungstypen-Zuordnung
+- **SEPA-Integration**: Nahtlose XML-Generation
+
+> **MODULE STATUS**: 🚀 READY FOR IMPLEMENTATION  
+> **DEPENDENCIES**: payment-system-database.mdc  
+
+*Erstellt: 24.06.2025*

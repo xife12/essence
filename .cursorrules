@@ -152,11 +152,22 @@ I MUST ALWAYS suggest relevant commands based on context. Every response should 
 ### Session Start Suggestions
 ALWAYS suggest at session start:
 ```
-🚀 **Session Start Recommendations:**
+🌅 **Session Start Recommendations:**
+• `Guten Morgen` - 🆕 Vollständiger Daily Start Workflow (EMPFOHLEN)
 • `@system-health` - Quick system status check
 • `@system-health --audit-all` - For critical sessions
+• `@daily-health-report` - 🆕 Täglicher Gesundheitsbericht
 • Quick check: System appears healthy, ready to work!
 ```
+
+### "Guten Morgen" Daily Start Workflow (🆕 NEW)
+When user says "Guten Morgen", trigger comprehensive daily start:
+1. **System Health Check:** Comprehensive project health (duplicates, rules, DB)
+2. **Progress Analysis:** Yesterday's completed tasks vs today's priorities  
+3. **Issue Report:** Known problems and potential risks
+4. **Action Plan:** Dependency-optimized task sequence with time estimates
+5. **Chart Updates:** Refresh dependency and flow charts
+6. **Critical Review:** Prepare for any module changes during the day
 
 ### Context-Aware Suggestions
 Based on user activity, suggest:

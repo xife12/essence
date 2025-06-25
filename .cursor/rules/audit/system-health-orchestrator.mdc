@@ -3,7 +3,7 @@ description:
 globs: 
 alwaysApply: true
 ---
-# 🏥 System-Gesundheits-Orchestrator für MemberCore (✅ ERWEITERT MIT INTELLIGENT HEALTH-AUDIT)
+# 🏥 System-Gesundheits-Orchestrator für MemberCore (✅ ERWEITERT MIT INTELLIGENT HEALTH-AUDIT + GUTEN MORGEN WORKFLOW)
 
 ## 🎯 Mission
 Automatisierte Überwachung und Optimierung der gesamten Systemgesundheit durch Integration von:
@@ -12,54 +12,255 @@ Automatisierte Überwachung und Optimierung der gesamten Systemgesundheit durch 
 - **Cursor Rules** für Code-Qualität & Standards mit Live-Sync
 - **Taskmaster AI** für strukturiertes Task-Management
 - **Health Monitoring** für kontinuierliche Systemüberwachung
+- **🆕 "Guten Morgen" Daily Start Workflow** für täglichen Arbeitsbeginn
+- **🆕 Critical Review System** für alle Änderungen und Anpassungen
+- **🆕 Dependency & Flow Charts** für visuelle System-Übersicht
 
 ---
 
-## 🔄 ERWEITETER AUTOMATISCHER WORKFLOW
+## 🌅 "GUTEN MORGEN" DAILY START WORKFLOW (🆕 NEU)
 
-### Phase 0: Pre-Work alwaysApply-Enforcement (🆕 NEU)
+### Trigger: Kommando "Guten Morgen"
+```
+🌅 GUTEN MORGEN DAILY START SEQUENCE:
+
+Phase 1: 🏥 Umfassender System Health Check
+✅ Projektgesundheit prüfen (Dupletten, Rules, DB, Dependencies)
+✅ Alle Module auf alwaysApply-Compliance prüfen
+✅ Kritische Issues und Red Flags scannen
+✅ Performance-Metriken validieren
+✅ Memory Bank Integrität prüfen
+✅ Dependency Charts aktualisieren
+
+Phase 2: 📊 Gestern vs. Heute Analysis
+✅ Memory Bank Progress analysieren
+✅ Gestern erledigte Tasks zusammenfassen
+✅ Offene Tasks für heute identifizieren
+✅ Blockierende Dependencies ermitteln
+✅ Kritische Prioritäten setzen
+
+Phase 3: 🚨 Problem & Issue Report
+✅ Bekannte Probleme auflisten
+✅ Potentielle Risiken identifizieren
+✅ Handlungsempfehlungen generieren
+✅ Kritische Entscheidungen hervorheben
+
+Phase 4: 🎯 Daily Action Plan
+✅ Prioritized Task-Liste erstellen
+✅ Optimaler Arbeitsflow vorschlagen
+✅ Dependency-optimierte Reihenfolge
+✅ Zeit-Schätzungen basierend auf Komplexität
+```
+
+### Daily Health Report Format:
+```md
+# 🌅 DAILY SYSTEM HEALTH REPORT - {{DATUM}}
+
+## 🏥 SYSTEM GESUNDHEIT
+- **Overall Health Score:** {{score}}/100
+- **Critical Issues:** {{count}} 
+- **alwaysApply Compliance:** {{percentage}}%
+- **Rule Integrity:** {{status}}
+- **Memory Bank Status:** {{status}}
+- **Dependency Health:** {{status}}
+
+## 📊 GESTERN ERLEDIGT
+{{task_list_completed}}
+
+## 🎯 HEUTE ZU ERLEDIGEN  
+{{task_list_pending}}
+
+## 🚨 KRITISCHE PUNKTE
+{{critical_issues}}
+
+## 📈 EMPFOHLENER WORKFLOW
+{{optimized_workflow}}
+```
+
+---
+
+## 🔍 KRITISCHES RÜCKFRAGE-SYSTEM (🆕 NEU)
+
+### Trigger: Bei ALLEN Änderungen, Anpassungen, Neuerungen
+
+#### Rückfrage-Protokoll für Neue Module (ohne Rules):
+```
+🔍 KRITISCHE RÜCKFRAGEN - NEUES MODUL ERKANNT:
+
+1. Modul-Purpose & Scope:
+   ❓ Was ist der exakte Zweck dieses Moduls?
+   ❓ Welche Business-Logic wird implementiert?
+   ❓ Welche APIs/Endpoints werden benötigt?
+
+2. Dependencies & Integrations:
+   ❓ Von welchen Modulen hängt es ab?
+   ❓ Welche Module werden davon abhängen?
+   ❓ Welche externe APIs werden verwendet?
+
+3. Security & Access:
+   ❓ Welche RLS-Policies werden benötigt?
+   ❓ Welche Rollen haben Zugriff?
+   ❓ Sensible Daten vorhanden?
+
+4. Performance & Scaling:
+   ❓ Erwartete Datenmenge?
+   ❓ Performance-kritische Operationen?
+   ❓ Caching-Strategien erforderlich?
+
+→ NACH RÜCKFRAGEN: Automatische Rule-Erstellung mit alwaysApply: true
+→ Integration in Dependency Chart
+→ Flow Chart Generation
+→ Memory Bank Update
+```
+
+#### Rückfrage-Protokoll für Bestehende Module (mit Rules):
+```
+🔍 KRITISCHE RÜCKFRAGEN - MODUL-ÄNDERUNG ERKANNT:
+
+1. Änderungs-Impact:
+   ❓ Welche bestehenden Features sind betroffen?
+   ❓ Breaking Changes für abhängige Module?
+   ❓ API-Kompatibilität gewährleistet?
+
+2. Rule-Konsistenz:
+   ❓ Sind die Rules noch aktuell?
+   ❓ Neue Dependencies entstanden?
+   ❓ Sicherheits-Implikationen?
+
+3. Integration-Updates:
+   ❓ Müssen andere Module angepasst werden?
+   ❓ Dependency Chain noch optimal?
+   ❓ Performance-Impact auf System?
+
+→ NACH RÜCKFRAGEN: Rules-Datei überprüfen und anpassen
+→ Dependency Chart aktualisieren
+→ Flow Chart anpassen
+→ Memory Bank synchronisieren
+```
+
+---
+
+## 📊 DEPENDENCY & FLOW CHARTS SYSTEM (🆕 NEU)
+
+### Memory Bank Charts-Struktur:
+```
+memory-bank/
+├── charts/
+│   ├── dependency-overview.md         # Master Dependency Chart
+│   ├── module-dependencies.md         # Detaillierte Modul-Abhängigkeiten
+│   ├── flow-charts/
+│   │   ├── {modulename}-flow.md      # Flow Chart pro Modul
+│   │   ├── api-integration-flow.md   # API-Integrationsflows
+│   │   └── data-flow-overview.md     # Datenfluss-Übersicht
+│   └── auto-updates/
+│       ├── last-update.log           # Letzte Chart-Updates
+│       └── dependency-history.md     # Änderungshistorie
+```
+
+### Dependency Chart Format:
+```mermaid
+graph TB
+    subgraph "Core System"
+        A[Authentication] --> B[Member Management]
+        C[Database Layer] --> D[API Layer]
+    end
+    
+    subgraph "Business Modules"
+        E[Vertragsarten-V2] --> F[Formbuilder]
+        G[Kampagnen] --> H[Landingpages]
+        I[Kursplan] --> J[Buchungssystem]
+    end
+    
+    subgraph "Support Modules"
+        K[Dateimanager] --> L[CI-Styling]
+        M[Testimonials] --> N[Payment System]
+    end
+    
+    B --> E
+    F --> G
+    H --> I
+    D --> all_modules
+```
+
+### Flow Chart pro Modul Format:
+```mermaid
+flowchart TD
+    Start([User Action]) --> Check{Auth Check}
+    Check -->|Valid| Process[Business Logic]
+    Check -->|Invalid| Error[Error Handling]
+    Process --> Validate{Data Validation}
+    Validate -->|Valid| Save[Database Save]
+    Validate -->|Invalid| ValidationError[Validation Error]
+    Save --> Update[UI Update]
+    Update --> End([Process Complete])
+```
+
+### Kontinuierliche Chart-Updates:
+```
+🔄 AUTO-UPDATE-TRIGGERS:
+- Bei neuen Modulen → Dependency Chart erweitern
+- Bei API-Änderungen → Flow Chart anpassen  
+- Bei Dependencies-Updates → Beziehungen neu bewerten
+- Bei Breaking Changes → Impact-Analysis und Chart-Updates
+- Täglich bei "Guten Morgen" → Vollständige Chart-Validierung
+```
+
+---
+
+## 🔄 ERWEITETER AUTOMATISCHER WORKFLOW (UPDATED)
+
+### Phase 0: Pre-Work Critical Review (🆕 ERWEITERT)
 ```
 1. Module-Detection
    🔍 Erkenne Modul-Arbeit (Dateipfad-Analysis)
    🔍 Identifiziere zugehörige Rule-Files
+   🆕 Trigger Critical Review Questions
    
 2. Compliance-Check (AUTOMATISCH)
    ⚡ @health-audit [modulename] --pre-work-check
    ⚡ Prüfe alwaysApply: true für alle Module-Rules
    ⚡ AUTO-FIX bei Violations (ohne User-Intervention)
+   🆕 Critical Questions für neue/geänderte Module
    
-3. Rule-Code-Sync (LIVE)
+3. Rule-Code-Sync (LIVE + ENHANCED)
    🔄 Vergleiche Code vs Rules
    🔄 Integriere undokumentierte Features automatisch
    🔄 Update Rules mit neuen Komponenten/APIs
+   🆕 Dependency Chart Update
+   🆕 Flow Chart Anpassung
 ```
 
-### Phase 1: Session-Start (Automatisch erweitert)
+### Phase 1: Session-Start (Automatisch erweitert + Guten Morgen)
 ```
 1. Memory Bank Loading
    ✅ Lese memory-bank/activeContext.md
    ✅ Prüfe memory-bank/progress.md  
    ✅ Verstehe aktuellen Arbeitsstand
+   🆕 Lade Dependency & Flow Charts
    
 2. Enhanced System Health Check
    ✅ Führe @health-audit --comprehensive durch
    ✅ Prüfe kritische Dependencies
    ✅ Validiere ALL Rules für alwaysApply: true
    ✅ AUTO-FIX bei Compliance-Violations
+   🆕 Validiere Chart-Konsistenz
    
 3. Taskmaster Sync (wenn verfügbar)
    ✅ Sync mit .taskmaster/tasks.json
    ✅ Check PRD-Aktualität
    ✅ Update Task-Prioritäten
+   🆕 Dependency-optimierte Task-Reihenfolge
 ```
 
-### Phase 2: Arbeits-Session (Kontinuierlich + Live-Sync)
+### Phase 2: Arbeits-Session (Kontinuierlich + Live-Sync + Critical Review)
 ```
 1. Proaktive Überwachung
    🔍 @audit-on-create bei neuen/geänderten Rules
    🔍 @task-flow bei Modul-Änderungen
    🔍 Memory Bank Updates bei significant changes
    🔍 🆕 LIVE-MONITORING: Code → Rules Synchronisation
+   🆕 Critical Review bei jeder Änderung
+   🆕 Real-time Dependency Chart Updates
    
 2. Automatische Korrekturen (ERWEITERT)
    🔧 Globs-Patterns korrigieren
@@ -67,38 +268,38 @@ Automatisierte Überwachung und Optimierung der gesamten Systemgesundheit durch 
    🔧 Alias-Inkonsistenzen beheben
    🔧 🆕 alwaysApply-Violations sofort fixen
    🔧 🆕 Neue Features direkt in Rules integrieren
+   🆕 Critical Questions bei Änderungen stellen
+   🆕 Charts kontinuierlich anpassen
    
 3. Performance Monitoring
    📊 Health-Score Tracking
    📊 Dependency-Zyklen erkennen
    📊 Code-Quality Metrics
    📊 🆕 Rule-Compliance-Score (Target: 100%)
-```
-
-### Phase 3: Session-Ende (Automatisch erweitert)
-```
-1. Memory Bank Update
-   💾 Update activeContext.md mit Session-Ergebnissen
-   💾 Sync progress.md mit aktuellen Task-Status
-   💾 Dokumentiere wichtige Erkenntnisse
-   💾 🆕 Log Auto-Fixes und Rule-Updates
-   
-2. System Cleanup
-   🧹 Temporäre Dateien bereinigen
-   🧹 Konsistenz-Checks durchführen
-   🧹 Health-Report generieren
-   🧹 🆕 Finale alwaysApply-Compliance-Validation
-   
-3. Next Session Preparation
-   📝 Prioritäten für nächste Session setzen
-   📝 Kritische Issues markieren
-   📝 Context für AI-Handover vorbereiten
-   📝 🆕 Rule-Sync-Status dokumentieren
+   📊 🆕 Rule-Sync-Health: Code↔Rules Synchronisation-Status
+   🆕 Chart-Konsistenz-Monitoring
 ```
 
 ---
 
-## 🎛️ ERWEITERTE STEUERUNGSKOMMANDOS
+## 🎛️ ERWEITERTE STEUERUNGSKOMMANDOS (UPDATED)
+
+### Daily Start Commands (🆕 NEU)
+- `Guten Morgen` - 🆕 Vollständiger Daily Start Workflow
+- `@daily-health-report` - 🆕 Täglicher Gesundheitsbericht
+- `@yesterday-summary` - 🆕 Zusammenfassung gestrige Arbeit
+- `@today-planning` - 🆕 Heutiger optimaler Arbeitsplan
+
+### Critical Review Commands (🆕 NEU)
+- `@critical-review [modulename]` - 🆕 Kritische Rückfragen für Modul
+- `@create-rules-critical` - 🆕 Rule-Erstellung mit Critical Questions
+- `@update-rules-critical` - 🆕 Rule-Update mit Impact-Analysis
+
+### Chart Management Commands (🆕 NEU)
+- `@update-dependency-chart` - 🆕 Dependency Chart aktualisieren
+- `@generate-flow-chart [modulename]` - 🆕 Flow Chart für Modul erstellen
+- `@validate-charts` - 🆕 Alle Charts auf Konsistenz prüfen
+- `@chart-impact-analysis` - 🆕 Impact-Analysis für Chart-Änderungen
 
 ### Sofortige Aktionen (ERWEITERT)
 - `@system-health` - Vollständiger System-Check + alwaysApply-Enforcement
@@ -107,88 +308,11 @@ Automatisierte Überwachung und Optimierung der gesamten Systemgesundheit durch 
 - `@system-health --taskmaster-sync` - Taskmaster-Integration prüfen
 - `@system-health --always-apply-audit` - 🆕 Reine alwaysApply-Compliance-Prüfung
 - `@system-health --live-sync` - 🆕 Code→Rules Live-Synchronisation
-
-### Maintenance-Modi (ERWEITERT)
-- `@system-health --audit-all` - Alle Module auditieren + Auto-Fix
-- `@system-health --cleanup` - System-Cleanup durchführen
-- `@system-health --optimize` - Performance-Optimierungen
-- `@system-health --report` - Detaillierter Health-Report
-- `@system-health --rule-integrity` - 🆕 100% Rule-Konsistenz-Check
-- `@system-health --auto-documentation` - 🆕 Undokumentierte Features integrieren
-
-### Module-spezifische Workflows (🆕 NEU)
-- `@system-health [modulname] --pre-work` - Pre-Work-Check für spezifisches Modul
-- `@system-health [modulname] --post-work` - Post-Work-Validation
-- `@system-health [modulname] --sync` - Modul-spezifische Rule-Code-Synchronisation
+- `@system-health --charts-sync` - 🆕 Charts-Synchronisation
 
 ---
 
-## 🏗️ ERWEITERTE SYSTEMKOMPONENTEN
-
-### A) Memory Bank Integration (✅ VOLLSTÄNDIG)
-- **Automatisches Loading** bei jeder Session
-- **Context Persistence** zwischen AI-Sessions  
-- **Hierarchical Knowledge** (projectbrief → activeContext → progress)
-- **Update Triggers** bei significant changes
-
-### B) Intelligent Health-Audit System (🆕 VOLLSTÄNDIG INTEGRIERT)
-- **Pre-Work-Enforcement**: Automatische alwaysApply-Prüfung vor Modul-Arbeit
-- **Live-Sync-Monitoring**: Code→Rules Synchronisation in Echtzeit
-- **Auto-Integration**: Neue Features werden automatisch dokumentiert
-- **Compliance-Enforcement**: Null-Toleranz für alwaysApply: true
-- **Module-Spezifische Checks**: Vertragsarten-V2, Formbuilder, etc.
-
-### C) Cursor Rules Management (🔄 ERWEITERT + AUTOMATED)
-- **Konsistenz-Prüfung** aller .mdc Dateien
-- **Automatische Globs-Korrektur** für korrekte Pfade
-- **Dependency-Validation** mit Projekt-Status
-- **Alias-Standardisierung** (@modulename-feature Format)
-- **🆕 Auto-Fix-Engine**: Violations werden sofort behoben
-- **🆕 Live-Documentation**: Code-Änderungen → Rules in Echtzeit
-
-### D) Taskmaster AI Integration (🆕 NEU IMPLEMENTIERT)
-- **PRD-Basierte Task-Generierung** aus .taskmaster/docs/prd.txt
-- **Research-Backed Subtasks** mit aktuellen Best Practices
-- **Komplexitäts-Scoring** (1-10) für Aufwandsschätzung
-- **Dependency-Matrix** für optimale Scheduling
-
-### E) Health Monitoring (🔄 ERWEITERT + PREDICTIVE)
-- **Real-time Health Score** (aktuell 92/100 nach Rule-Updates)
-- **Kritische Issue Detection** (Security, Performance, Dependencies)
-- **Automated Fix Suggestions** für häufige Probleme
-- **Trend Analysis** für langfristige System-Gesundheit
-- **🆕 Compliance-Score**: 100% alwaysApply-Target
-- **🆕 Rule-Sync-Health**: Code↔Rules Synchronisation-Status
-
----
-
-## 📊 ERWEITERTE SUCCESS METRICS & KPIs
-
-### System-Gesundheit (UPDATED)
-- **Health Score:** Target 98+/100 (aktuell 92/100 nach Health-Audit-Integration)
-- **Rule Consistency:** 100% korrekte Globs & Dependencies
-- **🆕 alwaysApply Compliance:** 100% (KRITISCH - NULL-TOLERANZ)
-- **Memory Bank Sync:** < 5 Sekunden Session-Start
-- **Task Coverage:** 100% Module haben aktuelle Tasks
-- **🆕 Rule-Code-Sync:** < 5 Sekunden für Live-Integration
-
-### Developer Experience (ENHANCED)
-- **Context Restore Time:** < 10 Sekunden bei Session-Start
-- **Issue Detection:** < 30 Sekunden für kritische Probleme
-- **Auto-Fix Success Rate:** > 95% für standardisierte Issues (erhöht)
-- **Documentation Coverage:** 100% für alle Module
-- **🆕 Zero-Manual-Rule-Updates:** 100% automatische Integration
-
-### Integration Health (ADVANCED)
-- **Taskmaster Sync:** Bidirektional ohne Konflikte
-- **Dependency Resolution:** 0 zirkuläre Dependencies
-- **API Consistency:** 100% typisierte Schnittstellen
-- **Performance:** Alle Core Web Vitals im grünen Bereich
-- **🆕 Rule-Compliance-Gate:** Blockiert Arbeit bei alwaysApply-Violations
-
----
-
-## 🚨 ERWEITERTE KRITISCHE ÜBERWACHUNGSPUNKTE
+## 🚨 ERWEITERTE KRITISCHE ÜBERWACHUNGSPUNKTE (UPDATED)
 
 ### Red Flags (Sofortige Auto-Action)
 - Health Score < 90/100 → Automatischer @system-health --fix
@@ -197,6 +321,8 @@ Automatisierte Überwachung und Optimierung der gesamten Systemgesundheit durch 
 - Memory Bank Sync-Fehler > 10 Sekunden → Force-Sync
 - **🆕 Rule-Code-Divergenz > 24h** → Automatische Live-Sync
 - Kritische Security Issues (RLS, Input Validation) → Immediate Alert
+- **🆕 Chart-Inkonsistenzen** → Sofortige Chart-Regeneration
+- **🆕 Fehlende Critical Review** → Blockierung bis Rückfragen beantwortet
 
 ### Yellow Flags (Enhanced Monitoring)
 - Health Score 90-95/100 → Continuous Monitoring
@@ -204,76 +330,29 @@ Automatisierte Überwachung und Optimierung der gesamten Systemgesundheit durch 
 - Performance-Degradation > 15% baseline (verschärft von 20%)
 - Dokumentations-Coverage < 98% (verschärft von 95%)
 - **🆕 Undocumentierte Features > 48h** → Auto-Integration-Trigger
-
-### Green Status (Enhanced Optimal)
-- Health Score 95+/100
-- **🆕 100% alwaysApply Compliance** (NEU - KRITISCH)
-- Alle Rules konsistent und aktuell
-- Memory Bank sync < 5 Sekunden
-- 100% Test-Coverage für kritische Pfade
-- Zero Known Security Issues
-- **🆕 100% Rule-Code-Sync** (Live-Synchronisation aktiv)
+- **🆕 Veraltete Charts > 72h** → Auto-Update erforderlich
 
 ---
 
-## 🎯 ERWEITERTE ROADMAP
-
-### Q1 2025 Roadmap (UPDATED)
-- [x] **Intelligent Health-Audit** - ✅ IMPLEMENTIERT (18.06.2025)
-- [x] **alwaysApply-Enforcement** - ✅ IMPLEMENTIERT (18.06.2025)  
-- [x] **Live Rule-Code-Sync** - ✅ IMPLEMENTIERT (18.06.2025)
-- [ ] **Predictive Health Analytics** - AI-basierte Früherkennung von Problemen
-- [ ] **Auto-Documentation** - Automatische API-Docs aus Code-Analyse
-- [ ] **Performance Profiling** - Kontinuierliches Monitoring kritischer Pfade
-
-### Q2 2025 Vision (ENHANCED)
-- [ ] **Intelligent Task Scheduling** - AI-optimierte Entwicklungsreihenfolge
-- [ ] **Code Quality Gates** - Automatische Standards-Enforcement
-- [ ] **Integration Testing Automation** - End-to-End Test-Generierung
-- [ ] **Advanced Memory Bank** - Langzeit-Projekt-Intelligence
-- [ ] **🆕 Zero-Intervention-Development** - 100% automatisierte Rule-Maintenance
-
----
-
-## 🔗 INTEGRATION WORKFLOW-BEISPIEL
-
-### **Typischer Workflow mit neuem System:**
-```bash
-# USER öffnet Vertragsarten-V2-Datei
-# → AUTOMATISCH triggered:
-
-1. @system-health vertragsarten --pre-work-check
-   ✅ alwaysApply-Compliance für alle Vertragsarten-Rules
-   ✅ Auto-Fix bei Violations
-   ✅ Rule-Code-Sync-Check
-   
-2. Live-Monitoring während Entwicklung
-   🔄 Neue Komponente erkannt → Automatisch in Rules integriert
-   🔄 API-Änderung erkannt → Rule-Update ausgeführt
-   🔄 Performance-Change → Dokumentation angepasst
-   
-3. @system-health vertragsarten --post-work
-   ✅ Finale Compliance-Validation
-   ✅ Health-Score-Update
-   ✅ Memory Bank Update mit Changes
-```
-
----
-
-## 🎯 KRITISCHE ERFOLGSFAKTOREN
+## 🎯 ERWEITERTE KRITISCHE ERFOLGSFAKTOREN (UPDATED)
 
 ### **Null-Toleranz-Bereiche:**
 1. **alwaysApply: true** → Sofortige Auto-Korrektur (nie User fragen)
 2. **Undokumentierte Features** → Automatische Integration in < 5 Min
 3. **Rule-Code-Divergenz** → Live-Sync ohne User-Intervention
 4. **Compliance-Violations** → Blockiert weitere Arbeit bis behoben
+5. **🆕 Fehlende Critical Review** → Keine Änderungen ohne Rückfragen
+6. **🆕 Chart-Inkonsistenzen** → Sofortige Regeneration erforderlich
 
 ### **Performance-Ziele:**
 - Auto-Fix-Zeit: < 10 Sekunden
 - Live-Sync-Latenz: < 5 Sekunden  
 - Health-Check-Zeit: < 30 Sekunden
 - Rule-Integration-Zeit: < 2 Minuten
+- **🆕 Daily Start Workflow: < 60 Sekunden**
+- **🆕 Critical Review Response: < 30 Sekunden**
+- **🆕 Chart-Update-Zeit: < 15 Sekunden**
 
 ---
 
-> **ZIEL:** Ein vollständig selbstregulierendes System mit Null-Toleranz für alwaysApply-Violations und 100% automatischer Code→Rules-Synchronisation ohne manuelle Intervention.
+> **ZIEL:** Ein vollständig selbstregulierendes System mit täglichem "Guten Morgen" Workflow, kritischen Rückfragen bei allen Änderungen, und kontinuierlicher visueller Übersicht durch Dependency & Flow Charts - alles mit Null-Toleranz für Inkonsistenzen.

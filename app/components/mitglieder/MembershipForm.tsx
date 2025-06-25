@@ -556,19 +556,19 @@ export default function MembershipForm({
             Zusatzleistungen
           </label>
           <div className="space-y-2 border p-3 rounded-md bg-gray-50">
-            {selectedExtras.map(extra => (
-              <div key={extra.id} className="flex items-center justify-between">
+            {selectedExtras.map((extra, extraIndex) => (
+              <div key={`${selectedContractType?.id || 'contract'}-extra-${extra.id}-${extraIndex}`} className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
-                    id={`extra-${extra.id}`}
-                    name={`extra-${extra.id}`}
+                    id={`extra-${extra.id}-${extraIndex}`}
+                    name={`extra-${extra.id}-${extraIndex}`}
                     type="checkbox"
                     checked={extra.included}
                     onChange={(e) => handleExtrasChange(extra.id, e.target.checked)}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     disabled={isLoading}
                   />
-                  <label htmlFor={`extra-${extra.id}`} className="ml-2 block text-sm text-gray-900">
+                  <label htmlFor={`extra-${extra.id}-${extraIndex}`} className="ml-2 block text-sm text-gray-900">
                     {extra.name}
                   </label>
                 </div>
@@ -598,8 +598,8 @@ export default function MembershipForm({
             disabled={isLoading}
           >
             <option value="">Keine Aktion ausgewählt</option>
-            {selectedContractType.campaigns.map(campaign => (
-              <option key={campaign} value={campaign}>
+            {selectedContractType.campaigns.map((campaign, index) => (
+              <option key={`${selectedContractType.id}-campaign-${index}-${campaign}`} value={campaign}>
                 {campaign}
               </option>
             ))}

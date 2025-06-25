@@ -336,4 +336,143 @@ export class PaymentSystemAPI {
       return { success: false, error: 'Fehler beim Aktualisieren der Studio-Einstellungen' };
     }
   }
+
+  /**
+   * Lade Beitragskonto-Einträge für ein Mitglied
+   * Nutzt die beitragskalender Tabelle für geplante/wiederkehrende Beiträge
+   * und member_transactions für bereits verarbeitete Transaktionen
+   */
+  async getBeitragskontoEntries(
+    memberId: string, 
+    options?: { includeHistorical?: boolean; limit?: number }
+  ): Promise<APIResponse<any[]>> {
+    try {
+      console.log('🔧 getBeitragskontoEntries called for memberId:', memberId, 'options:', options);
+      
+      const { includeHistorical = false, limit = 8 } = options || {};
+      
+      // Query beitragskalender für zukünftige/geplante Beiträge
+      let beitragsQuery = supabase
+        .from('beitragskalender_overview')
+        .select('*')
+        .eq('member_id', memberId);
+
+      // Filter historische Einträge falls nicht gewünscht
+      if (!includeHistorical) {
+        const today = new Date().toISOString().split('T')[0];
+        beitragsQuery = beitragsQuery.gte('due_date', today);
+      }
+
+      beitragsQuery = beitragsQuery
+        .order('due_date', { ascending: true })
+        .limit(limit);
+
+      const { data: beitragsData, error: beitragsError } = await beitragsQuery;
+
+      if (beitragsError) {
+        console.error('Error fetching beitragskalender:', beitragsError);
+        throw new Error(`Beitragskalender Error: ${beitragsError.message}`);
+      }
+
+      // Konvertiere zu BeitragskontoEntry Format
+      const entries = (beitragsData || []).map(entry => ({
+        id: entry.id,
+        faelligkeit: entry.due_date + 'T00:00:00Z', // ISO Format
+        typ: this.mapTransactionType(entry.transaction_type),
+        beschreibung: entry.description || `${entry.transaction_type} ${new Date(entry.due_date).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}`,
+        lastschriftgruppe: entry.zahllaufgruppe_id || 'Standard',
+        betrag: parseFloat(entry.amount) || 0,
+        ust: 19, // Standard UST-Satz
+        zahlweise: 'Lastschrift' as const,
+        offen: this.calculateOffenBetrag(entry),
+        status: this.mapStatusToBeitragskontoStatus(entry.status, entry.effective_status)
+      }));
+
+      console.log('✅ Beitragskonto-Einträge geladen:', entries.length);
+      
+      return { 
+        success: true, 
+        data: entries
+      };
+      
+    } catch (error) {
+      console.error('Error in getBeitragskontoEntries:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to fetch beitragskonto entries'
+      };
+    }
+  }
+
+  /**
+   * Hilfsfunktion: Mappe transaction_type zu UI-kompatiblen Typen
+   */
+  private mapTransactionType(dbType: string): string {
+    const typeMapping: Record<string, string> = {
+      'membership_fee': 'membership_fee',
+      'beitrag': 'beitrag',
+      'setup_fee': 'setup_fee',
+      'startpaket': 'startpaket',
+      'pauschale': 'pauschale',
+      'gebuehr': 'gebuehr',
+      'penalty_fee': 'penalty_fee',
+      'modul': 'modul'
+    };
+    
+    return typeMapping[dbType] || dbType;
+  }
+
+  /**
+   * Hilfsfunktion: Berechne offenen Betrag basierend auf Status
+   */
+  private calculateOffenBetrag(entry: any): number {
+    const amount = parseFloat(entry.amount) || 0;
+    
+    // Bei verarbeiteten/bezahlten Einträgen ist nichts offen
+    if (entry.status === 'processed' || entry.effective_status === 'processed') {
+      return 0;
+    }
+    
+    // Bei geplanten Einträgen ist der volle Betrag offen
+    if (entry.status === 'scheduled' || entry.effective_status === 'upcoming') {
+      return amount;
+    }
+    
+    // Bei überfälligen Einträgen ist der volle Betrag offen
+    if (entry.effective_status === 'overdue') {
+      return amount;
+    }
+    
+    // Default: voller Betrag offen
+    return amount;
+  }
+
+  /**
+   * Hilfsfunktion: Mappe DB-Status zu UI-Status
+   */
+  private mapStatusToBeitragskontoStatus(dbStatus: string, effectiveStatus?: string): string {
+    if (effectiveStatus) {
+      const effectiveMapping: Record<string, string> = {
+        'overdue': 'offen',
+        'due_today': 'offen', 
+        'upcoming': 'geplant',
+        'processed': 'bezahlt'
+      };
+      
+      if (effectiveMapping[effectiveStatus]) {
+        return effectiveMapping[effectiveStatus];
+      }
+    }
+    
+    const statusMapping: Record<string, string> = {
+      'scheduled': 'geplant',
+      'processing': 'offen',
+      'processed': 'bezahlt',
+      'failed': 'ruecklastschrift',
+      'cancelled': 'offen',
+      'suspended': 'offen'
+    };
+    
+    return statusMapping[dbStatus] || 'offen';
+  }
 } 

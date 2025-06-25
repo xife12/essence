@@ -1,5 +1,477 @@
 ---
-description:
-globs:
-alwaysApply: false
+description: 
+globs: 
+alwaysApply: true
 ---
+# Modul: Beitragskonto-System (🚀 ERWEITERT - 24.06.2025 | 🔧 SCHEMA-FIXES - 25.06.2025)
+
+## 🎯 Zweck
+Das erweiterte Beitragskonto-System stellt Mitglieder-Finanzdaten in präziser Tabellenform dar mit automatisierter Business-Logic für Stillegungen, Kündigungen und Guthaben-Management.
+
+---
+
+## 🔄 **AUTOMATISCHE BEITRAGSKONTO-ERSTELLUNG (🆕 GEKLÄRT - 25.06.2025)**
+
+### **🎯 TRIGGER-EREIGNISSE für Beitragskonto-Generierung:**
+
+#### **1. Bei Mitgliedschaft-Erstellung (Member Detail Page):**
+```typescript
+// 📍 LOKATION: app/(protected)/mitglieder/[id]/page.tsx:555
+// TRIGGER: Neue Mitgliedschaft mit Status 'active' oder 'planned'
+
+const processMembershipAdd = async () => {
+  // ... Mitgliedschaft erstellen ...
+  
+  if (status === 'active' || status === 'planned') {
+    // 🎯 AUTOMATISCHE BEITRAGSKALENDER-GENERIERUNG
+    const contractData = {
+      id: newMembership.id,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      monthly_fee: 89.90, // TODO: From CONTRACT_TYPES
+      payment_frequency: 'monthly'
+    };
+    
+    // ✅ TRIGGER: BeitragskalenderGenerator.onMemberCreated()
+    BeitragskalenderGenerator.onMemberCreated(member.id, contractData);
+  }
+};
+```
+
+#### **2. Bei PDF-Import (Magicline-Integration):**
+```typescript
+// 📍 LOKATION: lib/services/pdf-processor.ts:1008
+// TRIGGER: generateBeitragskalenderFromContract()
+
+public generateBeitragskalenderFromContract(memberData: ExtractedMemberData, memberId: string) {
+  // Generiert 12 monatliche Einträge + Setup Fee + Admin Fee
+  // Verwendet 'membership_fee', 'pauschale' transaction_types
+  // Automatische Erstellung in beitragskalender Tabelle
+}
+```
+
+#### **3. Bei Member Account Creation:**
+```typescript
+// 📍 LOKATION: lib/api/payment-system.ts:189
+// TRIGGER: createMemberAccount() mit SEPA-Daten
+
+async createMemberAccount(memberId: string, accountData: {
+  iban: string;
+  mandateReference: string;
+  mandateSignedDate?: Date;
+  initialBalance?: number;
+}) {
+  // Erstellt member_accounts Eintrag
+  // UNIQUE(member_id) - Ein Konto pro Mitglied
+  // Automatische Verknüpfung für Beitragskonto-Display
+}
+```
+
+### **📊 DATENFLUSS-ABHÄNGIGKEITEN:**
+
+```
+1. MITGLIEDSCHAFT ERSTELLT → BeitragskalenderGenerator.onMemberCreated()
+2. BEITRAGSKALENDER EINTRÄGE → beitragskalender Tabelle (VARCHAR member_id)
+3. MEMBER ACCOUNT ERSTELLT → member_accounts Tabelle (UUID member_id)
+4. TRANSAKTIONEN ERSTELLT → member_transactions Tabelle
+5. BEITRAGSKONTO ANZEIGE → Kombination aller Datenquellen
+```
+
+### **🔧 KRITISCHE SCHEMA-HARMONISIERUNG (25.06.2025):**
+
+#### **Problem gelöst: Transaction-Type-Mapping**
+```typescript
+// ✅ VORHER: Inkonsistente Types
+// beitragskalender: 'membership_fee', 'pauschale'  
+// BeitragskontoTable: 'membership_fee', 'setup_fee'
+
+// ✅ NACHHER: Unified Mapping
+const typeLabels = {
+  // DATABASE VALUES:
+  'beitrag': 'Monatsbeitrag',
+  'startpaket': 'Startpaket', 
+  'pauschale': 'Pauschale',
+  'gebuehr': 'Gebühr',
+  
+  // LEGACY SUPPORT:
+  'membership_fee': 'Monatsbeitrag',
+  'setup_fee': 'Startpaket'
+};
+```
+
+#### **Problem gelöst: API-Integration**
+```typescript
+// ✅ VORHER: Mock-Data in Komponenten
+// ✅ NACHHER: Echte APIs implementiert
+
+// Neue APIs:
+PaymentSystemAPI.getBeitragskontoHeader(memberId)
+PaymentSystemAPI.getBeitragskontoEntries(memberId, options)
+```
+
+---
+
+## 📊 BEITRAGSKONTO-DARSTELLUNG
+
+### **🔸 HEADER-BEREICH (Über Tabelle)**
+```typescript
+interface BeitragskontoHeader {
+  saldo: {
+    amount: number;
+    status: 'offen' | 'ausgeglichen' | 'guthaben';
+    color: 'red' | 'green' | 'blue';
+    display: string; // "49,90€ offen", "Ausgeglichen", "23,50€ Guthaben"
+  };
+  naechste_faelligkeit: {
+    date: string; // ISO Date
+    amount: number;
+    type: 'beitrag' | 'pauschale' | 'startpaket' | 'gebuehr';
+    description: string;
+  };
+  bereits_gezahlt_kumuliert: {
+    amount: number;
+    seit_vertragsbeginn: string; // ISO Date
+    anzahl_zahlungen: number;
+  };
+}
+```
+
+### **🔸 TABELLEN-STRUKTUR (Exakt nach Spezifikation)**
+| Spalte | Datentyp | Beschreibung | Quelle |
+|--------|----------|--------------|--------|
+| **Fälligkeit** | DATE | Fälligkeitsdatum | `member_transactions.transaction_date` |
+| **Typ** | ENUM | Forderungstyp | `transaction_type: beitrag\|pauschale\|startpaket\|gebuehr` |
+| **Beschreibung** | TEXT | Detailbeschreibung | Aus Mitgliedschaftseinstellungen + Zeitraum |
+| **Lastschriftgruppe** | TEXT | Zahllaufgruppe | `payment_groups.name` |
+| **Betrag** | DECIMAL | Fälliger Betrag | `member_transactions.amount` |
+| **USt.** | PERCENTAGE | Steuersatz | Aus Mitgliedschaftseinstellungen |
+| **Zahlweise** | TEXT | Zahlungsart | Lastschrift/Überweisung/Bar |
+| **Offen** | DECIMAL | **KRITISCH**: Noch zu zahlender Betrag | Siehe "Offen"-Logik |
+
+---
+
+## 🧮 "OFFEN"-LOGIK (PRÄZISE BUSINESS-RULES)
+
+### **Berechnung des "Offen"-Betrags:**
+```typescript
+interface OffenBerechnung {
+  faelliger_betrag: number;        // Ursprünglich fälliger Betrag
+  bereits_gezahlt: number;         // Bereits eingegangene Zahlungen
+  ruecklastschriften: number;      // Zurückgegangene Lastschriften
+  
+  // FORMEL: offen = faelliger_betrag - bereits_gezahlt + ruecklastschriften
+  offen_betrag: number;
+}
+
+// ERGEBNISSE:
+// 0,00€ = Vollständig bezahlt
+// Differenzbetrag = Bei anteiliger Bezahlung (z.B. 49,90€ fällig, 30,00€ gezahlt = 19,90€ offen)
+// Ursprünglicher Betrag = Bei vollständiger Rücklastschrift (z.B. 49,90€ zurückgegangen = 49,90€ offen)
+```
+
+### **Status-Darstellung:**
+- **0,00€** → Grüner Text, ✅ Icon
+- **Betrag > 0** → Roter Text, ⚠️ Icon  
+- **Überzahlung** → Blauer Text, 💰 Icon (negativer "Offen"-Betrag)
+
+---
+
+## 🔄 AUTOMATISIERTE BUSINESS-LOGIC
+
+### **🔸 STILLEGUNGEN (RUHEZEITEN)**
+
+#### **Rückwirkende Stillegung:**
+```typescript
+// Wenn Stilllegung vor letzter Abbuchung liegt
+if (stillegung.start_date < letzter_abbuchungstermin) {
+  const rueckerstattung = berechneBeitragsanteil(
+    stillegung.start_date,
+    stillegung.end_date,
+    monatsbeitrag
+  );
+  
+  // Gutschrift erstellen
+  createTransaction({
+    type: 'storno',
+    amount: rueckerstattung, // Positiv = Gutschrift
+    description: `Rückwirkende Stilllegung ${formatDateRange(stillegung)}`,
+    reference_number: `STIL-${member_id}-${Date.now()}`
+  });
+}
+```
+
+#### **Zukünftige Stillegung:**
+```typescript
+// Beiträge für Stilllegungszeitraum auf 0 setzen
+const betroffene_fälligkeiten = getUpcomingPayments(
+  stillegung.start_date,
+  stillegung.end_date
+);
+
+betroffene_fälligkeiten.forEach(fälligkeit => {
+  updateTransaction(fälligkeit.id, {
+    amount: 0,
+    description: `${fälligkeit.description} (Stillgelegt)`
+  });
+});
+```
+
+#### **Reaktivierung:**
+```typescript
+// End-Datum um Stilllegungsdauer verlängern
+const stillegungsdauer = calculateDuration(stillegung.start_date, stillegung.end_date);
+const neues_end_datum = addDaysToDate(original_end_date, stillegungsdauer);
+
+updateMembership(membership_id, {
+  end_date: neues_end_datum,
+  status: 'active'
+});
+```
+
+### **🔸 AUTOMATISCHE STORNIERUNGEN**
+
+#### **Sonderkündigungsrecht:**
+```typescript
+const kuendigungsgruende_automatisch = [
+  'sonderkuendigung',
+  'studio_verschulden', 
+  'gesundheitliche_gruende',
+  'umzug_nachweisbar'
+];
+
+if (kuendigungsgruende_automatisch.includes(kuendigung.grund)) {
+  // Alle zukünftigen Fälligkeiten stornieren
+  const zukuenftige_fälligkeiten = getUpcomingPayments(kuendigung.datum);
+  
+  zukuenftige_fälligkeiten.forEach(fälligkeit => {
+    createTransaction({
+      type: 'storno',
+      amount: fälligkeit.amount,
+      description: `Automatische Stornierung: ${kuendigung.grund}`,
+      related_transaction_id: fälligkeit.id
+    });
+  });
+}
+```
+
+#### **Studio-Kündigung:**
+```typescript
+// Bei Studio-initiierter Kündigung sofortige Stornierung
+if (kuendigung.initiated_by === 'studio') {
+  const sofortige_stornierung = calculateProRataRefund(
+    kuendigung.datum,
+    letzter_abbuchungstermin,
+    monatsbeitrag
+  );
+  
+  if (sofortige_stornierung > 0) {
+    createTransaction({
+      type: 'storno',
+      amount: sofortige_stornierung,
+      description: `Studio-Kündigung anteilige Rückerstattung`
+    });
+  }
+}
+```
+
+### **🔸 GUTHABEN-MANAGEMENT**
+
+#### **Automatische Guthaben-Verrechnung:**
+```typescript
+// Bei positivem Saldo automatisch mit nächsten Fälligkeiten verrechnen
+if (member_account.balance > 0) {
+  const naechste_fälligkeiten = getUpcomingPayments(member_id, 6); // 6 Monate voraus
+  let verbleibendes_guthaben = member_account.balance;
+  
+  naechste_fälligkeiten.forEach(fälligkeit => {
+    if (verbleibendes_guthaben >= fälligkeit.amount) {
+      // Vollständige Verrechnung
+      markAsPaid(fälligkeit.id, 'guthaben_verrechnung');
+      verbleibendes_guthaben -= fälligkeit.amount;
+    } else if (verbleibendes_guthaben > 0) {
+      // Teilweise Verrechnung
+      createPartialPayment(fälligkeit.id, verbleibendes_guthaben, 'guthaben_verrechnung');
+      verbleibendes_guthaben = 0;
+    }
+  });
+}
+```
+
+---
+
+## 🗄️ ERWEITERTE DATENBANKSTRUKTUR
+
+### **Enhanced transaction_type ENUM:**
+```sql
+-- Erweitere bestehenden ENUM um 'pauschale'
+ALTER TYPE transaction_type ADD VALUE 'pauschale';
+
+-- Vollständige Liste:
+-- 'beitrag', 'lastschrift', 'storno', 'ruhezeit', 'verkauf', 
+-- 'startpaket', 'gebuehr', 'ueberzahlung', 'korrektur', 'pauschale'
+```
+
+### **Sales-Tool-Platzhalter Felder:**
+```sql
+-- Erweitere member_transactions für zukünftige Sales-Tool-Integration
+ALTER TABLE member_transactions ADD COLUMN sales_tool_reference_id UUID;
+ALTER TABLE member_transactions ADD COLUMN sales_tool_origin TEXT CHECK (sales_tool_origin IN ('sales_tool', 'manual', 'import', 'automatic'));
+ALTER TABLE member_transactions ADD COLUMN business_logic_trigger TEXT; -- 'stillegung', 'kuendigung', 'guthaben_verrechnung'
+
+-- Index für Performance
+CREATE INDEX idx_member_transactions_sales_tool ON member_transactions(sales_tool_reference_id);
+CREATE INDEX idx_member_transactions_origin ON member_transactions(sales_tool_origin);
+```
+
+### **Enhanced Payment-Status-Tracking:**
+```sql
+-- Erweitere payment_run_items für präzise "Offen"-Berechnung
+ALTER TABLE payment_run_items ADD COLUMN partial_payment_amount DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE payment_run_items ADD COLUMN return_partial_amount DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE payment_run_items ADD COLUMN outstanding_amount DECIMAL(10,2) GENERATED ALWAYS AS (
+  amount - COALESCE(partial_payment_amount, 0) + COALESCE(return_partial_amount, 0)
+) STORED;
+```
+
+---
+
+## 🎨 UI/UX-KOMPONENTEN
+
+### **BeitragskontoHeader.tsx:**
+```typescript
+interface BeitragskontoHeaderProps {
+  memberId: string;
+  memberName: string;
+  showActions?: boolean;
+}
+
+export function BeitragskontoHeader({ 
+  memberId, 
+  memberName, 
+  showActions = true 
+}: BeitragskontoHeaderProps) {
+  // Implementierung:
+  // - Saldo-Anzeige mit Farbkodierung
+  // - Nächste Fälligkeit mit Countdown
+  // - Kumulierte Zahlungen seit Vertragsbeginn
+  // - Action-Buttons für Korrekturen (wenn showActions=true)
+}
+```
+
+### **BeitragskontoTable.tsx:**
+```typescript
+interface BeitragskontoTableProps {
+  memberId: string;
+  showHistorical?: boolean;
+  maxRows?: number;
+}
+
+export function BeitragskontoTable({ 
+  memberId, 
+  showHistorical = false, 
+  maxRows = 12 
+}: BeitragskontoTableProps) {
+  // Implementierung:
+  // - Exakte Spalten-Struktur nach Spezifikation
+  // - "Offen"-Berechnung mit präziser Logik
+  // - Sortierung nach Fälligkeit (neueste zuerst)
+  // - Pagination bei maxRows Überschreitung
+}
+```
+
+---
+
+## 🔗 API-ERWEITERUNGEN
+
+### **Enhanced PaymentSystemAPI:**
+```typescript
+export class PaymentSystemAPI {
+  // Neue Methoden für Beitragskonto-System
+  
+  async getBeitragskontoHeader(memberId: string): Promise<BeitragskontoHeader> {
+    // Berechnet Saldo, nächste Fälligkeit, kumulierte Zahlungen
+  }
+  
+  async getBeitragskontoEntries(
+    memberId: string, 
+    options: {
+      includeHistorical?: boolean;
+      dateRange?: { start: string; end: string };
+      limit?: number;
+    }
+  ): Promise<BeitragskontoEntry[]> {
+    // Lädt Beitragskonto-Einträge mit "Offen"-Berechnung
+  }
+  
+  async processStillegung(
+    memberId: string,
+    stillegung: {
+      start_date: string;
+      end_date: string;
+      grund: string;
+      rueckwirkend: boolean;
+    }
+  ): Promise<{ success: boolean; gutschrift?: number; message: string }> {
+    // Automatisierte Stillegung mit Gutschrift-Berechnung
+  }
+  
+  async processAutomaticStornierung(
+    memberId: string,
+    kuendigung: {
+      datum: string;
+      grund: string;
+      initiated_by: 'member' | 'studio';
+    }
+  ): Promise<{ success: boolean; storniert_amount: number; message: string }> {
+    // Automatische Stornierung bei Sonderkündigungsrecht
+  }
+  
+  async processGuthabenVerrechnung(
+    memberId: string
+  ): Promise<{ success: boolean; verrechnet_amount: number; verbleibend: number }> {
+    // Automatische Guthaben-Verrechnung mit zukünftigen Fälligkeiten
+  }
+}
+```
+
+---
+
+## 🧪 TESTING & VALIDATION
+
+### **Test-Szenarien für Business-Logic:**
+1. **Rückwirkende Stillegung**: Gutschrift bei bereits erfolgter Abbuchung
+2. **Zukünftige Stillegung**: Beitrags-Nullstellung für Zeitraum
+3. **Sonderkündigung**: Automatische Stornierung aller zukünftigen Fälligkeiten
+4. **Rücklastschrift**: "Offen"-Betrag = ursprünglicher Betrag
+5. **Anteilige Zahlung**: "Offen"-Betrag = Differenz
+6. **Guthaben-Verrechnung**: Automatische Verrechnung mit nächsten Fälligkeiten
+
+### **Edge Cases:**
+- Mehrfache Rücklastschriften für gleiche Fälligkeit
+- Überzahlung bei anschließender Stillegung
+- Gleichzeitige Stillegung und Kündigung
+- Reaktivierung nach bereits erfolgter Guthaben-Verrechnung
+
+---
+
+## 📊 SUCCESS METRICS
+
+### **Beitragskonto-Darstellung:**
+- **Datengenauigkeit**: 100% korrekte "Offen"-Berechnung
+- **Performance**: < 500ms Loading-Zeit für 24-Monats-Übersicht
+- **User-Experience**: Intuitive Header-Informationen für sofortige Orientierung
+
+### **Business-Logic-Automatisierung:**
+- **Stillegung-Automatik**: 100% korrekte Gutschrift-Berechnung
+- **Stornierung-Automatik**: 0% manuelle Intervention bei Sonderkündigungsrecht
+- **Guthaben-Verrechnung**: Automatische Optimierung der Cash-Flow
+
+---
+
+> **MODULE STATUS**: 🚀 READY FOR IMPLEMENTATION - Alle Spezifikationen definiert  
+> **DEPENDENCIES**: payment-system-database.mdc, mitglieder-overview.mdc  
+> **INTEGRATION**: Vollständige Tab-Integration in Mitglieder-Detailseite
+
+---
+
+*Erstellt: 24.06.2025 - Beitragskonto-System Extension*

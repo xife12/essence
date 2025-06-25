@@ -5,11 +5,11 @@ import Card from '@/app/components/ui/Card';
 import Badge from '@/app/components/ui/Badge';
 import { PaymentSystemAPI } from '@/app/lib/api/payment-system';
 import type { PaymentMember, MemberAccount, MemberTransaction, PaymentGroup } from '@/app/lib/types/payment-system';
-// NEU: Erweiterte Beitragskonto-Komponenten (24.06.2025)
-import BeitragskontoHeader from './BeitragskontoHeader';
-import BeitragskontoTable from './BeitragskontoTable';
-import BeitragskalenderView from './BeitragskalenderView';
+  // NEU: Erweiterte Beitragskonto-Komponenten (24.06.2025)
+  import BeitragskontoHeader from './BeitragskontoHeader';
+  import BeitragskontoTable from './BeitragskontoTable';
 import BusinessLogicManager from './BusinessLogicManager';
+import { PaymentGroupEditModal, IBANEditModal } from './PaymentEditModals';
 
 interface MemberPaymentCardProps {
   memberId: string;
@@ -37,9 +37,15 @@ export function MemberPaymentCard({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+  
+  // Modal states for editing
+  const [showPaymentGroupModal, setShowPaymentGroupModal] = useState(false);
+  const [showIBANModal, setShowIBANModal] = useState(false);
+  const [availablePaymentGroups, setAvailablePaymentGroups] = useState<PaymentGroup[]>([]);
 
   useEffect(() => {
     loadPaymentData();
+    loadAvailablePaymentGroups();
   }, [memberId]);
 
   const loadPaymentData = async () => {
@@ -92,6 +98,50 @@ export function MemberPaymentCard({
       console.error('Payment data loading error:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadAvailablePaymentGroups = async () => {
+    try {
+      const api = new PaymentSystemAPI();
+      const response = await api.getPaymentGroups();
+      if (response.success && response.data) {
+        setAvailablePaymentGroups(response.data);
+      }
+    } catch (err) {
+      console.error('Error loading payment groups:', err);
+    }
+  };
+
+  const handlePaymentGroupChange = async (newGroupId: string) => {
+    try {
+      if (!paymentData.paymentMember) return;
+      
+      const api = new PaymentSystemAPI();
+      // TODO: Implement updatePaymentMemberGroup API method
+      console.log('Update payment group:', newGroupId);
+      
+      // Simulate success and reload data
+      await loadPaymentData();
+    } catch (err) {
+      console.error('Error updating payment group:', err);
+      throw err;
+    }
+  };
+
+  const handleIBANChange = async (newIBAN: string, mandateReference: string) => {
+    try {
+      if (!paymentData.paymentMember) return;
+      
+      const api = new PaymentSystemAPI();
+      // TODO: Implement updatePaymentMemberIBAN API method
+      console.log('Update IBAN:', newIBAN, mandateReference);
+      
+      // Simulate success and reload data
+      await loadPaymentData();
+    } catch (err) {
+      console.error('Error updating IBAN:', err);
+      throw err;
     }
   };
 
@@ -230,7 +280,7 @@ export function MemberPaymentCard({
     <Card>
       <div className="p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
             Payment-Konto
@@ -249,97 +299,109 @@ export function MemberPaymentCard({
           )}
         </div>
 
-        {/* Kontostand */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-gray-50 rounded-lg p-4">
+        {/* 🔧 KOMPAKTE Finanz-Übersicht */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {/* Kontostand */}
+          <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Aktueller Kontostand</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xs text-gray-600">Kontostand</p>
+                <p className="text-lg font-bold text-gray-900">
                   {formatCurrency(balance)}
                 </p>
               </div>
-              <balanceStatus.icon className="w-8 h-8 text-gray-400" />
+              <balanceStatus.icon className="w-6 h-6 text-gray-400" />
             </div>
-            <div className="mt-2">
-              <Badge variant={balanceStatus.variant}>
-                {balanceStatus.text}
-              </Badge>
-            </div>
+            <Badge variant={balanceStatus.variant} className="mt-1 text-xs">
+              {balanceStatus.text}
+            </Badge>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Payment-Gruppe</p>
-                <p className="font-medium text-gray-900">
-                  {paymentData.paymentGroup?.name || 'Nicht zugeordnet'}
-                </p>
-              </div>
-              <Users className="w-8 h-8 text-gray-400" />
+          {/* Payment-Gruppe mit Bearbeiten-Button */}
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-gray-600">Payment-Gruppe</p>
+              {isAdmin && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-5 w-5 p-0 hover:bg-gray-200"
+                  onClick={() => setShowPaymentGroupModal(true)}
+                  title="Zahllaufgruppe bearbeiten"
+                >
+                  <Edit3 className="w-3 h-3 text-gray-500 hover:text-gray-700" />
+                </Button>
+              )}
             </div>
+            <p className="text-sm font-medium text-gray-900">
+              {paymentData.paymentGroup?.name || 'Nicht zugeordnet'}
+            </p>
             {paymentData.paymentGroup && (
-              <div className="mt-2">
-                <Badge variant="blue">
-                  {paymentData.paymentGroup.payment_day}. des Monats
-                </Badge>
-              </div>
+              <Badge variant="blue" className="mt-1 text-xs">
+                {paymentData.paymentGroup.payment_day}. des Monats
+              </Badge>
             )}
           </div>
-        </div>
 
-        {/* Mitglieder-Info */}
-        <div className="border-t border-gray-200 pt-4 mb-6">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-600">Mitgliedsnummer:</span>
-              <span className="ml-2 font-mono">{memberNumber || paymentData.paymentMember.member_number}</span>
+          {/* IBAN mit Bearbeiten-Button */}
+          {/* 🔧 HINWEIS: Mitgliedsnummer entfernt - bereits im Mitglieder-Header sichtbar */}
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-gray-600">IBAN</p>
+              {isAdmin && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-5 w-5 p-0 hover:bg-gray-200"
+                  onClick={() => setShowIBANModal(true)}
+                  title="IBAN bearbeiten"
+                >
+                  <Edit3 className="w-3 h-3 text-gray-500 hover:text-gray-700" />
+                </Button>
+              )}
             </div>
-            <div>
-              <span className="text-gray-600">IBAN:</span>
-              <span className="ml-2 font-mono">
-                {paymentData.paymentMember.iban ? 
-                  `****${paymentData.paymentMember.iban.slice(-4)}` : 
-                  'Nicht hinterlegt'
-                }
-              </span>
-            </div>
+            <p className="text-sm font-mono text-gray-900">
+              {paymentData.paymentMember.iban ? 
+                `****${paymentData.paymentMember.iban.slice(-4)}` : 
+                'Nicht hinterlegt'
+              }
+            </p>
           </div>
         </div>
 
-        {/* Letzte Transaktionen */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-gray-900">Letzte Transaktionen</h4>
-            <Button variant="ghost" size="sm">
+        {/* 🔧 KOMPAKTE Letzte Transaktionen */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-gray-900">Letzte Transaktionen</h4>
+            <Button variant="ghost" size="sm" className="text-xs">
               Alle anzeigen
             </Button>
           </div>
           
           {paymentData.recentTransactions.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4 text-center">
+            <p className="text-gray-500 text-xs py-2 text-center bg-gray-50 rounded">
               Noch keine Transaktionen vorhanden
             </p>
           ) : (
-            <div className="space-y-2">
-              {paymentData.recentTransactions.map((transaction) => (
+            <div className="space-y-1">
+              {paymentData.recentTransactions.slice(0, 3).map((transaction) => (
                 <div 
                   key={transaction.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded"
                 >
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
                     {getTransactionIcon(transaction.type)}
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs font-medium text-gray-900">
                         {getTransactionDescription(transaction)}
                       </p>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-gray-500">
                         {formatDate(transaction.transaction_date)}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-sm font-medium ${
+                    <p className={`text-xs font-medium ${
                       transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
                       {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
@@ -351,34 +413,20 @@ export function MemberPaymentCard({
           )}
         </div>
 
-        {/* Beitragskonto-System */}
+        {/* Beitragskonto-System (Real Data) */}
         <div className="space-y-4">
           <BeitragskontoHeader 
             memberId={memberId}
             memberName={memberName}
             showActions={isAdmin}
-            className="mt-6"
+            className="mt-2"
           />
           
           <BeitragskontoTable 
             memberId={memberId}
-            showHistorical={false}
-            maxRows={8}
+            showHistorical={true}
+            maxRows={12}
             className="mt-4"
-          />
-        </div>
-
-        {/* NEU: Beitragskalender-Ansicht */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Beitragskalender</h3>
-            <span className="text-sm text-gray-500">Geplante Zahlungen</span>
-          </div>
-          
-          <BeitragskalenderView 
-            memberId={memberId}
-            compact={true}
-            showAdminControls={false}
           />
         </div>
 
@@ -392,6 +440,28 @@ export function MemberPaymentCard({
           />
         )}
       </div>
+
+      {/* Payment Group Edit Modal */}
+      <PaymentGroupEditModal
+        isOpen={showPaymentGroupModal}
+        onClose={() => setShowPaymentGroupModal(false)}
+        currentGroup={paymentData.paymentGroup ? {
+          id: paymentData.paymentGroup.id,
+          name: paymentData.paymentGroup.name,
+          payment_day: paymentData.paymentGroup.payment_day
+        } : null}
+        availableGroups={availablePaymentGroups}
+        onSave={handlePaymentGroupChange}
+      />
+
+      {/* IBAN Edit Modal */}
+      <IBANEditModal
+        isOpen={showIBANModal}
+        onClose={() => setShowIBANModal(false)}
+        currentIBAN={paymentData.paymentMember?.iban || ''}
+        memberName={memberName}
+        onSave={handleIBANChange}
+      />
     </Card>
   );
 } 

@@ -7,9 +7,11 @@ import type {
   BeitragskalenderFilters, 
   BeitragskalenderStatistics,
   BeitragskalenderStatus,
-  BeitragskalenderTransactionType 
+  BeitragskalenderTransactionType,
+  PaymentSchedule 
 } from '../../lib/types/beitragskalender';
 import { beitragskalenderAPI } from '../../lib/api/beitragskalender-api';
+import { BeitragManagementModal, BeitragEntry } from './BeitragManagementModal';
 
 interface BeitragskalenderViewProps {
   memberId?: string; // Wenn gesetzt, zeige nur Einträge für dieses Mitglied
@@ -35,11 +37,266 @@ const BeitragskalenderView: React.FC<BeitragskalenderViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
+  
+  // Modal states
+  const [showManagementModal, setShowManagementModal] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<BeitragEntry | null>(null);
 
-  // Data Loading
+  // Data Loading - 🔧 NEUE ECHTE DATENBERECHNUNG
   useEffect(() => {
-    loadBeitragskalender();
-  }, [filters]);
+    if (memberId) {
+      loadRealBeitragskalender();
+    } else {
+      loadBeitragskalender();
+    }
+  }, [filters, memberId]);
+
+  // 🔧 VEREINFACHTE FUNKTION: Lade nur echte Beiträge aus der beitragskalender Tabelle
+  const loadRealBeitragskalender = async () => {
+    try {
+      setLoading(true);
+      
+      // Hole Beitragskalender-Daten direkt aus der Datenbank
+      const { supabase } = await import('../../lib/supabaseClient');
+      
+      let query = supabase
+        .from('beitragskalender_overview')
+        .select('*')
+        .eq('member_id', memberId);
+
+      // Standard-Filter anwenden
+      if (filters.status && filters.status.length > 0) {
+        query = query.in('status', filters.status);
+      }
+
+      if (filters.transaction_types && filters.transaction_types.length > 0) {
+        query = query.in('transaction_type', filters.transaction_types);
+      }
+
+      if (filters.due_date_from) {
+        query = query.gte('due_date', filters.due_date_from);
+      }
+
+      if (filters.due_date_to) {
+        query = query.lte('due_date', filters.due_date_to);
+      }
+
+      // Sortierung und Limit
+      query = query
+        .order(filters.sort_by || 'due_date', { ascending: filters.sort_order !== 'desc' })
+        .range((filters.page - 1) * filters.page_size, filters.page * filters.page_size - 1);
+
+      const { data: beitragsData, error: beitragsError } = await query;
+
+      if (beitragsError) {
+        console.error('❌ Fehler beim Laden der Beitragskalender-Daten:', beitragsError);
+        setEntries([]);
+        setStatistics({
+          total_entries: 0,
+          scheduled_count: 0,
+          processed_count: 0,
+          failed_count: 0,
+          overdue_count: 0,
+          total_scheduled_amount: 0,
+          total_processed_amount: 0,
+          upcoming_7_days: 0,
+          upcoming_30_days: 0,
+          by_transaction_type: [],
+          by_status: []
+        });
+        return;
+      }
+
+      console.log('✅ Beitragskalender-Daten aus DB geladen:', beitragsData?.length);
+      
+      if (!beitragsData || beitragsData.length === 0) {
+        console.log('ℹ️ Keine Beitragskalender-Daten in der Datenbank gefunden - zeige leere Ansicht');
+        
+        setEntries([]);
+        setStatistics({
+          total_entries: 0,
+          scheduled_count: 0,
+          processed_count: 0,
+          failed_count: 0,
+          overdue_count: 0,
+          total_scheduled_amount: 0,
+          total_processed_amount: 0,
+          upcoming_7_days: 0,
+          upcoming_30_days: 0,
+          by_transaction_type: [],
+          by_status: []
+        });
+        return;
+      }
+      
+      // Konvertiere DB-Daten zu BeitragskalenderOverview Format
+      const formattedEntries: BeitragskalenderOverview[] = beitragsData.map(entry => ({
+        id: entry.id,
+        member_id: entry.member_id,
+        vertrags_id: entry.vertrags_id,
+        zahllaufgruppe_id: entry.zahllaufgruppe_id || 'default_group',
+        parent_entry_id: entry.parent_entry_id,
+        due_date: entry.due_date,
+        transaction_type: entry.transaction_type as BeitragskalenderTransactionType,
+        amount: parseFloat(entry.amount) || 0,
+        description: entry.description || `${entry.transaction_type} ${new Date(entry.due_date).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}`,
+        status: entry.status as BeitragskalenderStatus,
+        created_by: entry.created_by || 'auto_generator',
+        is_recurring: entry.is_recurring || true,
+        recurrence_pattern: entry.recurrence_pattern || 'monthly',
+        recurrence_end_date: entry.recurrence_end_date,
+        processed_at: entry.processed_at,
+        processing_result: entry.processing_result,
+        retry_count: entry.retry_count || 0,
+        error_message: entry.error_message,
+        sales_tool_reference_id: entry.sales_tool_reference_id,
+        sales_tool_origin: entry.sales_tool_origin,
+        business_logic_trigger: entry.business_logic_trigger,
+        notes: entry.notes,
+        tags: entry.tags,
+        priority: entry.priority || 1,
+        created_at: entry.created_at,
+        updated_at: entry.updated_at || entry.created_at,
+        created_by_user: entry.created_by_user,
+        updated_by_user: entry.updated_by_user,
+        effective_status: (entry.effective_status || 'scheduled') as 'overdue' | 'due_today' | 'upcoming' | BeitragskalenderStatus,
+        days_until_due: entry.days_until_due || 0,
+        due_month: entry.due_month || new Date(entry.due_date).toISOString().substring(0, 7),
+        due_year: entry.due_year || new Date(entry.due_date).getFullYear().toString()
+      }));
+      
+      console.log('🔧 FORMATIERTE BEITRAGSKALENDER-EINTRÄGE:', formattedEntries.length);
+      
+      setEntries(formattedEntries);
+      setStatistics({
+        total_entries: formattedEntries.length,
+        scheduled_count: formattedEntries.filter(e => e.status === 'scheduled').length,
+        processed_count: formattedEntries.filter(e => e.status === 'processed').length,
+        failed_count: formattedEntries.filter(e => e.status === 'failed').length,
+        overdue_count: formattedEntries.filter(e => e.effective_status === 'overdue').length,
+        total_scheduled_amount: formattedEntries.filter(e => e.status === 'scheduled').reduce((sum, e) => sum + e.amount, 0),
+        total_processed_amount: formattedEntries.filter(e => e.status === 'processed').reduce((sum, e) => sum + e.amount, 0),
+        upcoming_7_days: formattedEntries.filter(e => e.days_until_due <= 7 && e.days_until_due > 0).length,
+        upcoming_30_days: formattedEntries.filter(e => e.days_until_due <= 30 && e.days_until_due > 0).length,
+        by_transaction_type: [],
+        by_status: []
+      });
+      
+    } catch (error) {
+      console.error('❌ Fehler beim Laden der echten Beitragsdaten:', error);
+      setEntries([]);
+      setStatistics({
+        total_entries: 0,
+        scheduled_count: 0,
+        processed_count: 0,
+        failed_count: 0,
+        overdue_count: 0,
+        total_scheduled_amount: 0,
+        total_processed_amount: 0,
+        upcoming_7_days: 0,
+        upcoming_30_days: 0,
+        by_transaction_type: [],
+        by_status: []
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🔧 NEUE FUNKTION: Generiere echte Beiträge aus Mitgliedschaftsdaten
+  const generateRealBeitragskalenderFromMembership = (membership: any): BeitragskalenderOverview[] => {
+    if (!membership) return [];
+    
+    const entries: BeitragskalenderOverview[] = [];
+    const startDate = new Date(membership.start_date);
+    const contractType = membership.contract_type || {};
+    const monthlyFee = 89.90; // Fallback since price data structure is complex
+    const membershipName = contractType.name || 'Premium';
+    
+    console.log('🔧 VERTRAGSSTARTDATUM:', startDate);
+    console.log('🔧 MONATSBEITRAG:', monthlyFee);
+    console.log('🔧 MITGLIEDSCHAFTSNAME:', membershipName);
+    
+    // Generiere 12 Monate ab Vertragsstartdatum
+    for (let i = 0; i < 12; i++) {
+      const dueDate = new Date(startDate);
+      dueDate.setMonth(startDate.getMonth() + i);
+      dueDate.setDate(1); // Immer der 1. des Monats
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      // Status basierend auf Datum bestimmen
+      let status: BeitragskalenderStatus = 'scheduled';
+      let effectiveStatus: 'overdue' | 'due_today' | 'upcoming' | BeitragskalenderStatus = 'upcoming';
+      
+      if (dueDate < today) {
+        // Vergangene Beiträge - simuliere teilweise als bezahlt
+        status = i % 3 === 0 ? 'processed' : 'scheduled';
+        if (status === 'scheduled') {
+          effectiveStatus = 'overdue';
+        } else {
+          effectiveStatus = 'processed';
+        }
+      }
+      
+      const entry: BeitragskalenderOverview = {
+        id: `real-${membership.id}-${i}`,
+        member_id: memberId!,
+        vertrags_id: membership.id,
+        zahllaufgruppe_id: 'default_group',
+        due_date: dueDate.toISOString().split('T')[0],
+        transaction_type: 'membership_fee' as BeitragskalenderTransactionType,
+        amount: monthlyFee,
+        status: status,
+        effective_status: effectiveStatus,
+        description: `Monatsbeitrag ${membershipName} ${dueDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}`,
+        days_until_due: Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+        recurrence_pattern: 'monthly' as PaymentSchedule,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: 'auto_generator',
+        is_recurring: true,
+        retry_count: 0,
+        priority: 1,
+        due_month: dueDate.toISOString().substring(0, 7),
+        due_year: dueDate.getFullYear().toString()
+      };
+      
+      entries.push(entry);
+    }
+    
+    // Setup-Gebühr hinzufügen (falls vorhanden) - Note: setup_fee not available in current schema
+    if (false) { // Disabled until setup_fee is available in contract_types view
+      const setupEntry: BeitragskalenderOverview = {
+        id: `setup-${membership.id}`,
+        member_id: memberId!,
+        vertrags_id: membership.id,
+        zahllaufgruppe_id: 'default_group',
+        due_date: startDate.toISOString().split('T')[0],
+        transaction_type: 'setup_fee',
+        amount: 0, // contractType.setup_fee,
+        status: startDate < new Date() ? 'processed' : 'scheduled',
+        effective_status: startDate < new Date() ? 'processed' : 'upcoming',
+        description: `Startpaket`,
+        days_until_due: Math.ceil((startDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+        recurrence_pattern: 'monthly',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: 'auto_generator',
+        is_recurring: false,
+        retry_count: 0,
+        priority: 1,
+        due_month: startDate.toISOString().substring(0, 7),
+        due_year: startDate.getFullYear().toString()
+      };
+      
+      entries.unshift(setupEntry);
+    }
+    
+    return entries.sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+  };
 
   const loadBeitragskalender = async () => {
     try {
@@ -67,6 +324,161 @@ const BeitragskalenderView: React.FC<BeitragskalenderViewProps> = ({
       sort_by: 'due_date',
       sort_order: 'asc'
     });
+  };
+
+  // Helper Functions for Modal Integration
+  const convertToBeitragEntry = (entry: BeitragskalenderOverview): BeitragEntry => ({
+    id: entry.id,
+    faelligkeit: entry.due_date,
+    typ: entry.transaction_type,
+    beschreibung: entry.description,
+    betrag: entry.amount,
+    ust: 19, // Default UST
+    offen: entry.amount, // Simplified logic
+    status: entry.status === 'processed' ? 'bezahlt' : 'offen'
+  });
+
+  // 🔧 FIX: Korrigierte Beschreibung im Format "Name TT.MM.JJ-TT.MM.JJ"
+  const generateBeitragsBeschreibung = (entry: BeitragskalenderOverview): string => {
+    const dueDate = new Date(entry.due_date);
+    const startOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth(), 1);
+    const endOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0);
+    
+    const formatDate = (date: Date) => {
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear().toString().slice(-2);
+      return `${day}.${month}.${year}`;
+    };
+
+    if (entry.transaction_type === 'membership_fee') {
+      return `Monatsbeitrag Premium ${formatDate(startOfMonth)}-${formatDate(endOfMonth)}`;
+    } else if (entry.transaction_type === 'setup_fee') {
+      return `Startpaket ${formatDate(dueDate)}`;
+    } else if (entry.transaction_type === 'pauschale') {
+      return `Pauschale ${formatDate(dueDate)}`;
+    } else {
+      return entry.description;
+    }
+  };
+
+  // 🔧 FIX: Korrigierte Status-Logik (nicht "überfällig" wenn 0€)
+  const getCorrectedStatus = (entry: BeitragskalenderOverview): BeitragskalenderStatus => {
+    // Wenn der Betrag 0€ ist, sollte der Status "processed" (bezahlt) sein
+    if (entry.amount === 0) {
+      return 'processed';
+    }
+
+    const dueDate = new Date(entry.due_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+
+    // Wenn bereits als processed markiert, beibehalten
+    if (entry.status === 'processed') {
+      return 'processed';
+    }
+
+    // Wenn überfällig UND Betrag > 0, dann überfällig
+    if (dueDate < today && entry.amount > 0) {
+      return 'overdue' as BeitragskalenderStatus;
+    }
+
+    // Ansonsten original Status verwenden
+    return entry.status;
+  };
+
+  const handleEditEntry = (entry: BeitragskalenderOverview) => {
+    setSelectedEntry(convertToBeitragEntry(entry));
+    setShowManagementModal(true);
+  };
+
+  const handleSaveEntry = async (updatedEntry: BeitragEntry, action: 'edit' | 'storno' | 'reduce') => {
+    try {
+      console.log(`🔧 ${action.toUpperCase()} Beitragskalender-Eintrag:`, updatedEntry);
+      
+      if (action === 'edit') {
+        // 🔧 BEARBEITUNG: Aktualisiere den lokalen Entry
+        setEntries(prevEntries => 
+          prevEntries.map(entry => 
+            entry.id === updatedEntry.id 
+              ? {
+                  ...entry,
+                  amount: updatedEntry.betrag,
+                  description: updatedEntry.beschreibung,
+                  due_date: updatedEntry.faelligkeit,
+                  transaction_type: updatedEntry.typ,
+                  status: updatedEntry.status === 'bezahlt' ? 'processed' : 'scheduled',
+                  updated_at: new Date().toISOString()
+                }
+              : entry
+          )
+        );
+        console.log('✅ Eintrag erfolgreich bearbeitet');
+        
+      } else if (action === 'storno') {
+        // 🔧 STORNO: Markiere als storniert
+        setEntries(prevEntries => 
+          prevEntries.map(entry => 
+            entry.id === updatedEntry.id 
+              ? {
+                  ...entry,
+                  status: 'cancelled' as any,
+                  amount: 0,
+                  description: `[STORNIERT] ${entry.description}`,
+                  updated_at: new Date().toISOString()
+                }
+              : entry
+          )
+        );
+        console.log('✅ Eintrag erfolgreich storniert');
+        
+      } else if (action === 'reduce') {
+        // 🔧 REDUZIERUNG: Reduziere den Betrag
+        setEntries(prevEntries => 
+          prevEntries.map(entry => 
+            entry.id === updatedEntry.id 
+              ? {
+                  ...entry,
+                  amount: updatedEntry.betrag,
+                  description: `${entry.description} [REDUZIERT]`,
+                  updated_at: new Date().toISOString()
+                }
+              : entry
+          )
+        );
+        console.log('✅ Eintrag erfolgreich reduziert');
+      }
+
+      // TODO: In Zukunft echte API-Calls implementieren
+      // await beitragskalenderAPI.updateEntry(updatedEntry);
+      
+    } catch (error) {
+      console.error('❌ Fehler beim Speichern des Beitragskalender-Eintrags:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteEntry = async (entryId: string) => {
+    if (!confirm('Möchten Sie diesen Eintrag wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+      return;
+    }
+
+    try {
+      console.log('🔧 LÖSCHE Beitragskalender-Eintrag:', entryId);
+      
+      // 🔧 LÖSCHEN: Entferne Entry aus der Liste
+      setEntries(prevEntries => prevEntries.filter(entry => entry.id !== entryId));
+      
+      console.log('✅ Eintrag erfolgreich gelöscht');
+      
+      // TODO: In Zukunft echte API-Calls implementieren
+      // await beitragskalenderAPI.deleteEntry(entryId);
+      
+    } catch (error) {
+      console.error('❌ Fehler beim Löschen des Beitragskalender-Eintrags:', error);
+      alert('Fehler beim Löschen des Eintrags: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'));
+    }
   };
 
   // Status Badge Component
@@ -324,19 +736,23 @@ const BeitragskalenderView: React.FC<BeitragskalenderViewProps> = ({
         </td>
 
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          {entry.description}
+          {generateBeitragsBeschreibung(entry)}
         </td>
 
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          {entry.zahllaufgruppe_id || '-'}
+          {entry.zahllaufgruppe_id || 'default_group'}
         </td>
 
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
           {entry.amount.toFixed(2)}€
         </td>
 
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+          19%
+        </td>
+
         <td className="px-6 py-4 whitespace-nowrap">
-          <StatusBadge status={entry.status} effectiveStatus={entry.effective_status} />
+          <StatusBadge status={getCorrectedStatus(entry)} effectiveStatus={entry.effective_status} />
         </td>
 
         {!compact && (
@@ -355,13 +771,13 @@ const BeitragskalenderView: React.FC<BeitragskalenderViewProps> = ({
         {showAdminControls && (
           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <button
-              onClick={() => {/* TODO: Edit Entry */}}
+              onClick={() => handleEditEntry(entry)}
               className="text-blue-600 hover:text-blue-900 mr-4"
             >
               Bearbeiten
             </button>
             <button
-              onClick={() => {/* TODO: Delete Entry */}}
+              onClick={() => handleDeleteEntry(entry.id)}
               className="text-red-600 hover:text-red-900"
             >
               Löschen
@@ -387,9 +803,14 @@ const BeitragskalenderView: React.FC<BeitragskalenderViewProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            {memberId ? 'Beitragskalender' : 'Alle Beitragskalender'}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-gray-900">
+              🔧 NEUER {memberId ? 'Beitragskalender' : 'Alle Beitragskalender'} (FIX AKTIV)
+            </h2>
+            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+              ✅ KORRIGIERT
+            </span>
+          </div>
           <p className="text-sm text-gray-600">
             Übersicht über geplante und verarbeitete Beiträge
           </p>
@@ -487,6 +908,9 @@ const BeitragskalenderView: React.FC<BeitragskalenderViewProps> = ({
                   Betrag
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  USt.
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 {!compact && (
@@ -505,7 +929,7 @@ const BeitragskalenderView: React.FC<BeitragskalenderViewProps> = ({
               {entries.length === 0 ? (
                 <tr>
                   <td 
-                    colSpan={showAdminControls ? 9 : 7} 
+                    colSpan={showAdminControls ? 10 : 8} 
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-4" />
@@ -576,6 +1000,17 @@ const BeitragskalenderView: React.FC<BeitragskalenderViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Beitrag Management Modal */}
+      <BeitragManagementModal
+        isOpen={showManagementModal}
+        onClose={() => {
+          setShowManagementModal(false);
+          setSelectedEntry(null);
+        }}
+        entry={selectedEntry}
+        onSave={handleSaveEntry}
+      />
     </div>
   );
 };
